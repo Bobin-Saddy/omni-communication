@@ -3,7 +3,7 @@
 client_id = "9bd04785598160185f3b5d64532b818e"
 name = "omni-communication"
 handle = "omni-communication"
-application_url = "https://popular-plasma-attended-laura.trycloudflare.com"
+application_url = "https://wound-architects-congress-keys.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://popular-plasma-attended-laura.trycloudflare.com/auth/callback",
-  "https://popular-plasma-attended-laura.trycloudflare.com/auth/shopify/callback",
-  "https://popular-plasma-attended-laura.trycloudflare.com/api/auth/callback"
+  "https://wound-architects-congress-keys.trycloudflare.com/auth/callback",
+  "https://wound-architects-congress-keys.trycloudflare.com/auth/shopify/callback",
+  "https://wound-architects-congress-keys.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
