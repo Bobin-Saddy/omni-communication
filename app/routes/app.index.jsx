@@ -1,9 +1,23 @@
+import { useEffect } from "react";
+
 export default function FacebookLoginButton() {
   const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
     import.meta.env.VITE_FACEBOOK_APP_ID
   }&redirect_uri=${
     import.meta.env.VITE_FB_REDIRECT_URI
   }&scope=email,public_profile`;
+
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data === "facebook-login-success") {
+        console.log("Facebook connected successfully!");
+        // You can refresh user state or refetch data here
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   const openFacebookLogin = () => {
     const width = 600;
@@ -30,7 +44,7 @@ export default function FacebookLoginButton() {
         cursor: "pointer",
       }}
     >
-      Login with Facebook
+      Connect with Facebook
     </button>
   );
 }
