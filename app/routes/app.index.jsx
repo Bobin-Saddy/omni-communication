@@ -17,6 +17,8 @@ export default function Index() {
       }
     };
 
+    console.log('check-handle-message--->', handleMessage);
+
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
