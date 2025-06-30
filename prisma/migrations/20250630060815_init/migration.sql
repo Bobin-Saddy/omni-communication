@@ -10,7 +10,7 @@
 -- RedefineTables
 PRAGMA defer_foreign_keys=ON;
 PRAGMA foreign_keys=OFF;
-CREATE TABLE "new_Session" (
+CREATE TABLE "Session" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "shop" TEXT NOT NULL,
     "state" TEXT NOT NULL,
