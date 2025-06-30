@@ -38,12 +38,13 @@ export const loader = async ({ request }) => {
 
     const userProfile = userProfileResponse.data;
 
-    console.log("Facebook user profile:", userProfile);
+    console.log("✅ Facebook user profile:", userProfile);
 
     // TODO: Save userProfile to DB or create session here
 
     // Return HTML that auto-closes popup
-    return new Response(`
+    return new Response(
+      `
       <html>
         <body>
           <script>
@@ -53,12 +54,13 @@ export const loader = async ({ request }) => {
           <p>Facebook login successful. You can close this window.</p>
         </body>
       </html>
-    `, {
-      headers: { "Content-Type": "text/html" },
-    });
-
+    `,
+      {
+        headers: { "Content-Type": "text/html" },
+      }
+    );
   } catch (error) {
-    console.error("Facebook callback error:", error);
+    console.error("❌ Facebook callback error:", error);
     return json({ error: "Facebook login failed" }, { status: 500 });
   }
 };
