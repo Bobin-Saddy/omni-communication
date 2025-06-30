@@ -1,74 +1,34 @@
-import { json } from "@remix-run/node";
-import axios from "axios";
+// Example: app/routes/api/facebook/callback.jsx
+
+import { json, redirect } from "@remix-run/node";
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
 
-  if (!code) {
-    return json({ error: "No code returned from Facebook" }, { status: 400 });
-  }
+  // Exchange code for access token
+  const tokenRes = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${process.env.VITE_FACEBOOK_APP_ID}&redirect_uri=${process.env.VITE_FB_REDIRECT_URI}&client_secret=${process.env.FACEBOOK_APP_SECRET}&code=${code}`);
+  const tokenData = await tokenRes.json();
 
-  try {
-    // Exchange code for access token
-    const tokenResponse = await axios.get(
-      `https://graph.facebook.com/v18.0/oauth/access_token`,
-      {
-        params: {
-          client_id: process.env.VITE_FACEBOOK_APP_ID,
-          client_secret: process.env.FACEBOOK_APP_SECRET,
-          redirect_uri: process.env.VITE_FB_REDIRECT_URI,
-          code: code,
-        },
-      }
-    );
+  const userAccessToken = tokenData.access_token;
 
-    const accessToken = tokenResponse.data.access_token;
+  // Get user pages
+  const pagesRes = await fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`);
+  const pagesData = await pagesRes.json();
 
-    // Fetch user profile
-    const userProfileResponse = await axios.get(
-      `https://graph.facebook.com/me`,
-      {
-        params: {
-          fields: "id,name,email",
-          access_token: accessToken,
-        },
-      }
-    );
+  console.log("Connected Pages:", pagesData);
 
-    const userProfile = userProfileResponse.data;
+  // Save page access token in DB for messaging
+  const page = pagesData.data[0];
+  const pageAccessToken = page.access_token;
+  const pageId = page.id;
 
-    console.log("✅ Facebook user profile:", userProfile);
+  // Save these securely in your database for future message APIs
+  console.log("Page ID:", pageId, "Page Access Token:", pageAccessToken);
 
-    // TODO: Save userProfile to DB or create session here
-
-    // Return HTML that auto-closes popup
-    return new Response(
-      `
-      <html>
-        <body>
-          <script>
-            window.opener.postMessage("facebook-login-success", "*");
-            window.close();
-          </script>
-          <p>Facebook login successful. You can close this window.</p>
-        </body>
-      </html>
-    `,
-      {
-        headers: { "Content-Type": "text/html" },
-      }
-    );
-  } catch (error) {
-    console.error("❌ Facebook callback error:", error);
-    return json({ error: "Facebook login failed" }, { status: 500 });
-  }
+  return redirect("/?connected=true");
 };
 
 export default function Callback() {
-  return (
-    <div>
-      <p>Processing Facebook login...</p>
-    </div>
-  );
+  return <div>Connecting...</div>;
 }
