@@ -3,7 +3,7 @@
 client_id = "9bd04785598160185f3b5d64532b818e"
 name = "omni-communication"
 handle = "omni-communication"
-application_url = "https://cadillac-foo-welfare-since.trycloudflare.com"
+application_url = "https://popular-plasma-attended-laura.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://cadillac-foo-welfare-since.trycloudflare.com/auth/callback",
-  "https://cadillac-foo-welfare-since.trycloudflare.com/auth/shopify/callback",
-  "https://cadillac-foo-welfare-since.trycloudflare.com/api/auth/callback"
+  "https://popular-plasma-attended-laura.trycloudflare.com/auth/callback",
+  "https://popular-plasma-attended-laura.trycloudflare.com/auth/shopify/callback",
+  "https://popular-plasma-attended-laura.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

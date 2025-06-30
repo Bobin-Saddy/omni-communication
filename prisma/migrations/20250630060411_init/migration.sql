@@ -1,11 +1,36 @@
-/*
-  Warnings:
+-- CreateTable
+CREATE TABLE "Session" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "shop" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "isOnline" BOOLEAN NOT NULL,
+    "scope" TEXT,
+    "accessToken" TEXT,
+    "expires" DATETIME,
+    "onlineAccessInfo" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
 
-  - You are about to drop the column `platform` on the `Message` table. All the data in the column will be lost.
-  - You are about to drop the column `senderName` on the `Message` table. All the data in the column will be lost.
-  - Added the required column `pageId` to the `Message` table without a default value. This is not possible if the table is not empty.
+-- CreateTable
+CREATE TABLE "manSession" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "shop" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "isOnline" BOOLEAN NOT NULL DEFAULT false,
+    "scope" TEXT,
+    "expires" DATETIME,
+    "accessToken" TEXT NOT NULL,
+    "userId" BIGINT,
+    "firstName" TEXT,
+    "lastName" TEXT,
+    "email" TEXT,
+    "accountOwner" BOOLEAN NOT NULL DEFAULT false,
+    "locale" TEXT,
+    "collaborator" BOOLEAN DEFAULT false,
+    "emailVerified" BOOLEAN DEFAULT false
+);
 
-*/
 -- CreateTable
 CREATE TABLE "Store" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -33,10 +58,8 @@ CREATE TABLE "Page" (
     CONSTRAINT "Page_fbUserId_fkey" FOREIGN KEY ("fbUserId") REFERENCES "FbUser" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
--- RedefineTables
-PRAGMA defer_foreign_keys=ON;
-PRAGMA foreign_keys=OFF;
-CREATE TABLE "new_Message" (
+-- CreateTable
+CREATE TABLE "Message" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "pageId" INTEGER NOT NULL,
     "senderId" TEXT NOT NULL,
@@ -45,11 +68,6 @@ CREATE TABLE "new_Message" (
     "timestamp" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Message_pageId_fkey" FOREIGN KEY ("pageId") REFERENCES "Page" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-INSERT INTO "new_Message" ("content", "direction", "id", "senderId", "timestamp") SELECT "content", "direction", "id", "senderId", "timestamp" FROM "Message";
-DROP TABLE "Message";
-ALTER TABLE "new_Message" RENAME TO "Message";
-PRAGMA foreign_keys=ON;
-PRAGMA defer_foreign_keys=OFF;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Store_shopDomain_key" ON "Store"("shopDomain");
