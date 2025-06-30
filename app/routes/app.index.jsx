@@ -1,15 +1,10 @@
 export default function FacebookLoginButton() {
- const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
-  import.meta.env.VITE_FACEBOOK_APP_ID
-}&redirect_uri=${
-  import.meta.env.VITE_FB_REDIRECT_URI
-}&scope=email,public_profile`;
-console.log("FACEBOOK APP ID:", import.meta.env.VITE_FACEBOOK_APP_ID);
+  const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
+    import.meta.env.VITE_FACEBOOK_APP_ID
+  }&redirect_uri=${
+    import.meta.env.VITE_FB_REDIRECT_URI
+  }&scope=email,public_profile`;
 
-//  const shop = params.get("shop");
-
-
-    
   const openFacebookLogin = () => {
     const width = 600;
     const height = 700;
@@ -22,9 +17,8 @@ console.log("FACEBOOK APP ID:", import.meta.env.VITE_FACEBOOK_APP_ID);
       `width=${width},height=${height},top=${top},left=${left},popup=yes`
     );
   };
-//   <p>Store: <strong>{shop}</strong></p>
+
   return (
-    
     <button
       onClick={openFacebookLogin}
       style={{
