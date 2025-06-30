@@ -2,13 +2,11 @@ import { useEffect } from "react";
 import FacebookLogoutButton from "./FacebookLogoutButton";
 
 export default function Index() {
-const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
-  import.meta.env.VITE_FACEBOOK_APP_ID
-}&redirect_uri=${
-  import.meta.env.VITE_FB_REDIRECT_URI
-}&scope=email,public_profile
-&auth_type=reauthenticate`;
-
+  const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
+    import.meta.env.VITE_FACEBOOK_APP_ID
+  }&redirect_uri=${
+    import.meta.env.VITE_FB_REDIRECT_URI
+  }&scope=email,public_profile`;
 
   useEffect(() => {
     const handleMessage = (event) => {
