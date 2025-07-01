@@ -1,46 +1,74 @@
-import express from "express";
+import { json } from "@remix-run/node";
 import axios from "axios";
 
-const router = express.Router();
+export const loader = async ({ request }) => {
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
 
-router.get("/facebook/callback", async (req, res) => {
-  const { code } = req.query;
+  if (!code) {
+    return json({ error: "No code returned from Facebook" }, { status: 400 });
+  }
 
   try {
     // Exchange code for access token
-    const tokenRes = await axios.get(
-      `https://graph.facebook.com/v18.0/oauth/access_token`, {
+    const tokenResponse = await axios.get(
+      `https://graph.facebook.com/v18.0/oauth/access_token`,
+      {
         params: {
-          client_id: process.env.FB_APP_ID,
-          redirect_uri: process.env.FB_REDIRECT_URI,
-          client_secret: process.env.FB_APP_SECRET,
-          code,
+          client_id: process.env.VITE_FACEBOOK_APP_ID,
+          client_secret: process.env.FACEBOOK_APP_SECRET,
+          redirect_uri: process.env.VITE_FB_REDIRECT_URI,
+          code: code,
         },
       }
     );
 
-    const accessToken = tokenRes.data.access_token;
+    const accessToken = tokenResponse.data.access_token;
 
     // Fetch user profile
-    const userRes = await axios.get(
-      `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
+    const userProfileResponse = await axios.get(
+      `https://graph.facebook.com/me`,
+      {
+        params: {
+          fields: "id,name,email",
+          access_token: accessToken,
+        },
+      }
     );
 
-    const fbUser = userRes.data; // { id, name, email }
+    const userProfile = userProfileResponse.data;
 
-    // Fetch user chat data from DB using fbUser.id
-    const userChats = await getChatsByFacebookId(fbUser.id); // Implement this DB function
+    console.log("✅ Facebook user profile:", userProfile);
 
-    // Send user and chat data to frontend
-    res.json({
-      user: fbUser,
-      chats: userChats,
-    });
+    // TODO: Save userProfile to DB or create session here
 
-  } catch (err) {
-    console.error("Facebook login error:", err.response?.data || err);
-    res.status(500).json({ error: "Facebook login failed" });
+    // Return HTML that auto-closes popup
+    return new Response(
+      `
+      <html>
+        <body>
+          <script>
+            window.opener.postMessage("facebook-login-success", "*");
+            window.close();
+          </script>
+          <p>Facebook login successful. You can close this window.</p>
+        </body>
+      </html>
+    `,
+      {
+        headers: { "Content-Type": "text/html" },
+      }
+    );
+  } catch (error) {
+    console.error("❌ Facebook callback error:", error);
+    return json({ error: "Facebook login failed" }, { status: 500 });
   }
-});
+};
 
-export default router;
+export default function Callback() {
+  return (
+    <div>
+      <p>Processing Facebook login...</p>
+    </div>
+  );
+}
