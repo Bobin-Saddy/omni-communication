@@ -1,26 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import FacebookLogoutButton from "./FacebookLogoutButton";
-import { fetchPageConversations } from "./app.facebook/fetchConversations";
 
 export default function Index() {
-  const [conversations, setConversations] = useState([]);
-
   const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
     import.meta.env.VITE_FACEBOOK_APP_ID
   }&redirect_uri=${
     import.meta.env.VITE_FB_REDIRECT_URI
-  }&scope=email,public_profile,pages_show_list,pages_messaging`;
-
-  const pageAccessToken = "EAAbkNd1CHq4BOynG9dCUL7ModRfUiP5efEgFFOZC0amWKmkMG7pa6qHnBtfzxbVTZA5r3ZBhrNPAFyLgRYw5SRAo928c7UjCPJi1LlIPpbal2o4ExscgGVZA3P3F2Km3qjcjtIGitiI6nwZARWeerjhvgfqpZBa5hPVbefdUnxFwmkBbZCSdb8YUZAveuDYrKVoIsf8TZBCAnWSBGg18VXB2xraSmr2qZCQWsnTjHbqU2stj1Opyx36VsZCtf9UtoUasNLLpw7DbKZBk7QZDZD"; // Replace with your actual token
-  const pageId = "756074130914844"; // Replace with your Page ID
+  }&scope=email,public_profile`;
 
   useEffect(() => {
     const handleMessage = (event) => {
       if (event.data === "facebook-login-success") {
         console.log("Facebook connected successfully!");
+        // You can refresh user state or refetch data here
         window.location.reload();
       }
     };
+
+    console.log('check-handle-message--->', handleMessage);
+
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
@@ -37,20 +35,6 @@ export default function Index() {
       `width=${width},height=${height},top=${top},left=${left},popup=yes`
     );
   };
-
-  const loadConversations = async () => {
-    try {
-      const data = await fetchPageConversations(pageAccessToken, pageId);
-      console.log("Conversations data: ", data);
-      setConversations(data.data);
-    } catch (error) {
-      console.error("Error fetching conversations: ", error);
-    }
-  };
-
-  useEffect(() => {
-    loadConversations();
-  }, []);
 
   return (
     <div style={{ padding: "20px" }}>
@@ -72,18 +56,6 @@ export default function Index() {
       </button>
 
       <FacebookLogoutButton />
-
-      <h2 style={{ marginTop: "30px" }}>Connected Users:</h2>
-      <ul>
-        {conversations.map((conv) => (
-          <li key={conv.id}>
-            {conv.participants.data
-              .map((p) => p.name)
-              .join(", ")}{" "}
-            ({conv.message_count} messages)
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
