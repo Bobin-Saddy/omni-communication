@@ -5,6 +5,13 @@ export default function Index() {
   const [fbUser, setFbUser] = useState(null);
   const [chats, setChats] = useState([]);
 
+  // Define facebookLoginUrl here
+  const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
+    import.meta.env.VITE_FACEBOOK_APP_ID
+  }&redirect_uri=${
+    import.meta.env.VITE_FB_REDIRECT_URI
+  }&scope=email,public_profile`;
+
   useEffect(() => {
     // Check if URL has fb code after redirect
     const params = new URLSearchParams(window.location.search);
