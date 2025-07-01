@@ -11,7 +11,7 @@ export default function Index() {
     const code = params.get("code");
 
     if (code) {
-      fetch(`/api/facebook/callback?code=${code}`)
+      fetch(`/facebook/callback?code=${code}`)
         .then((res) => res.json())
         .then((data) => {
           setFbUser(data.user);
