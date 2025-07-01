@@ -1,26 +1,24 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import FacebookLogoutButton from "./FacebookLogoutButton";
 
 export default function Index() {
-  const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
-    import.meta.env.VITE_FACEBOOK_APP_ID
-  }&redirect_uri=${
-    import.meta.env.VITE_FB_REDIRECT_URI
-  }&scope=email,public_profile`;
+  const [fbUser, setFbUser] = useState(null);
+  const [chats, setChats] = useState([]);
 
   useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data === "facebook-login-success") {
-        console.log("Facebook connected successfully!");
-        // You can refresh user state or refetch data here
-        window.location.reload();
-      }
-    };
+    // Check if URL has fb code after redirect
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
 
-    console.log('check-handle-message--->', handleMessage);
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    if (code) {
+      fetch(`/api/facebook/callback?code=${code}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setFbUser(data.user);
+          setChats(data.chats);
+        })
+        .catch((err) => console.error("Failed to fetch FB user data", err));
+    }
   }, []);
 
   const openFacebookLogin = () => {
@@ -56,6 +54,20 @@ export default function Index() {
       </button>
 
       <FacebookLogoutButton />
+
+      {fbUser && (
+        <div>
+          <h2>Welcome, {fbUser.name}</h2>
+          <p>Facebook ID: {fbUser.id}</p>
+
+          <h3>Your Chat History:</h3>
+          <ul>
+            {chats.map((chat, index) => (
+              <li key={index}>{chat.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
