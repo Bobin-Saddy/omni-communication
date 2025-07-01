@@ -1,25 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import FacebookLogoutButton from "./FacebookLogoutButton";
-import axios from "axios";
 
 export default function Index() {
-  const [users, setUsers] = useState([]);
-
   const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
     import.meta.env.VITE_FACEBOOK_APP_ID
   }&redirect_uri=${
     import.meta.env.VITE_FB_REDIRECT_URI
-  }&scope=email,public_profile,pages_messaging,pages_show_list`;
+  }&scope=email,public_profile`;
 
   useEffect(() => {
-    const handleMessage = async (event) => {
+    const handleMessage = (event) => {
       if (event.data === "facebook-login-success") {
         console.log("Facebook connected successfully!");
-        // Fetch users from your server
-        const res = await axios.get("/api/facebook/conversations");
-        setUsers(res.data);
+        // You can refresh user state or refetch data here
+        window.location.reload();
       }
     };
+
+    console.log('check-handle-message--->', handleMessage);
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
@@ -58,15 +56,6 @@ export default function Index() {
       </button>
 
       <FacebookLogoutButton />
-
-      <h2>Connected Users</h2>
-      <ul>
-        {users.map((user) => (
-          <li key={user.id}>
-            {user.name || user.id}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
