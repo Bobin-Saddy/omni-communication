@@ -3,6 +3,7 @@ import {
   useLoaderData,
   useRouteError,
   useNavigation,
+  useLocation, // ✅ Added missing import
 } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
@@ -21,6 +22,10 @@ export const loader = async ({ request }) => {
   try {
     const { session } = await authenticate.admin(request);
 
+    if (!session) {
+      throw new Response("Unauthorized", { status: 401 });
+    }
+
     return {
       apiKey: process.env.SHOPIFY_API_KEY || "",
       shop: session.shop,
@@ -38,15 +43,13 @@ export default function App() {
   const location = useLocation();
   const isLoading = navigation.state === "loading";
 
-  // Paths where spinner should be skipped
   const skipSpinnerPaths = ["/app/pricing", "/app/settings"];
-
   const isSkipPath = skipSpinnerPaths.includes(location.pathname);
 
   if (!apiKey || (!shop && !isSkipPath)) {
     return (
       <div style={{ padding: "2rem", textAlign: "center" }}>
-        <Spinner accessibilityLabel="Initializing..." size="large" />
+        <p>Unable to load app. Please reinstall or reauthenticate.</p>
       </div>
     );
   }
@@ -75,6 +78,9 @@ export default function App() {
 
 // ✅ Error boundary shows loader instead of error message
 export function ErrorBoundary() {
+  const error = useRouteError();
+  console.error("Route error:", error);
+
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
       <Spinner accessibilityLabel="Loading..." size="large" />
