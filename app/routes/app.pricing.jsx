@@ -53,9 +53,9 @@ const planData = [
     title: "Free",
     description: "Free plan with basic features",
     price: "0",
-    action: "Upgrade to pro",
+    action: "Upgrade to trial",
     name: "Free",
-    url: "/app/upgrade",
+    url: "/app/upgrade?plan=trial",
     features: [
       "100 wishlist per day",
       "500 Products",
@@ -65,21 +65,47 @@ const planData = [
     ]
   },
   {
+    title: "Trial (3 days free)",
+    description: "Try Pro features for 3 days free, then $1/month",
+    price: "1",
+    name: "Trial plan",
+    action: "Start trial",
+    url: "/app/upgrade?plan=trial",
+    features: [
+      "All pro features for 3 days free",
+      "Then only $1/month",
+      "Cancel anytime",
+    ]
+  },
+  {
     title: "Pro",
     description: "Pro plan with advanced features",
     price: "10",
     name: "Monthly subscription",
     action: "Upgrade to pro",
-    url: "/app/upgrade",
+    url: "/app/upgrade?plan=monthly",
     features: [
-      "Unlimted wishlist per day",
+      "Unlimited wishlist per day",
       "10000 Products",
       "Advanced customization",
       "Priority support",
       "Advanced analytics"
     ]
   },
+  {
+    title: "Pro Annual",
+    description: "Annual subscription with discount",
+    price: "100",
+    name: "Annual subscription",
+    action: "Upgrade to annual",
+    url: "/app/upgrade?plan=annual",
+    features: [
+      "Same as Pro Monthly",
+      "20% cheaper annually",
+    ]
+  },
 ];
+
 
 
 export default function PricingPage() {
@@ -115,37 +141,28 @@ export default function PricingPage() {
       <Grid>
 
         {planData.map((plan_item, index) => (
-          <Grid.Cell key={index} columnSpan={{xs: 6, sm: 3, md: 3, lg: 6, xl: 6}}>
-            <Card background={ plan_item.name == plan.name ? "bg-surface-success" : "bg-surface" } sectioned>
-              <Box padding="400">
-                <Text as="h3" variant="headingMd">
-                  {plan_item.title}
-                </Text>
-                <Box as="p" variant="bodyMd">
-                  {plan_item.description}
-                  {/* If plan_item is 0, display nothing */}
-                  <br />
-                  <Text as="p" variant="headingLg" fontWeight="bold">
-                    {plan_item.price === "0" ? "" : "$" + plan_item.price}
-                  </Text>
-                </Box>
+         <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+    <Card background={plan_item.name === plan.name ? "bg-surface-success" : "bg-surface"} sectioned>
+      <Box padding="400">
+        <Text as="h3" variant="headingMd">{plan_item.title}</Text>
+        <Box as="p" variant="bodyMd">
+          {plan_item.description}
+          <br />
+          <Text as="p" variant="headingLg" fontWeight="bold">
+            {plan_item.price === "0" ? "" : "$" + plan_item.price}
+          </Text>
+        </Box>
 
-
-
-                { plan_item.name == "Monthly subscription" ?
-                  plan.name != "Monthly subscription" ? (
-                    <Button primary url={plan_item.url}>
-                      {plan_item.action}
-                    </Button>
-                  ) : (
-                    <Text as="p" variant="bodyMd">
-                      You're currently on this plan
-                    </Text>
-                  )
-                : null }
-              </Box>
-            </Card>
-          </Grid.Cell>
+        {plan_item.name !== plan.name ? (
+          <Button primary url={plan_item.url}>
+            {plan_item.action}
+          </Button>
+        ) : (
+          <Text as="p" variant="bodyMd">You're currently on this plan</Text>
+        )}
+      </Box>
+    </Card>
+  </Grid.Cell>
         ))}
 
       </Grid>

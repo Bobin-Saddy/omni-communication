@@ -12,6 +12,7 @@ import prisma from "./db.server";
 
 export const MONTHLY_PLAN = 'Monthly subscription';
 export const ANNUAL_PLAN = 'Annual subscription';
+export const TRIAL_PLAN = 'Trial plan';
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -34,6 +35,12 @@ const shopify = shopifyApp({
       amount: 100,
       currencyCode: 'USD',
       interval: BillingInterval.Annual,
+    },
+    [TRIAL_PLAN]: {
+      amount: 1, // nominal charge post trial
+      currencyCode: 'USD',
+      interval: BillingInterval.Every30Days,
+      trialDays: 3,
     },
   },
   webhooks: {
