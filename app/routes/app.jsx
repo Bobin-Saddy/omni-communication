@@ -18,8 +18,20 @@ import { Suspense } from "react";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 // 🔒 Loader with error handling
+
 export const loader = async ({ request }) => {
   try {
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+
+    // ✅ Skip authentication on pricing or settings page
+    if (pathname === "/app/pricing" || pathname === "/app/settings") {
+      return {
+        apiKey: process.env.SHOPIFY_API_KEY || "",
+        shop: url.searchParams.get("shop") || "", // get shop from URL query
+      };
+    }
+
     const { session } = await authenticate.admin(request);
 
     return {
@@ -31,7 +43,6 @@ export const loader = async ({ request }) => {
     throw new Response("Unauthorized", { status: 401 });
   }
 };
-
 // ✅ Main app shell
 export default function App() {
   const { apiKey, shop } = useLoaderData();
