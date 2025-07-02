@@ -117,26 +117,31 @@ export default function PricingPage() {
             <Card
               title={plan_item.title}
               sectioned
-              primaryFooterAction={
-                plan_item.name !== plan.name
-                  ? { content: plan_item.action, url: plan_item.url, primary: true }
-                  : undefined
-              }
             >
-              <Text variant="headingLg" as="p" fontWeight="bold">
-                ${plan_item.price} / month
-              </Text>
-              <Box as="p" variant="bodyMd">{plan_item.description}</Box>
-              <div style={{ marginTop: "1rem" }}>
-                {plan_item.features.map((feature, i) => (
-                  <Text key={i} as="p" variant="bodySm">• {feature}</Text>
-                ))}
-              </div>
-              {plan_item.name === plan.name && (
-                <Text as="p" variant="bodyMd" fontWeight="medium" tone="success">
-                  You're currently on this plan
+              <Box padding="400">
+                <Text variant="headingLg" as="p" fontWeight="bold">
+                  ${plan_item.price} / month
                 </Text>
-              )}
+                <Box as="p" variant="bodyMd">{plan_item.description}</Box>
+
+                <div style={{ marginTop: "1rem" }}>
+                  {plan_item.features.map((feature, i) => (
+                    <Text key={i} as="p" variant="bodySm">• {feature}</Text>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: "1rem" }}>
+                  {plan_item.name !== plan.name ? (
+                    <Button primary url={plan_item.url}>
+                      {plan_item.action}
+                    </Button>
+                  ) : (
+                    <Text as="p" variant="bodyMd" fontWeight="medium" tone="success">
+                      You're currently on this plan
+                    </Text>
+                  )}
+                </div>
+              </Box>
             </Card>
           </Grid.Cell>
         ))}
