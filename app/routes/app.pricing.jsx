@@ -53,9 +53,9 @@ const planData = [
     title: "Free",
     description: "Free plan with basic features",
     price: "0",
-    action: "Upgrade to trial",
+    action: "Upgrade to Pro Monthly",
     name: "Free",
-    url: "/app/upgrade?plan=trial",
+    url: "/app/upgrade?plan=monthly",
     features: [
       "100 wishlist per day",
       "500 Products",
@@ -65,46 +65,40 @@ const planData = [
     ]
   },
   {
-    title: "Trial (3 days free)",
-    description: "Try Pro features for 3 days free, then $1/month",
-    price: "1",
-    name: "Trial plan",
-    action: "Start trial",
-    url: "/app/upgrade?plan=trial",
-    features: [
-      "All pro features for 3 days free",
-      "Then only $1/month",
-      "Cancel anytime",
-    ]
-  },
-  {
-    title: "Pro",
-    description: "Pro plan with advanced features",
+    title: "Pro Monthly",
+    description: "Advanced features with 3 days free trial",
     price: "10",
     name: "Monthly subscription",
-    action: "Upgrade to pro",
+    action: "Upgrade to Pro Monthly",
     url: "/app/upgrade?plan=monthly",
     features: [
       "Unlimited wishlist per day",
       "10000 Products",
       "Advanced customization",
       "Priority support",
-      "Advanced analytics"
+      "Advanced analytics",
+      "3 days free trial"
     ]
   },
   {
     title: "Pro Annual",
-    description: "Annual subscription with discount",
+    description: "Annual plan with discount and 3 days free trial",
     price: "100",
     name: "Annual subscription",
-    action: "Upgrade to annual",
+    action: "Upgrade to Pro Annual",
     url: "/app/upgrade?plan=annual",
     features: [
-      "Same as Pro Monthly",
-      "20% cheaper annually",
+      "Unlimited wishlist per day",
+      "10000 Products",
+      "Advanced customization",
+      "Priority support",
+      "Advanced analytics",
+      "3 days free trial",
+      "20% cheaper annually"
     ]
   },
 ];
+
 
 
 

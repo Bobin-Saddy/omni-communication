@@ -1,7 +1,7 @@
 import { redirect } from "@remix-run/node";
 
 export const loader = async ({ request }) => {
-  const { authenticate, MONTHLY_PLAN, ANNUAL_PLAN, TRIAL_PLAN } = await import("../shopify.server");
+  const { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } = await import("../shopify.server");
 
   const { billing, session } = await authenticate.admin(request);
   let { shop } = session;
@@ -12,8 +12,7 @@ export const loader = async ({ request }) => {
 
   let planToUse;
   if (selectedPlan === "annual") planToUse = ANNUAL_PLAN;
-  else if (selectedPlan === "trial") planToUse = TRIAL_PLAN;
-  else planToUse = MONTHLY_PLAN;
+  else planToUse = MONTHLY_PLAN; // default to monthly
 
   await billing.require({
     plans: [planToUse],
