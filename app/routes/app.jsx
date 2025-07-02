@@ -1,9 +1,11 @@
+// app/routes/app.jsx
+
 import {
   Outlet,
   useLoaderData,
   useRouteError,
   useNavigation,
-  useLocation, // ✅ Added missing import
+  useLocation,
 } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
@@ -14,7 +16,7 @@ import { authenticate } from "../shopify.server";
 import { PersistentLink } from "./components/PersistentLink";
 import { Suspense } from "react";
 
-// Include Polaris styles
+// ✅ Include Polaris styles
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 // 🔒 Loader with error handling
@@ -43,7 +45,9 @@ export default function App() {
   const location = useLocation();
   const isLoading = navigation.state === "loading";
 
+  // ✅ Confirm your exact route path here if needed
   const skipSpinnerPaths = ["/app/pricing", "/app/settings"];
+
   const isSkipPath = skipSpinnerPaths.includes(location.pathname);
 
   if (!apiKey || (!shop && !isSkipPath)) {
