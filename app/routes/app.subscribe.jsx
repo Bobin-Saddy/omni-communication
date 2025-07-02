@@ -1,10 +1,29 @@
 // app/routes/subscribe.jsx
 import { json, redirect } from "@remix-run/node";
+import { prisma } from "./../db.server"; // your prisma client
+import { getSession } from "./app.sessions"; // your session utility
 
 export const action = async ({ request }) => {
+  const session = await getSession(request.headers.get("Cookie"));
+  const currentSessionId = session.get("sessionId"); // Assuming you store 'sessionId' in your session
+
+  if (!currentSessionId) {
+    return json({ error: "Session ID not found" }, { status: 400 });
+  }
+
+  // Fetch shop details from Session table in DB
+  const shopData = await prisma.session.findUnique({
+    where: { id: currentSessionId },
+  });
+
+  if (!shopData) {
+    return json({ error: "Shop session not found in database" }, { status: 400 });
+  }
+
+  const { shop, accessToken } = shopData;
+
   const formData = await request.formData();
   const plan = formData.get("plan"); // 'basic', 'annual', 'premium'
-  const shop = formData.get("shop"); // your shop parameter
 
   let price, name, interval;
   switch (plan) {
@@ -27,14 +46,14 @@ export const action = async ({ request }) => {
       return json({ error: "Invalid plan" }, { status: 400 });
   }
 
-  // Create Recurring Application Charge
+  // Create Recurring Application Charge via Shopify API
   const response = await fetch(
     `https://${shop}/admin/api/2023-04/recurring_application_charges.json`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Shopify-Access-Token": process.env.SHOPIFY_ACCESS_TOKEN,
+        "X-Shopify-Access-Token": accessToken, // Use token from Session model
       },
       body: JSON.stringify({
         recurring_application_charge: {
@@ -55,12 +74,26 @@ export const action = async ({ request }) => {
   return redirect(confirmationUrl);
 };
 
+export const loader = async ({ request }) => {
+  const session = await getSession(request.headers.get("Cookie"));
+  const currentSessionId = session.get("sessionId");
+
+  if (!currentSessionId) {
+    return json({ error: "Session ID not found" }, { status: 400 });
+  }
+
+  const shopData = await prisma.session.findUnique({
+    where: { id: currentSessionId },
+  });
+
+  return json({ shop: shopData?.shop });
+};
+
 export default function Subscribe() {
   return (
     <div className="p-10">
       <h1 className="text-2xl mb-4">Choose a Subscription Plan</h1>
       <form method="post">
-        <input type="hidden" name="shop" value="example.myshopify.com" />
         <button
           type="submit"
           name="plan"
