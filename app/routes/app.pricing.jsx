@@ -130,26 +130,7 @@ export default function PricingPage() {
                   </Text>
                 </Box>
 
-                <div style={{ margin: "0.5rem 0"}}>
-                  <Divider />
-                </div>
 
-                <BlockStack gap={100}>
-                  {plan_item.features.map((feature, index) => (
-            <ExceptionList
-  items={[
-    {
-      icon: { source: MobileAcceptMajor },
-      description: feature,
-    },
-  ]}
-/>
-
-                  ))}
-                </BlockStack>
-                <div style={{ margin: "0.5rem 0"}}>
-                  <Divider />
-                </div>
 
                 { plan_item.name == "Monthly subscription" ?
                   plan.name != "Monthly subscription" ? (
