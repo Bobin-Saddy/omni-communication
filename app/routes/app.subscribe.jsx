@@ -40,7 +40,7 @@ export const action = async ({ request }) => {
         recurring_application_charge: {
           name,
           price,
-          return_url: `https://yourapp.com/subscribe/callback?shop=${shop}`,
+          return_url: `https://omni-communication-6edad6c27b71.herokuapp.com/subscribe/callback?shop=${shop}`,
           trial_days: 3,
           test: true, // remove in production
           interval,
