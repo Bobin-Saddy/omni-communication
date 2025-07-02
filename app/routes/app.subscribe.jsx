@@ -1,29 +1,28 @@
 // app/routes/subscribe.jsx
 import { json, redirect } from "@remix-run/node";
-import db from "../db.server"; // using your default export for prisma client
-import { getSession } from "././app.sessions"; // adjust path if your sessions.js file is elsewhere
+import db from "../db.server";
+import { getSession } from "././app.sessions";
 
 export const action = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));
-  const currentSessionId = session.get("sessionId"); // adjust key if different in your session setup
+  const currentSessionId = session.get("sessionId");
 
   if (!currentSessionId) {
     return json({ error: "Session ID not found" }, { status: 400 });
   }
 
-  // Fetch shop details from Session table in DB
-  const shopData = await db.session.findUnique({
+  const shopData = await db.Session.findUnique({
     where: { id: currentSessionId },
   });
 
   if (!shopData) {
-    return json({ error: "Shop session not found in database" }, { status: 400 });
+    return json({ error: "Shop not found in DB" }, { status: 400 });
   }
 
   const { shop, accessToken } = shopData;
 
   const formData = await request.formData();
-  const plan = formData.get("plan"); // 'basic', 'annual', 'premium'
+  const plan = formData.get("plan");
 
   let price, name, interval;
   switch (plan) {
@@ -46,22 +45,21 @@ export const action = async ({ request }) => {
       return json({ error: "Invalid plan" }, { status: 400 });
   }
 
-  // Create Recurring Application Charge via Shopify API
   const response = await fetch(
     `https://${shop}/admin/api/2023-04/recurring_application_charges.json`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Shopify-Access-Token": accessToken, // from your Session model
+        "X-Shopify-Access-Token": accessToken,
       },
       body: JSON.stringify({
         recurring_application_charge: {
           name,
           price,
-          return_url: `https://omni-communication-6edad6c27b71.herokuapp.com/subscribe/callback?shop=${shop}`,
+          return_url: `${process.env.SHOPIFY_APP_URL}/subscribe/callback?shop=${shop}`,
           trial_days: 3,
-          test: true, // remove in production
+          test: true,
           interval,
         },
       }),
@@ -71,14 +69,13 @@ export const action = async ({ request }) => {
   const data = await response.json();
 
   if (!data.recurring_application_charge) {
-    console.error("Shopify charge creation failed", data);
-    return json({ error: "Failed to create charge" }, { status: 500 });
+    console.error("Failed to create charge:", data);
+    return json({ error: "Charge creation failed" }, { status: 500 });
   }
 
-  const confirmationUrl = data.recurring_application_charge.confirmation_url;
-
-  return redirect(confirmationUrl);
+  return redirect(data.recurring_application_charge.confirmation_url);
 };
+
 
 export default function Subscribe() {
   return (
