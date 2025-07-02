@@ -15,6 +15,7 @@ import { useLoaderData } from "@remix-run/react";
 
 import { MobileAcceptMajor } from '@shopify/polaris-icons';
 
+
 export async function loader({ request }) {
   const { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } = await import("../shopify.server");
 
