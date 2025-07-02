@@ -13,7 +13,8 @@ import {
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
-import MobileAcceptMajor from '@shopify/polaris-icons/dist/icons/MobileAcceptMajor.svg';
+import { MobileAcceptMajor } from '@shopify/polaris-icons';
+
 
 
 
@@ -132,15 +133,15 @@ export default function PricingPage() {
 
                 <BlockStack gap={100}>
                   {plan_item.features.map((feature, index) => (
-                    <ExceptionList
-                      key={index}
-                      items={[
-                        {
-                          icon: MobileAcceptMajor,
-                          description: feature,
-                        },
-                      ]}
-                    />
+            <ExceptionList
+  items={[
+    {
+      icon: { source: MobileAcceptMajor },
+      description: feature,
+    },
+  ]}
+/>
+
                   ))}
                 </BlockStack>
                 <div style={{ margin: "0.5rem 0"}}>
