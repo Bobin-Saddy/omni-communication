@@ -51,6 +51,7 @@ export default function App() {
         <PersistentLink to="/app/additional">Additional</PersistentLink>
         <PersistentLink to="/app/index">Facebook</PersistentLink>
         <PersistentLink to="/app/pricing">Plans</PersistentLink>
+        <PersistentLink to="app/settings">Settings</PersistentLink>
       </NavMenu>
 
       {isLoading ? (

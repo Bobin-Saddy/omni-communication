@@ -1,8 +1,8 @@
-import {  redirect } from "@remix-run/node";
-import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
-
+import { redirect } from "@remix-run/node";
 
 export const loader = async ({ request }) => {
+  const { authenticate, MONTHLY_PLAN } = await import("../shopify.server");
+
   const { billing, session } = await authenticate.admin(request);
   let { shop } = session;
   let myShop = shop.replace(".myshopify.com", "");
@@ -15,7 +15,6 @@ export const loader = async ({ request }) => {
       returnUrl: `https://admin.shopify.com/store/${myShop}/apps/${process.env.APP_NAME}/app/pricing`,
     }),
   });
-  // App logic
 
   return null;
 };

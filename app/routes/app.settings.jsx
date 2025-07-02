@@ -6,19 +6,18 @@ import {
   BlockStack,
   InlineGrid,
   TextField,
-Button,
+  Button,
 } from "@shopify/polaris";
 import { useState } from "react";
 import { json } from "@remix-run/node";
 import { useLoaderData, Form } from "@remix-run/react";
-import { authenticate } from "../shopify.server";
 
-// Import primsa db
-import db from "../db.server";
+export async function loader({ request }) {
+  const { authenticate } = await import("../shopify.server");
+  const db = (await import("../db.server")).default;
 
-export async function loader({ request}) {
   const { session } = await authenticate.admin(request);
-  // get data from database if it exists. If not return empty object
+
   let settings = await db.settings.findFirst({
     where: {
       shop: session.shop,
@@ -28,29 +27,31 @@ export async function loader({ request}) {
   if (!settings) {
     settings = {};
   }
+
   return json(settings);
 }
 
-
 export async function action({ request }) {
-  // updates persistent data
+  const { authenticate } = await import("../shopify.server");
+  const db = (await import("../db.server")).default;
+
   let settings = await request.formData();
   settings = Object.fromEntries(settings);
+
   const { session } = await authenticate.admin(request);
 
-  // update database
   await db.settings.upsert({
     where: { shop: session.shop },
     update: {
       name: settings.name,
       description: settings.description,
-      shop: session.shop
+      shop: session.shop,
     },
     create: {
       name: settings.name,
       description: settings.description,
-      shop: session.shop
-    }
+      shop: session.shop,
+    },
   });
 
   return json(settings);
@@ -58,7 +59,6 @@ export async function action({ request }) {
 
 export default function SettingsPage() {
   const settings = useLoaderData();
-
   const [formState, setFormState] = useState(settings);
 
   return (
@@ -83,16 +83,28 @@ export default function SettingsPage() {
           <Card roundedAbove="sm">
             <Form method="POST">
               <BlockStack gap="400">
-                <TextField label="App name" name="name" value={formState?.name} onChange={(value) => setFormState({ ...formState, name: value })} />
-                <TextField label="Description" name="description" value={formState?.description} onChange={(value) => setFormState({ ...formState, description: value })} />
+                <TextField
+                  label="App name"
+                  name="name"
+                  value={formState?.name}
+                  onChange={(value) =>
+                    setFormState({ ...formState, name: value })
+                  }
+                />
+                <TextField
+                  label="Description"
+                  name="description"
+                  value={formState?.description}
+                  onChange={(value) =>
+                    setFormState({ ...formState, description: value })
+                  }
+                />
 
-                <Button submit={true}>Save </Button>
+                <Button submit={true}>Save</Button>
               </BlockStack>
             </Form>
           </Card>
         </InlineGrid>
-
-
       </BlockStack>
     </Page>
   );
