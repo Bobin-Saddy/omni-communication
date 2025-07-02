@@ -7,19 +7,9 @@ import {
   Text,
   Grid,
   Divider,
-  BlockStack,
-  ExceptionList
 } from "@shopify/polaris";
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-
-// import {
-//   MobileAcceptMajor
-// } from '@shopify/polaris-icons'
-
-
-
-
 
 export async function loader({ request }) {
   const { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } = await import("../shopify.server");
@@ -36,12 +26,10 @@ export async function loader({ request }) {
     });
 
     const subscription = billingCheck.appSubscriptions[0];
-    console.log(`Shop is on ${subscription.name} (id ${subscription.id})`);
     return json({ billing, plan: subscription });
 
   } catch (error) {
     if (error.message === 'No active plan') {
-      console.log('Shop does not have any active plans.');
       return json({ billing, plan: { name: "Free" } });
     }
     throw error;
@@ -50,117 +38,109 @@ export async function loader({ request }) {
 
 const planData = [
   {
-    title: "Free",
-    description: "Free plan with basic features",
-    price: "0",
-    action: "Upgrade to Pro Monthly",
-    name: "Free",
-    url: "/app/upgrade?plan=monthly",
+    title: "Essential",
+    description: "Essential plan with basic features",
+    price: "14.99",
+    name: "Essential subscription",
+    action: "Start 7-day FREE trial",
+    url: "/app/upgrade?plan=essential",
     features: [
-      "100 wishlist per day",
-      "500 Products",
-      "Basic customization",
-      "Basic support",
-      "Basic analytics"
+      "Unlimited number of offers",
+      "Available on home and product page",
+      "Progressive gifts",
+      "7/7 Customer Service",
+      "Upsell offers",
+      "From $500.00 to $2,000.00 in monthly sales",
     ]
   },
   {
-    title: "Pro Monthly",
-    description: "Advanced features with 3 days free trial",
-    price: "10",
-    name: "Monthly subscription",
-    action: "Upgrade to Pro Monthly",
-    url: "/app/upgrade?plan=monthly",
+    title: "Pro",
+    description: "Pro plan with advanced features",
+    price: "29.99",
+    name: "Pro subscription",
+    action: "Start 7-day FREE trial",
+    url: "/app/upgrade?plan=pro",
     features: [
-      "Unlimited wishlist per day",
-      "10000 Products",
-      "Advanced customization",
-      "Priority support",
-      "Advanced analytics",
-      "3 days free trial"
+      "Unlimited number of offers",
+      "Available on home and product page",
+      "Progressive gifts",
+      "7/7 Customer Service",
+      "Upsell offers",
+      "From $2,000.00 to $10,000.00 in monthly sales",
     ]
   },
   {
-    title: "Pro Annual",
-    description: "Annual plan with discount and 3 days free trial",
-    price: "100",
-    name: "Annual subscription",
-    action: "Upgrade to Pro Annual",
-    url: "/app/upgrade?plan=annual",
+    title: "Premium",
+    description: "Premium plan with full features",
+    price: "59.99",
+    name: "Premium subscription",
+    action: "Start 7-day FREE trial",
+    url: "/app/upgrade?plan=premium",
     features: [
-      "Unlimited wishlist per day",
-      "10000 Products",
-      "Advanced customization",
-      "Priority support",
-      "Advanced analytics",
-      "3 days free trial",
-      "20% cheaper annually"
+      "Unlimited number of offers",
+      "Available on home and product page",
+      "Progressive gifts",
+      "7/7 Customer Service",
+      "Upsell offers",
+      "Over $10,000.00 sales per month",
     ]
   },
 ];
 
-
-
-
 export default function PricingPage() {
   const { plan } = useLoaderData();
 
-  console.log('plan', plan);
   return (
-    <Page>
-      <ui-title-bar title="Pricing" />
+    <Page title="Upgrade your Plan and take your business to the Moon...">
       <CalloutCard
-          title="Change your plan"
-          illustration="https://cdn.shopify.com/s/files/1/0583/6465/7734/files/tag.png?v=1705280535"
-          primaryAction={{
-            content: 'Cancel Plan',
-            url: '/app/cancel',
-          }}
-        >
-          { plan.name == "Monthly subscription" ? (
-            <p>
-              You're currently on pro plan. All features are unlocked.
-            </p>
-          ) : (
-            <p>
-              You're currently on free plan. Upgrade to pro to unlock more features.
-            </p>
-          )}
+        title="Change your plan"
+        illustration="https://cdn.shopify.com/s/files/1/0583/6465/7734/files/tag.png?v=1705280535"
+        primaryAction={{
+          content: 'Cancel Plan',
+          url: '/app/cancel',
+        }}
+      >
+        {plan.name !== "Free" ? (
+          <p>You're currently on {plan.name}. All features are unlocked.</p>
+        ) : (
+          <p>You're currently on Free plan. Upgrade to unlock more features.</p>
+        )}
       </CalloutCard>
 
-      <div style={{ margin: "0.5rem 0"}}>
+      <div style={{ margin: "0.5rem 0" }}>
         <Divider />
       </div>
 
       <Grid>
-
         {planData.map((plan_item, index) => (
-         <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-    <Card background={plan_item.name === plan.name ? "bg-surface-success" : "bg-surface"} sectioned>
-      <Box padding="400">
-        <Text as="h3" variant="headingMd">{plan_item.title}</Text>
-        <Box as="p" variant="bodyMd">
-          {plan_item.description}
-          <br />
-          <Text as="p" variant="headingLg" fontWeight="bold">
-            {plan_item.price === "0" ? "" : "$" + plan_item.price}
-          </Text>
-        </Box>
-
-        {plan_item.name !== plan.name ? (
-          <Button primary url={plan_item.url}>
-            {plan_item.action}
-          </Button>
-        ) : (
-          <Text as="p" variant="bodyMd">You're currently on this plan</Text>
-        )}
-      </Box>
-    </Card>
-  </Grid.Cell>
+          <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 3, md: 3, lg: 4, xl: 4 }}>
+            <Card
+              title={plan_item.title}
+              sectioned
+              primaryFooterAction={
+                plan_item.name !== plan.name
+                  ? { content: plan_item.action, url: plan_item.url, primary: true }
+                  : undefined
+              }
+            >
+              <Text variant="headingLg" as="p" fontWeight="bold">
+                ${plan_item.price} / month
+              </Text>
+              <Box as="p" variant="bodyMd">{plan_item.description}</Box>
+              <div style={{ marginTop: "1rem" }}>
+                {plan_item.features.map((feature, i) => (
+                  <Text key={i} as="p" variant="bodySm">• {feature}</Text>
+                ))}
+              </div>
+              {plan_item.name === plan.name && (
+                <Text as="p" variant="bodyMd" fontWeight="medium" tone="success">
+                  You're currently on this plan
+                </Text>
+              )}
+            </Card>
+          </Grid.Cell>
         ))}
-
       </Grid>
-
     </Page>
   );
 }
