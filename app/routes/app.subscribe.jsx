@@ -1,7 +1,7 @@
 // app/routes/subscribe.jsx
 import { json, redirect } from "@remix-run/node";
 import db from "../db.server"; // using your default export for prisma client
-import { getSession } from "../sessions"; // adjust path if your sessions.js file is elsewhere
+import { getSession } from "././app.sessions"; // adjust path if your sessions.js file is elsewhere
 
 export const action = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));
