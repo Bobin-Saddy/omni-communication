@@ -1,11 +1,9 @@
-// app/routes/app.jsx
-
 import {
   Outlet,
   useLoaderData,
   useRouteError,
   useNavigation,
-  useLocation,
+  useLocation, // ✅ added
 } from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
@@ -16,17 +14,13 @@ import { authenticate } from "../shopify.server";
 import { PersistentLink } from "./components/PersistentLink";
 import { Suspense } from "react";
 
-// ✅ Include Polaris styles
+// Include Polaris styles
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 // 🔒 Loader with error handling
 export const loader = async ({ request }) => {
   try {
     const { session } = await authenticate.admin(request);
-
-    if (!session) {
-      throw new Response("Unauthorized", { status: 401 });
-    }
 
     return {
       apiKey: process.env.SHOPIFY_API_KEY || "",
@@ -42,18 +36,21 @@ export const loader = async ({ request }) => {
 export default function App() {
   const { apiKey, shop } = useLoaderData();
   const navigation = useNavigation();
-  const location = useLocation();
+  const location = useLocation(); // ✅ get current path
+
   const isLoading = navigation.state === "loading";
 
-  // ✅ Confirm your exact route path here if needed
+  // ✅ Paths where spinner should be skipped
   const skipSpinnerPaths = ["/app/pricing", "/app/settings"];
-
   const isSkipPath = skipSpinnerPaths.includes(location.pathname);
 
   if (!apiKey || (!shop && !isSkipPath)) {
-    return (
+    // ✅ Skip spinner on pricing/settings pages
+    return isSkipPath ? (
+      <Outlet />
+    ) : (
       <div style={{ padding: "2rem", textAlign: "center" }}>
-        <p>Unable to load app. Please reinstall or reauthenticate.</p>
+        <Spinner accessibilityLabel="Initializing..." size="large" />
       </div>
     );
   }
@@ -82,9 +79,6 @@ export default function App() {
 
 // ✅ Error boundary shows loader instead of error message
 export function ErrorBoundary() {
-  const error = useRouteError();
-  console.error("Route error:", error);
-
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
       <Spinner accessibilityLabel="Loading..." size="large" />
