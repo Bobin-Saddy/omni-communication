@@ -35,9 +35,15 @@ export const loader = async ({ request }) => {
 export default function App() {
   const { apiKey, shop } = useLoaderData();
   const navigation = useNavigation();
+  const location = useLocation();
   const isLoading = navigation.state === "loading";
 
-  if (!apiKey || !shop) {
+  // Paths where spinner should be skipped
+  const skipSpinnerPaths = ["/app/pricing", "/app/settings"];
+
+  const isSkipPath = skipSpinnerPaths.includes(location.pathname);
+
+  if (!apiKey || (!shop && !isSkipPath)) {
     return (
       <div style={{ padding: "2rem", textAlign: "center" }}>
         <Spinner accessibilityLabel="Initializing..." size="large" />
@@ -51,10 +57,10 @@ export default function App() {
         <PersistentLink to="/app/additional">Additional</PersistentLink>
         <PersistentLink to="/app/index">Facebook</PersistentLink>
         <PersistentLink to="/app/pricing">Plans</PersistentLink>
-        <PersistentLink to="app/settings">Settings</PersistentLink>
+        <PersistentLink to="/app/settings">Settings</PersistentLink>
       </NavMenu>
 
-      {isLoading ? (
+      {isLoading && !isSkipPath ? (
         <div style={{ padding: "2rem", textAlign: "center" }}>
           <Spinner accessibilityLabel="Loading" size="large" />
         </div>
