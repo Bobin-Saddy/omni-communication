@@ -1,6 +1,6 @@
 // app/routes/subscribe.jsx
 import { json, redirect } from "@remix-run/node";
-import { prisma } from "./../db.server"; // your prisma client
+import { prisma } from "../db.server"; // your prisma client
 import { getSession } from "./app.sessions"; // your session utility
 
 export const action = async ({ request }) => {
