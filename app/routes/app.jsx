@@ -28,6 +28,7 @@ export default function App() {
         </Link>
         <Link to="/app/settings">Settings</Link>
         <Link to="/app/pricing">Pricing</Link>
+         {/* <Link to="/app/cancel">Cancel</Link> */}
       </ui-nav-menu>
       <Outlet />
     </AppProvider>
