@@ -12,44 +12,37 @@ import {
 } from "@shopify/polaris";
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } from "../shopify.server";
 
-import {
-  MobileAcceptMajor
-} from '@shopify/polaris-icons'
+import { MobileAcceptMajor } from '@shopify/polaris-icons';
 
 export async function loader({ request }) {
+  const { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } = await import("../shopify.server");
+
   const { billing } = await authenticate.admin(request);
 
   try {
-    // Attempt to check if the shop has an active payment for any plan
     const billingCheck = await billing.require({
       plans: [MONTHLY_PLAN, ANNUAL_PLAN],
       isTest: true,
-      // Instead of redirecting on failure, just catch the error
       onFailure: () => {
         throw new Error('No active plan');
       },
     });
 
-    // If the shop has an active subscription, log and return the details
     const subscription = billingCheck.appSubscriptions[0];
     console.log(`Shop is on ${subscription.name} (id ${subscription.id})`);
     return json({ billing, plan: subscription });
 
   } catch (error) {
-    // If the shop does not have an active plan, return an empty plan object
     if (error.message === 'No active plan') {
       console.log('Shop does not have any active plans.');
       return json({ billing, plan: { name: "Free" } });
     }
-    // If there is another error, rethrow it
     throw error;
   }
 }
 
-
-let planData = [
+const planData = [
   {
     title: "Free",
     description: "Free plan with basic features",
@@ -80,7 +73,8 @@ let planData = [
       "Advanced analytics"
     ]
   },
-]
+];
+
 
 export default function PricingPage() {
   const { plan } = useLoaderData();
