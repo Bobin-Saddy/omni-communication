@@ -1,18 +1,18 @@
 // app/routes/subscribe.jsx
 import { json, redirect } from "@remix-run/node";
-import { prisma } from "../db.server"; // your prisma client
-import { getSession } from "./app.sessions"; // your session utility
+import db from "../db.server"; // using your default export for prisma client
+import { getSession } from "../sessions"; // adjust path if your sessions.js file is elsewhere
 
 export const action = async ({ request }) => {
   const session = await getSession(request.headers.get("Cookie"));
-  const currentSessionId = session.get("sessionId"); // Assuming you store 'sessionId' in your session
+  const currentSessionId = session.get("sessionId"); // adjust key if different in your session setup
 
   if (!currentSessionId) {
     return json({ error: "Session ID not found" }, { status: 400 });
   }
 
   // Fetch shop details from Session table in DB
-  const shopData = await prisma.session.findUnique({
+  const shopData = await db.session.findUnique({
     where: { id: currentSessionId },
   });
 
@@ -53,13 +53,13 @@ export const action = async ({ request }) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Shopify-Access-Token": accessToken, // Use token from Session model
+        "X-Shopify-Access-Token": accessToken, // from your Session model
       },
       body: JSON.stringify({
         recurring_application_charge: {
           name,
           price,
-          return_url: `https://omni-communication-6edad6c27b71.herokuapp.com/subscribe/callback?shop=${shop}`,
+          return_url: `https://your-app-domain.com/subscribe/callback?shop=${shop}`,
           trial_days: 3,
           test: true, // remove in production
           interval,
@@ -69,24 +69,15 @@ export const action = async ({ request }) => {
   );
 
   const data = await response.json();
+
+  if (!data.recurring_application_charge) {
+    console.error("Shopify charge creation failed", data);
+    return json({ error: "Failed to create charge" }, { status: 500 });
+  }
+
   const confirmationUrl = data.recurring_application_charge.confirmation_url;
 
   return redirect(confirmationUrl);
-};
-
-export const loader = async ({ request }) => {
-  const session = await getSession(request.headers.get("Cookie"));
-  const currentSessionId = session.get("sessionId");
-
-  if (!currentSessionId) {
-    return json({ error: "Session ID not found" }, { status: 400 });
-  }
-
-  const shopData = await prisma.session.findUnique({
-    where: { id: currentSessionId },
-  });
-
-  return json({ shop: shopData?.shop });
 };
 
 export default function Subscribe() {
