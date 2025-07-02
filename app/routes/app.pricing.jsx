@@ -13,7 +13,6 @@ import { useLoaderData } from "@remix-run/react";
 
 export async function loader({ request }) {
   const { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } = await import("../shopify.server");
-
   const { billing } = await authenticate.admin(request);
 
   try {
@@ -27,7 +26,6 @@ export async function loader({ request }) {
 
     const subscription = billingCheck.appSubscriptions[0];
     return json({ billing, plan: subscription });
-
   } catch (error) {
     if (error.message === 'No active plan') {
       return json({ billing, plan: { name: "Free" } });
@@ -38,52 +36,52 @@ export async function loader({ request }) {
 
 const planData = [
   {
-    title: "Essential",
-    description: "Essential plan with basic features",
-    price: "14.99",
-    name: "Essential subscription",
-    action: "Start 7-day FREE trial",
-    url: "/app/upgrade?plan=essential",
+    title: "Free",
+    description: "Free plan with basic features",
+    price: "0",
+    action: "Upgrade to Pro Monthly",
+    name: "Free",
+    url: "/app/upgrade?plan=monthly",
     features: [
-      "Unlimited number of offers",
-      "Available on home and product page",
-      "Progressive gifts",
-      "7/7 Customer Service",
-      "Upsell offers",
-      "From $500.00 to $2,000.00 in monthly sales",
-    ]
+      "100 wishlist per day",
+      "500 Products",
+      "Basic customization",
+      "Basic support",
+      "Basic analytics",
+    ],
   },
   {
-    title: "Pro",
-    description: "Pro plan with advanced features",
-    price: "29.99",
-    name: "Pro subscription",
-    action: "Start 7-day FREE trial",
-    url: "/app/upgrade?plan=pro",
+    title: "Pro Monthly",
+    description: "Advanced features with 3 days free trial",
+    price: "10",
+    name: "Monthly subscription",
+    action: "Upgrade to Pro Monthly",
+    url: "/app/upgrade?plan=monthly",
     features: [
-      "Unlimited number of offers",
-      "Available on home and product page",
-      "Progressive gifts",
-      "7/7 Customer Service",
-      "Upsell offers",
-      "From $2,000.00 to $10,000.00 in monthly sales",
-    ]
+      "Unlimited wishlist per day",
+      "10000 Products",
+      "Advanced customization",
+      "Priority support",
+      "Advanced analytics",
+      "3 days free trial",
+    ],
   },
   {
-    title: "Premium",
-    description: "Premium plan with full features",
-    price: "59.99",
-    name: "Premium subscription",
-    action: "Start 7-day FREE trial",
-    url: "/app/upgrade?plan=premium",
+    title: "Pro Annual",
+    description: "Annual plan with discount and 3 days free trial",
+    price: "100",
+    name: "Annual subscription",
+    action: "Upgrade to Pro Annual",
+    url: "/app/upgrade?plan=annual",
     features: [
-      "Unlimited number of offers",
-      "Available on home and product page",
-      "Progressive gifts",
-      "7/7 Customer Service",
-      "Upsell offers",
-      "Over $10,000.00 sales per month",
-    ]
+      "Unlimited wishlist per day",
+      "10000 Products",
+      "Advanced customization",
+      "Priority support",
+      "Advanced analytics",
+      "3 days free trial",
+      "20% cheaper annually",
+    ],
   },
 ];
 
@@ -91,7 +89,7 @@ export default function PricingPage() {
   const { plan } = useLoaderData();
 
   return (
-    <Page title="Upgrade your Plan and take your business to the Moon...">
+    <Page title="Pricing Plans">
       <CalloutCard
         title="Change your plan"
         illustration="https://cdn.shopify.com/s/files/1/0583/6465/7734/files/tag.png?v=1705280535"
@@ -100,47 +98,55 @@ export default function PricingPage() {
           url: '/app/cancel',
         }}
       >
-        {plan.name !== "Free" ? (
-          <p>You're currently on {plan.name}. All features are unlocked.</p>
+        {plan.name === "Monthly subscription" || plan.name === "Annual subscription" ? (
+          <p>You're currently on Pro plan. All features are unlocked.</p>
         ) : (
-          <p>You're currently on Free plan. Upgrade to unlock more features.</p>
+          <p>You're currently on Free plan. Upgrade to Pro to unlock more features.</p>
         )}
       </CalloutCard>
 
-      <div style={{ margin: "0.5rem 0" }}>
+      <div style={{ margin: "1rem 0" }}>
         <Divider />
       </div>
 
-      <Grid>
+      <Grid columns={{ xs: 1, sm: 2, md: 3, lg: 3, xl: 3 }} gap="400">
         {planData.map((plan_item, index) => (
-          <Grid.Cell key={index} columnSpan={{ xs: 6, sm: 3, md: 3, lg: 4, xl: 4 }}>
+          <Grid.Cell key={index}>
             <Card
-              title={plan_item.title}
               sectioned
+              padding="400"
+              background={plan_item.name === plan.name ? "bg-surface-success" : "bg-surface"}
             >
-              <Box padding="400">
-                <Text variant="headingLg" as="p" fontWeight="bold">
-                  ${plan_item.price} / month
+              <Box>
+                <Text as="h3" variant="headingMd" fontWeight="bold">
+                  {plan_item.title}
                 </Text>
-                <Box as="p" variant="bodyMd">{plan_item.description}</Box>
+                <Text as="p" variant="bodyMd" color="subdued">
+                  {plan_item.description}
+                </Text>
+                <Box paddingBlockStart="200" paddingBlockEnd="200">
+                  <Text as="p" variant="headingLg" fontWeight="bold">
+                    {plan_item.price === "0" ? "Free" : `$${plan_item.price}/mo`}
+                  </Text>
+                </Box>
 
-                <div style={{ marginTop: "1rem" }}>
+                <ul style={{ marginBottom: "1rem", paddingLeft: "1.2rem" }}>
                   {plan_item.features.map((feature, i) => (
-                    <Text key={i} as="p" variant="bodySm">• {feature}</Text>
+                    <li key={i} style={{ marginBottom: "0.25rem", fontSize: "0.9rem" }}>
+                      {feature}
+                    </li>
                   ))}
-                </div>
+                </ul>
 
-                <div style={{ marginTop: "1rem" }}>
-                  {plan_item.name !== plan.name ? (
-                    <Button primary url={plan_item.url}>
-                      {plan_item.action}
-                    </Button>
-                  ) : (
-                    <Text as="p" variant="bodyMd" fontWeight="medium" tone="success">
-                      You're currently on this plan
-                    </Text>
-                  )}
-                </div>
+                {plan_item.name !== plan.name ? (
+                  <Button primary url={plan_item.url}>
+                    {plan_item.action}
+                  </Button>
+                ) : (
+                  <Text as="p" variant="bodyMd" color="success">
+                    You're currently on this plan
+                  </Text>
+                )}
               </Box>
             </Card>
           </Grid.Cell>
