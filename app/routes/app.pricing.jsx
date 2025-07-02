@@ -13,7 +13,8 @@ import {
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
-import { MobileAcceptMajor } from '@shopify/polaris-icons';
+import MobileAcceptMajor from '@shopify/polaris-icons/dist/icons/MobileAcceptMajor.svg';
+
 
 
 export async function loader({ request }) {
