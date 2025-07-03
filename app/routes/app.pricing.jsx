@@ -94,10 +94,11 @@ export default function PricingPage() {
   {planData.map((plan_item, index) => (
     <Grid.Cell key={index}>
       <Card
+      
         sectioned
         padding="400"
         style={{
-          backgroundColor: "#f9fafb", // subtle gray background
+          backgroundColor: "bisque", // subtle gray background
           borderRadius: "12px",
           boxShadow: plan_item.name === plan.name
             ? "0 0 0 3px #31b76a" // highlight current plan
