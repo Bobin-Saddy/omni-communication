@@ -87,3 +87,4 @@ model Message {
   timestamp  DateTime @default(now())
   page       Page     @relation(fields: [pageId], references: [id])
 }
+

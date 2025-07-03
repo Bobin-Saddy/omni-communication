@@ -10,8 +10,9 @@ import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prism
 import { restResources } from "@shopify/shopify-api/rest/admin/2023-10";
 import prisma from "./db.server";
 
-export const MONTHLY_PLAN = 'Monthly subscription';
-export const ANNUAL_PLAN = 'Annual subscription';
+export const FREE_PLAN = "Free plan";
+export const MONTHLY_PLAN = "Monthly subscription";
+export const PRO_MONTHLY_PLAN = "Pro Monthly subscription";
 
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -24,21 +25,28 @@ const shopify = shopifyApp({
   distribution: AppDistribution.AppStore,
   restResources,
   isEmbeddedApp: true,
-billing: {
+
+  billing: {
+    [FREE_PLAN]: {
+      amount: 0,
+      currencyCode: "USD",
+      interval: BillingInterval.OneTime, // Free plan treated as one-time for 3 days usage
+      trialDays: 3,
+    },
     [MONTHLY_PLAN]: {
-      amount: 10,
-      currencyCode: 'USD',
+      amount: 20,
+      currencyCode: "USD",
       interval: BillingInterval.Every30Days,
       trialDays: 3,
     },
-    [ANNUAL_PLAN]: {
-      amount: 100,
-      currencyCode: 'USD',
-      interval: BillingInterval.Annual,
+    [PRO_MONTHLY_PLAN]: {
+      amount: 50,
+      currencyCode: "USD",
+      interval: BillingInterval.Every30Days,
       trialDays: 3,
     },
-   
   },
+
   webhooks: {
     APP_UNINSTALLED: {
       deliveryMethod: DeliveryMethod.Http,

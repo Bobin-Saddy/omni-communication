@@ -12,18 +12,17 @@ import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
 export async function loader({ request }) {
-  const { authenticate, MONTHLY_PLAN, ANNUAL_PLAN } = await import("../shopify.server");
+  const { authenticate, MONTHLY_PLAN, PRO_MONTHLY_PLAN, FREE_PLAN } = await import("../shopify.server");
   const { billing } = await authenticate.admin(request);
 
   try {
-    const billingCheck = await billing.require({
-      plans: [MONTHLY_PLAN, ANNUAL_PLAN],
-      isTest: true,
-      onFailure: () => {
-        throw new Error('No active plan');
-      },
-    });
-
+const billingCheck = await billing.require({
+  plans: [MONTHLY_PLAN, PRO_MONTHLY_PLAN, FREE_PLAN],
+  isTest: true,
+  onFailure: () => {
+    throw new Error('No active plan');
+  },
+});
     const subscription = billingCheck.appSubscriptions[0];
     return json({ billing, plan: subscription });
   } catch (error) {
@@ -36,24 +35,22 @@ export async function loader({ request }) {
 
 const planData = [
   {
-    title: "Free",
-    description: "Free plan with basic features",
+    title: "Free Plan",
+    description: "Try all features for free for 3 days",
     price: "0",
-    action: "Upgrade to Pro Monthly",
-    name: "Free",
-    url: "/app/upgrade?plan=monthly",
+    name: "Free plan",
+    action: "Start Free Trial",
+    url: "/app/upgrade?plan=free",
     features: [
-      "100 wishlist per day",
-      "500 Products",
-      "Basic customization",
-      "Basic support",
-      "Basic analytics",
+      "Access limited for 3 days",
+      "Basic features",
+      "No cost",
     ],
   },
   {
     title: "Pro Monthly",
-    description: "Advanced features with 3 days free trial",
-    price: "10",
+    description: "Full features with 3 days free trial",
+    price: "20",
     name: "Monthly subscription",
     action: "Upgrade to Pro Monthly",
     url: "/app/upgrade?plan=monthly",
@@ -67,23 +64,21 @@ const planData = [
     ],
   },
   {
-    title: "Pro Annual",
-    description: "Annual plan with discount and 3 days free trial",
-    price: "100",
-    name: "Annual subscription",
-    action: "Upgrade to Pro Annual",
-    url: "/app/upgrade?plan=annual",
+    title: "Pro Plus Monthly",
+    description: "Advanced plan for power users with 3 days free trial",
+    price: "50",
+    name: "Pro Monthly subscription",
+    action: "Upgrade to Pro Plus Monthly",
+    url: "/app/upgrade?plan=pro_monthly",
     features: [
-      "Unlimited wishlist per day",
-      "10000 Products",
-      "Advanced customization",
-      "Priority support",
-      "Advanced analytics",
+      "All Pro features",
+      "Dedicated support",
+      "Advanced integrations",
       "3 days free trial",
-      "20% cheaper annually",
     ],
   },
 ];
+
 
 export default function PricingPage() {
   const { plan } = useLoaderData();

@@ -1,12 +1,11 @@
-import {  redirect } from "@remix-run/node";
-import { authenticate, MONTHLY_PLAN } from "../shopify.server";
-
+import { redirect } from "@remix-run/node";
+import { authenticate, MONTHLY_PLAN, PRO_MONTHLY_PLAN, FREE_PLAN } from "../shopify.server";
 
 export const loader = async ({ request }) => {
   const { billing } = await authenticate.admin(request);
   const billingCheck = await billing.require({
-    plans: [MONTHLY_PLAN],
-    onFailure: async () => billing.request({ plan: MONTHLY_PLAN }),
+    plans: [MONTHLY_PLAN, PRO_MONTHLY_PLAN, FREE_PLAN],
+    onFailure: async () => billing.request({ plan: FREE_PLAN }),
   });
 
   const subscription = billingCheck.appSubscriptions[0];
@@ -14,8 +13,7 @@ export const loader = async ({ request }) => {
     subscriptionId: subscription.id,
     isTest: true,
     prorate: true,
-   });
+  });
 
-  // App logic
-   return redirect("/app/pricing");
+  return redirect("/app/pricing");
 };
