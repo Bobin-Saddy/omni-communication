@@ -19,29 +19,17 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 // 🔒 Loader with error handling
 export const loader = async ({ request }) => {
   try {
-    const { session, billing } = await authenticate.admin(request);
-    const billingCheck = await billing.require({
-      plans: ["Monthly subscription", "Pro Monthly subscription"],
-      isTest: true,
-      onFailure: () => {
-        // If no active plan, redirect to pricing page
-        throw new Response("No plan", { status: 403 });
-      },
-    });
-
-    const activePlan = billingCheck.appSubscriptions[0]?.name || null;
+    const { session } = await authenticate.admin(request);
 
     return {
       apiKey: process.env.SHOPIFY_API_KEY || "",
       shop: session.shop,
-      activePlan,
     };
   } catch (error) {
     console.error("Loader error:", error);
     throw new Response("Unauthorized", { status: 401 });
   }
 };
-
 
 // ✅ Main app shell
 export default function App() {
