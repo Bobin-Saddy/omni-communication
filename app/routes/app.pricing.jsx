@@ -18,7 +18,7 @@ export async function loader({ request }) {
   try {
     const billingCheck = await billing.require({
       plans: [MONTHLY_PLAN, PRO_MONTHLY_PLAN],
-      isTest: true,
+      isTest: false,
       onFailure: () => {
         throw new Error('No active plan');
       },

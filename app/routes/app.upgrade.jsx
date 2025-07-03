@@ -22,7 +22,7 @@ export const loader = async ({ request }) => {
     onFailure: async () =>
       billing.request({
         plan: planToUse,
-        isTest: true,
+        isTest: false,
         returnUrl: `https://admin.shopify.com/store/${myShop}/apps/omni-communication/app/pricing`,
       }),
   });
