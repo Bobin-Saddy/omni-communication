@@ -90,72 +90,65 @@ export default function PricingPage() {
         <Divider />
       </div>
 
-      <Grid columns={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} gap="400">
-        {planData.map((plan_item, index) => (
-          <Grid.Cell key={index}>
-            <Card
-              sectioned
-              padding="400"
-              background={plan_item.name === plan.name ? "bg-surface-success" : "bg-surface"}
-              style={{
-                borderRadius: "12px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                transition: "transform 0.2s ease, box-shadow 0.2s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-5px)";
-                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
-              }}
-            >
-              <Box>
-                <Text as="h3" variant="headingLg" fontWeight="bold" alignment="center">
-                  {plan_item.title}
-                </Text>
-                <Text as="p" variant="bodyMd" color="subdued" alignment="center">
-                  {plan_item.description}
-                </Text>
+<Grid columns={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} gap="400">
+  {planData.map((plan_item, index) => (
+    <Grid.Cell key={index}>
+      <Card
+        sectioned
+        padding="400"
+        style={{
+          backgroundColor: "#f9fafb", // subtle gray background
+          borderRadius: "12px",
+          boxShadow: plan_item.name === plan.name
+            ? "0 0 0 3px #31b76a" // highlight current plan
+            : "0 2px 10px rgba(0,0,0,0.08)",
+          textAlign: "center",
+        }}
+      >
+        <Box>
+          <Text as="h3" variant="headingLg" fontWeight="bold">
+            {plan_item.title}
+          </Text>
+          <Text as="p" variant="bodyMd" color="subdued">
+            {plan_item.description}
+          </Text>
 
-                <Box paddingBlockStart="300" paddingBlockEnd="300" alignment="center">
-                  <Text as="p" variant="heading2xl" fontWeight="bold" color="critical">
-                    {plan_item.price === "0" ? "Free" : `$${plan_item.price}/mo`}
-                  </Text>
-                </Box>
+          <Box paddingBlockStart="300" paddingBlockEnd="300">
+            <Text as="p" variant="heading2xl" fontWeight="bold" color="critical">
+              {`$${plan_item.price}/mo`}
+            </Text>
+          </Box>
 
-                <ul style={{
-                  marginBottom: "1rem",
-                  paddingLeft: "1.2rem",
-                  listStyle: "disc",
-                  color: "#555",
-                  fontSize: "0.95rem",
-                  lineHeight: "1.6",
-                }}>
-                  {plan_item.features.map((feature, i) => (
-                    <li key={i} style={{ marginBottom: "0.35rem" }}>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+          <ul style={{
+            margin: "0 auto 1rem",
+            paddingLeft: "1.2rem",
+            maxWidth: "300px",
+            textAlign: "left",
+            listStyle: "disc",
+            color: "#333",
+          }}>
+            {plan_item.features.map((feature, i) => (
+              <li key={i} style={{ marginBottom: "0.35rem", fontSize: "0.9rem" }}>
+                {feature}
+              </li>
+            ))}
+          </ul>
 
-                <Box alignment="center" paddingBlockStart="200">
-                  {plan_item.name !== plan.name ? (
-                    <Button primary size="large" url={plan_item.url}>
-                      {plan_item.action}
-                    </Button>
-                  ) : (
-                    <Text as="p" variant="bodyMd" color="success">
-                      You're currently on this plan
-                    </Text>
-                  )}
-                </Box>
-              </Box>
-            </Card>
-          </Grid.Cell>
-        ))}
-      </Grid>
+          {plan_item.name !== plan.name ? (
+            <Button primary size="large" url={plan_item.url}>
+              {plan_item.action}
+            </Button>
+          ) : (
+            <Text as="p" variant="bodyMd" color="success">
+              You're currently on this plan
+            </Text>
+          )}
+        </Box>
+      </Card>
+    </Grid.Cell>
+  ))}
+</Grid>
+
     </Page>
   );
 }
