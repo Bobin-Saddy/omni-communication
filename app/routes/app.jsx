@@ -19,11 +19,22 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 // 🔒 Loader with error handling
 export const loader = async ({ request }) => {
   try {
-    const { session } = await authenticate.admin(request);
+    const { session, billing } = await authenticate.admin(request);
+    const billingCheck = await billing.require({
+      plans: ["Monthly subscription", "Pro Monthly subscription"],
+      isTest: true,
+      onFailure: () => {
+        // If no active plan, redirect to pricing page
+        throw new Response("No plan", { status: 403 });
+      },
+    });
+
+    const activePlan = billingCheck.appSubscriptions[0]?.name || null;
 
     return {
       apiKey: process.env.SHOPIFY_API_KEY || "",
       shop: session.shop,
+      activePlan,
     };
   } catch (error) {
     console.error("Loader error:", error);
@@ -31,9 +42,10 @@ export const loader = async ({ request }) => {
   }
 };
 
+
 // ✅ Main app shell
 export default function App() {
-  const { apiKey, shop } = useLoaderData();
+  const { apiKey, shop, activePlan } = useLoaderData();
   const navigation = useNavigation();
   const isLoading = navigation.state === "loading";
 
@@ -48,9 +60,18 @@ export default function App() {
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shop}>
       <NavMenu>
-        <PersistentLink to="/app/pagespeed">Check-1</PersistentLink>
-        <PersistentLink to="/app/optimize-images">Check-2</PersistentLink>
-           <PersistentLink to="/app/pricing">Plan</PersistentLink>
+        {/* Show Pricing link always */}
+        <PersistentLink to="/app/pricing">Plan</PersistentLink>
+
+        {/* Show Check-1 only if Monthly subscription */}
+        {activePlan === "Monthly subscription" && (
+          <PersistentLink to="/app/pagespeed">Check-1</PersistentLink>
+        )}
+
+        {/* Show Check-2 only if Pro Monthly subscription */}
+        {activePlan === "Pro Monthly subscription" && (
+          <PersistentLink to="/app/optimize-images">Check-2</PersistentLink>
+        )}
       </NavMenu>
 
       {isLoading ? (

@@ -9,6 +9,20 @@ import {
   BlockStack,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { authenticate } from "../../shopify.server"; // Adjust the path if needed
+
+export const loader = async ({ request }) => {
+  const { billing } = await authenticate.admin(request);
+  const billingCheck = await billing.require({
+    plans: ["Pro Monthly subscription"],
+    isTest: true,
+    onFailure: () => {
+      throw new Response("Unauthorized", { status: 401 });
+    },
+  });
+  return {};
+};
+
 
 export default function check2() {
   return (
