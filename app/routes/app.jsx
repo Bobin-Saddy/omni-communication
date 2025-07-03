@@ -20,12 +20,14 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 export const loader = async ({ request }) => {
   try {
     const { session, billing } = await authenticate.admin(request);
+
     const billingCheck = await billing.require({
       plans: ["Monthly subscription", "Pro Monthly subscription"],
       isTest: true,
-      onFailure: () => {
-        // If no active plan, redirect to pricing page
-        throw new Response("No plan", { status: 403 });
+      onFailure: async () => {
+        // Redirect to pricing page if no active plan
+        const shop = session.shop.replace(".myshopify.com", "");
+        throw redirect(`https://admin.shopify.com/store/${shop}/apps/omni-communication/app/pricing`);
       },
     });
 
@@ -38,6 +40,12 @@ export const loader = async ({ request }) => {
     };
   } catch (error) {
     console.error("Loader error:", error);
+
+    // If the error is a Response (like a redirect), rethrow it
+    if (error instanceof Response) {
+      throw error;
+    }
+
     throw new Response("Unauthorized", { status: 401 });
   }
 };
