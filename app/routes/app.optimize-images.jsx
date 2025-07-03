@@ -9,35 +9,19 @@ import {
   BlockStack,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate } from "../../shopify.server"; // Adjust the path if needed
 
-// ✅ Loader to restrict access only to Pro Monthly plan users
-export const loader = async ({ request }) => {
-  const { billing } = await authenticate.admin(request);
-
-  const billingCheck = await billing.require({
-    plans: ["Pro Monthly subscription"], // ✅ Only for $50 plan
-    isTest: false, // Set true for test mode, false for production
-    onFailure: () => {
-      throw new Response("Unauthorized", { status: 401 });
-    },
-  });
-
-  return null;
-};
-
-export default function Check2Page() {
+export default function check2() {
   return (
     <Page>
       <TitleBar title="Check-2" />
-
       <Layout>
         <Layout.Section>
           <Card>
             <BlockStack gap="300">
               <Text as="p" variant="bodyMd">
-                The app template comes with an additional page which demonstrates
-                how to create multiple pages within app navigation using{" "}
+                The app template comes with an additional page which
+                demonstrates how to create multiple pages within app navigation
+                using{" "}
                 <Link
                   url="https://shopify.dev/docs/apps/tools/app-bridge"
                   target="_blank"
@@ -47,7 +31,6 @@ export default function Check2Page() {
                 </Link>
                 .
               </Text>
-
               <Text as="p" variant="bodyMd">
                 To create your own page and have it show up in the app
                 navigation, add a page inside <Code>app/routes</Code>, and a
@@ -57,7 +40,6 @@ export default function Check2Page() {
             </BlockStack>
           </Card>
         </Layout.Section>
-
         <Layout.Section variant="oneThird">
           <Card>
             <BlockStack gap="200">
