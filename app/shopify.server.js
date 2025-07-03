@@ -29,19 +29,19 @@ const shopify = shopifyApp({
   billing: {
     [FREE_PLAN]: {
       amount: 0,
-      currencyCode: "USD",
+      currencyCode: "INR",
       interval: BillingInterval.OneTime, // Free plan treated as one-time for 3 days usage
       trialDays: 3,
     },
     [MONTHLY_PLAN]: {
       amount: 20,
-      currencyCode: "USD",
+      currencyCode: "INR",
       interval: BillingInterval.Every30Days,
       trialDays: 3,
     },
     [PRO_MONTHLY_PLAN]: {
       amount: 50,
-      currencyCode: "USD",
+      currencyCode: "INR",
       interval: BillingInterval.Every30Days,
       trialDays: 3,
     },
