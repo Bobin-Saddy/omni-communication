@@ -12,17 +12,17 @@ import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
 export async function loader({ request }) {
-  const { authenticate, MONTHLY_PLAN, PRO_MONTHLY_PLAN, FREE_PLAN } = await import("../shopify.server");
+  const { authenticate, MONTHLY_PLAN, PRO_MONTHLY_PLAN } = await import("../shopify.server");
   const { billing } = await authenticate.admin(request);
 
   try {
-const billingCheck = await billing.require({
-  plans: [MONTHLY_PLAN, PRO_MONTHLY_PLAN, FREE_PLAN],
-  isTest: true,
-  onFailure: () => {
-    throw new Error('No active plan');
-  },
-});
+    const billingCheck = await billing.require({
+      plans: [MONTHLY_PLAN, PRO_MONTHLY_PLAN],
+      isTest: true,
+      onFailure: () => {
+        throw new Error('No active plan');
+      },
+    });
     const subscription = billingCheck.appSubscriptions[0];
     return json({ billing, plan: subscription });
   } catch (error) {
@@ -34,19 +34,6 @@ const billingCheck = await billing.require({
 }
 
 const planData = [
-  {
-    title: "Free Plan",
-    description: "Try all features for free for 3 days",
-    price: "0",
-    name: "Free plan",
-    action: "Start Free Trial",
-    url: "/app/upgrade?plan=free",
-    features: [
-      "Access limited for 3 days",
-      "Basic features",
-      "No cost",
-    ],
-  },
   {
     title: "Pro Monthly",
     description: "Full features with 3 days free trial",
@@ -79,7 +66,6 @@ const planData = [
   },
 ];
 
-
 export default function PricingPage() {
   const { plan } = useLoaderData();
 
@@ -93,55 +79,78 @@ export default function PricingPage() {
           url: '/app/cancel',
         }}
       >
-        {plan.name === "Monthly subscription" || plan.name === "Annual subscription" ? (
+        {plan.name === "Monthly subscription" || plan.name === "Pro Monthly subscription" ? (
           <p>You're currently on Pro plan. All features are unlocked.</p>
         ) : (
           <p>You're currently on Free plan. Upgrade to Pro to unlock more features.</p>
         )}
       </CalloutCard>
 
-      <div style={{ margin: "1rem 0" }}>
+      <div style={{ margin: "1.5rem 0" }}>
         <Divider />
       </div>
 
-      <Grid columns={{ xs: 1, sm: 2, md: 3, lg: 3, xl: 3 }} gap="400">
+      <Grid columns={{ xs: 1, sm: 2, md: 2, lg: 2, xl: 2 }} gap="400">
         {planData.map((plan_item, index) => (
           <Grid.Cell key={index}>
             <Card
               sectioned
               padding="400"
               background={plan_item.name === plan.name ? "bg-surface-success" : "bg-surface"}
+              style={{
+                borderRadius: "12px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                transition: "transform 0.2s ease, box-shadow 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-5px)";
+                e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+              }}
             >
               <Box>
-                <Text as="h3" variant="headingMd" fontWeight="bold">
+                <Text as="h3" variant="headingLg" fontWeight="bold" alignment="center">
                   {plan_item.title}
                 </Text>
-                <Text as="p" variant="bodyMd" color="subdued">
+                <Text as="p" variant="bodyMd" color="subdued" alignment="center">
                   {plan_item.description}
                 </Text>
-                <Box paddingBlockStart="200" paddingBlockEnd="200">
-                  <Text as="p" variant="headingLg" fontWeight="bold">
+
+                <Box paddingBlockStart="300" paddingBlockEnd="300" alignment="center">
+                  <Text as="p" variant="heading2xl" fontWeight="bold" color="critical">
                     {plan_item.price === "0" ? "Free" : `$${plan_item.price}/mo`}
                   </Text>
                 </Box>
 
-                <ul style={{ marginBottom: "1rem", paddingLeft: "1.2rem" }}>
+                <ul style={{
+                  marginBottom: "1rem",
+                  paddingLeft: "1.2rem",
+                  listStyle: "disc",
+                  color: "#555",
+                  fontSize: "0.95rem",
+                  lineHeight: "1.6",
+                }}>
                   {plan_item.features.map((feature, i) => (
-                    <li key={i} style={{ marginBottom: "0.25rem", fontSize: "0.9rem" }}>
+                    <li key={i} style={{ marginBottom: "0.35rem" }}>
                       {feature}
                     </li>
                   ))}
                 </ul>
 
-                {plan_item.name !== plan.name ? (
-                  <Button primary url={plan_item.url}>
-                    {plan_item.action}
-                  </Button>
-                ) : (
-                  <Text as="p" variant="bodyMd" color="success">
-                    You're currently on this plan
-                  </Text>
-                )}
+                <Box alignment="center" paddingBlockStart="200">
+                  {plan_item.name !== plan.name ? (
+                    <Button primary size="large" url={plan_item.url}>
+                      {plan_item.action}
+                    </Button>
+                  ) : (
+                    <Text as="p" variant="bodyMd" color="success">
+                      You're currently on this plan
+                    </Text>
+                  )}
+                </Box>
               </Box>
             </Card>
           </Grid.Cell>
