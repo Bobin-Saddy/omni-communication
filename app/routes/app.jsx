@@ -20,14 +20,12 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 export const loader = async ({ request }) => {
   try {
     const { session, billing } = await authenticate.admin(request);
-
     const billingCheck = await billing.require({
       plans: ["Monthly subscription", "Pro Monthly subscription"],
       isTest: true,
-      onFailure: async () => {
-        // Redirect to pricing page if no active plan
-        const shop = session.shop.replace(".myshopify.com", "");
-        throw redirect(`https://admin.shopify.com/store/${shop}/apps/omni-communication/app/pricing`);
+      onFailure: () => {
+        // If no active plan, redirect to pricing page
+        throw new Response("No plan", { status: 403 });
       },
     });
 
@@ -40,12 +38,6 @@ export const loader = async ({ request }) => {
     };
   } catch (error) {
     console.error("Loader error:", error);
-
-    // If the error is a Response (like a redirect), rethrow it
-    if (error instanceof Response) {
-      throw error;
-    }
-
     throw new Response("Unauthorized", { status: 401 });
   }
 };
@@ -53,7 +45,7 @@ export const loader = async ({ request }) => {
 
 // ✅ Main app shell
 export default function App() {
-  const { apiKey, shop, activePlan } = useLoaderData();
+  const { apiKey, shop } = useLoaderData();
   const navigation = useNavigation();
   const isLoading = navigation.state === "loading";
 
@@ -68,18 +60,9 @@ export default function App() {
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shop}>
       <NavMenu>
-        {/* Show Pricing link always */}
-        <PersistentLink to="/app/pricing">Plan</PersistentLink>
-
-        {/* Show Check-1 only if Monthly subscription */}
-        {activePlan === "Monthly subscription" && (
-          <PersistentLink to="/app/pagespeed">Check-1</PersistentLink>
-        )}
-
-        {/* Show Check-2 only if Pro Monthly subscription */}
-        {activePlan === "Pro Monthly subscription" && (
-          <PersistentLink to="/app/optimize-images">Check-2</PersistentLink>
-        )}
+        <PersistentLink to="/app/pagespeed">Check-1</PersistentLink>
+        <PersistentLink to="/app/optimize-images">Check-2</PersistentLink>
+           <PersistentLink to="/app/pricing">Plan</PersistentLink>
       </NavMenu>
 
       {isLoading ? (
