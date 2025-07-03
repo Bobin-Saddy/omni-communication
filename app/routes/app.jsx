@@ -48,8 +48,8 @@ export default function App() {
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shop}>
       <NavMenu>
-        {/* <PersistentLink to="/app/pagespeed">Seo Stats</PersistentLink>
-        <PersistentLink to="/app/optimize-images">Product Media Optimizer</PersistentLink> */}
+        <PersistentLink to="/app/pagespeed">Check-1</PersistentLink>
+        <PersistentLink to="/app/optimize-images">Check-2</PersistentLink>
            <PersistentLink to="/app/pricing">Plan</PersistentLink>
       </NavMenu>
 
