@@ -11,16 +11,13 @@ export const loader = async ({ request }) => {
 
   let planToUse;
 
+  // ✅ Handle plan selection
   if (selectedPlan === "free") {
-    // ✅ Handle free plan internally without billing.request
-    // For example, update user in DB as free plan user
-    // await prisma.user.update({ where: { shop }, data: { plan: FREE_PLAN } });
-    console.log(`User ${shop} activated Free Plan`);
+    // Handle Free Plan internally without billing request
+    // Example: save free plan status in DB if needed
+    console.log(`User ${shop} selected Free Plan`);
     return redirect("/app/pricing");
-  }
-
-  // ✅ Map selected plan to constants
-  if (selectedPlan === "monthly") {
+  } else if (selectedPlan === "monthly") {
     planToUse = MONTHLY_PLAN;
   } else if (selectedPlan === "pro_monthly") {
     planToUse = PRO_MONTHLY_PLAN;
@@ -28,7 +25,7 @@ export const loader = async ({ request }) => {
     throw new Error("Invalid plan selected");
   }
 
-  // ✅ Require billing; if not active, request billing
+  // ✅ Require billing for selected paid plan
   await billing.require({
     plans: [planToUse],
     isTest: true,
