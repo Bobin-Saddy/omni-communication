@@ -51,6 +51,7 @@ export default function App() {
         <PersistentLink to="/app/pagespeed">Check-1</PersistentLink>
         <PersistentLink to="/app/optimize-images">Check-2</PersistentLink>
            <PersistentLink to="/app/pricing">Plan</PersistentLink>
+           <PersistentLink to="/app/index">Plan</PersistentLink>
       </NavMenu>
 
       {isLoading ? (
