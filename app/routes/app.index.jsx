@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import FacebookLogoutButton from "./FacebookLogoutButton";
-import { fetchPageConversations } from "./app.fetchconversation";
+// import { fetchPageConversations } from "./app.fetchconversation";
 
 export default function Index() {
   const [conversations, setConversations] = useState([]);
@@ -39,15 +39,15 @@ const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=
     );
   };
 
-  const loadConversations = async () => {
-    try {
-      const data = await fetchPageConversations(pageAccessToken, pageId);
-      console.log("Conversations data: ", data);
-      setConversations(data.data);
-    } catch (error) {
-      console.error("Error fetching conversations: ", error);
-    }
-  };
+  // const loadConversations = async () => {
+  //   try {
+  //     const data = await fetchPageConversations(pageAccessToken, pageId);
+  //     console.log("Conversations data: ", data);
+  //     setConversations(data.data);
+  //   } catch (error) {
+  //     console.error("Error fetching conversations: ", error);
+  //   }
+  // };
 
   useEffect(() => {
     loadConversations();
