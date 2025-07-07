@@ -5,11 +5,12 @@ import { fetchPageConversations } from "./app.fetchconversation";
 export default function Index() {
   const [conversations, setConversations] = useState([]);
 
-  const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
-    import.meta.env.VITE_FACEBOOK_APP_ID
-  }&redirect_uri=${
-    import.meta.env.VITE_FB_REDIRECT_URI
-  }&scope=email,public_profile,pages_show_list,pages_messaging`;
+const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
+  import.meta.env.VITE_FACEBOOK_APP_ID
+}&redirect_uri=${
+  import.meta.env.VITE_FB_REDIRECT_URI
+}&scope=email,public_profile`; // removed pages_show_list,pages_messaging for testing
+
 
   const pageAccessToken = "EAAPOofzfZCvsBPG7BbILJUN9AYccsfchSWsoWnSgcCOYhQKK9KDDRfmP8W2YsTQKYER8fJGmXBRZBlPPAXhl6Orm9ryczx4D8nZAVr6S9LsNizVrWU3C5a46tiZBhXlQ3cCIw462OeH3oM2DCkDwT6tKGSFSp6DOXYvJhCztCrVIjftlZBAUcxOYvo12NnqIivyb6Q7Ny5MXFb5hIU2mUM3OqdL8udZCxzuRe3BPuPtZBdmrwEZD"; // Replace with your actual token
   const pageId = "494204937298187"; // Replace with your Page ID
