@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import FacebookLogoutButton from "./FacebookLogoutButton";
-import { fetchPageConversations } from "./app/fetchPageConversations";
+import { fetchPageConversations } from "./app.fetchconversation";
 
 export default function Index() {
   const [conversations, setConversations] = useState([]);
