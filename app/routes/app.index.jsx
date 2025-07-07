@@ -11,7 +11,7 @@ export default function Index() {
     import.meta.env.VITE_FB_REDIRECT_URI
   }&scope=email,public_profile,pages_show_list,pages_messaging`;
 
-  const pageAccessToken = "EAAPOofzfZCvsBPNpQXfmiTCjxTxMuHC6NZA0NbAP7OTxHGlOqDioq6XvF3PvF1kVZBwiVZAud18ofIPy6Wn9gqqL65kc9iqwl6iiIvoVtbH8iZCWFUh864B7bDNWoZBTS96whue0dhtZCfH9C2TIwMMnvpOWC6NZA6ZCHte1ltn8J8p7TL2aZBz76XidlXPCKMQpvIPfWbC7Nou0m2waIaABzLgBjuaNxNSTQ3pZChm"; // Replace with your actual token
+  const pageAccessToken = "EAAPOofzfZCvsBPG7BbILJUN9AYccsfchSWsoWnSgcCOYhQKK9KDDRfmP8W2YsTQKYER8fJGmXBRZBlPPAXhl6Orm9ryczx4D8nZAVr6S9LsNizVrWU3C5a46tiZBhXlQ3cCIw462OeH3oM2DCkDwT6tKGSFSp6DOXYvJhCztCrVIjftlZBAUcxOYvo12NnqIivyb6Q7Ny5MXFb5hIU2mUM3OqdL8udZCxzuRe3BPuPtZBdmrwEZD"; // Replace with your actual token
   const pageId = "494204937298187"; // Replace with your Page ID
 
   useEffect(() => {
