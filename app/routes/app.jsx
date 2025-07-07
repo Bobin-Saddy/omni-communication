@@ -35,7 +35,7 @@ export const loader = async ({ request }) => {
 export default function App() {
   const { apiKey, shop } = useLoaderData();
   const navigation = useNavigation();
-  const isLoading = navigation.state === "loading";
+  // const isLoading = navigation.state === "loading";
 
   if (!apiKey || !shop) {
     return (
@@ -52,7 +52,7 @@ export default function App() {
            <PersistentLink to="/app/index">Facebook</PersistentLink>
       </NavMenu>
 
-      {isLoading ? (
+    (
         <div style={{ padding: "2rem", textAlign: "center" }}>
           <Spinner accessibilityLabel="Loading" size="large" />
         </div>
@@ -60,7 +60,7 @@ export default function App() {
         <Suspense fallback={<Spinner accessibilityLabel="Loading..." size="large" />}>
           <Outlet />
         </Suspense>
-      )}
+      )
     </AppProvider>
   );
 }
