@@ -52,15 +52,11 @@ export default function App() {
            <PersistentLink to="/app/index">Facebook</PersistentLink>
       </NavMenu>
 
-    (
+    
         <div style={{ padding: "2rem", textAlign: "center" }}>
           <Spinner accessibilityLabel="Loading" size="large" />
         </div>
-      ) : (
-        <Suspense fallback={<Spinner accessibilityLabel="Loading..." size="large" />}>
-          <Outlet />
-        </Suspense>
-      )
+      
     </AppProvider>
   );
 }
