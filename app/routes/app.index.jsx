@@ -12,7 +12,7 @@ const facebookLoginUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=
 }&scope=email,public_profile`; // removed pages_show_list,pages_messaging for testing
 
 
-  const pageAccessToken = "EAAPOofzfZCvsBPG7BbILJUN9AYccsfchSWsoWnSgcCOYhQKK9KDDRfmP8W2YsTQKYER8fJGmXBRZBlPPAXhl6Orm9ryczx4D8nZAVr6S9LsNizVrWU3C5a46tiZBhXlQ3cCIw462OeH3oM2DCkDwT6tKGSFSp6DOXYvJhCztCrVIjftlZBAUcxOYvo12NnqIivyb6Q7Ny5MXFb5hIU2mUM3OqdL8udZCxzuRe3BPuPtZBdmrwEZD"; // Replace with your actual token
+  const pageAccessToken = "EAAPOofzfZCvsBPNyILWZC34tdv8brqlQ85ZCwCTZAxAlmVYrMNCaPWEDc9GjiPakuLhcZAFxdCLyOttH96AHAYuOiH376tZApojdpdMhM2SC3vR4YXgZBzEfw36HTxRRiPHLiZBwHFRTZBNKeLxZBLUZCkiCpzZBhrZBcZAhPg3mN6gnMZCNvV1ZBjSSn3Hq93rMPsCPR9UPsZA8hv49do3uwwAbKNypx9VpKZCjjYNSkVYIWZA"; // Replace with your actual token
   const pageId = "494204937298187"; // Replace with your Page ID
 
   useEffect(() => {
