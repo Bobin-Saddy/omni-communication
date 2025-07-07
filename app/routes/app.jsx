@@ -8,6 +8,7 @@ import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import { Spinner } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { PersistentLink } from "./components/PersistentLink";
 import { Suspense } from "react";
@@ -37,20 +38,26 @@ export default function App() {
   const isLoading = navigation.state === "loading";
 
   if (!apiKey || !shop) {
-    return null; // Removed spinner here
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        <Spinner accessibilityLabel="Initializing..." size="large" />
+      </div>
+    );
   }
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shop}>
       <NavMenu>
-        <PersistentLink to="/app/pricing">Plan</PersistentLink>
-        <PersistentLink to="/app/index">Facebook</PersistentLink>
+           <PersistentLink to="/app/pricing">Plan</PersistentLink>
+           <PersistentLink to="/app/index">Facebook</PersistentLink>
       </NavMenu>
 
       {isLoading ? (
-        null // Removed spinner here
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          <Spinner accessibilityLabel="Loading" size="large" />
+        </div>
       ) : (
-        <Suspense fallback={null}> {/* Removed spinner here */}
+        <Suspense fallback={<Spinner accessibilityLabel="Loading..." size="large" />}>
           <Outlet />
         </Suspense>
       )}
@@ -58,11 +65,11 @@ export default function App() {
   );
 }
 
-// ✅ Error boundary shows minimal fallback instead of spinner
+// ✅ Error boundary shows loader instead of error message
 export function ErrorBoundary() {
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
-      <p>Something went wrong.</p>
+      <Spinner accessibilityLabel="Loading..." size="large" />
     </div>
   );
 }
