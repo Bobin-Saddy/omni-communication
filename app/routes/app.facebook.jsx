@@ -10,7 +10,7 @@ export default function FacebookPageMessages() {
   const [pageAccessToken, setPageAccessToken] = useState(null);
   const [pageId, setPageId] = useState(null);
 
-  const FACEBOOK_APP_ID = "1071620057726715";
+  const FACEBOOK_APP_ID = "544704651303656";
 
   // ✅ Initialize Facebook SDK
   useEffect(() => {
