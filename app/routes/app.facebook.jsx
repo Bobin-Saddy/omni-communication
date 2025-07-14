@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Page, Card, Button, Text } from "@shopify/polaris";
 
 export default function FacebookPageMessages() {
   const [isConnected, setIsConnected] = useState(false);
@@ -8,10 +9,8 @@ export default function FacebookPageMessages() {
   const [pageAccessToken, setPageAccessToken] = useState(null);
   const [pageId, setPageId] = useState(null);
 
-  // Your App ID
   const FACEBOOK_APP_ID = "1071620057726715";
 
-  // Load Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -35,12 +34,10 @@ export default function FacebookPageMessages() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
-  // Facebook login
   const handleFacebookLogin = () => {
     window.FB.login(
       function (response) {
         if (response.authResponse) {
-          console.log("Welcome! Fetching your info.... ", response);
           fetchPageDetails(response.authResponse.accessToken);
         } else {
           console.log("User cancelled login or did not fully authorize.");
@@ -50,14 +47,12 @@ export default function FacebookPageMessages() {
     );
   };
 
-  // Fetch Page ID and Access Token
   const fetchPageDetails = (userAccessToken) => {
     fetch(
       `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
-        console.log("Pages:", data);
         if (data.data && data.data.length > 0) {
           const firstPage = data.data[0];
           setPageId(firstPage.id);
@@ -71,28 +66,24 @@ export default function FacebookPageMessages() {
       .catch((err) => console.error("Error fetching page details:", err));
   };
 
-  // Fetch all conversations of the page
   const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN) => {
     try {
       const response = await fetch(
         `https://graph.facebook.com/v20.0/${PAGE_ID}/conversations?access_token=${PAGE_ACCESS_TOKEN}`
       );
       const data = await response.json();
-      console.log("Page Conversations:", data);
       setConversations(data.data || []);
     } catch (error) {
       console.error("Error fetching conversations:", error);
     }
   };
 
-  // Fetch messages of a particular conversation
   const fetchMessages = async (conversationId) => {
     try {
       const response = await fetch(
         `https://graph.facebook.com/v20.0/${conversationId}/messages?access_token=${pageAccessToken}`
       );
       const data = await response.json();
-      console.log("Conversation Messages:", data);
       setMessages(data.data || []);
       setSelectedConversation(conversationId);
     } catch (error) {
@@ -101,64 +92,48 @@ export default function FacebookPageMessages() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>📥 Facebook Page Conversations</h2>
+    <Page title="Facebook Page Messages">
+      <Card sectioned>
+        {!isConnected && (
+          <Button onClick={handleFacebookLogin} primary>
+            Connect with Facebook
+          </Button>
+        )}
 
-      {!isConnected && (
-        <button
-          onClick={handleFacebookLogin}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#4267B2",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Connect with Facebook
-        </button>
-      )}
+        {isConnected && conversations.length === 0 && (
+          <Text>No conversations found.</Text>
+        )}
 
-      {isConnected && conversations.length === 0 && <p>No conversations found.</p>}
-
-      {isConnected && (
-        <ul>
-          {conversations.map((conv) => (
-            <li key={conv.id}>
-              <button
+        {isConnected && conversations.length > 0 && (
+          <>
+            <Text variant="headingMd">Conversations</Text>
+            {conversations.map((conv) => (
+              <Button
+                key={conv.id}
                 onClick={() => fetchMessages(conv.id)}
-                style={{
-                  padding: "8px 12px",
-                  margin: "5px",
-                  backgroundColor: "#4267B2",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                }}
+                style={{ margin: "5px" }}
               >
                 View Conversation {conv.id}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {selectedConversation && (
-        <div style={{ marginTop: "30px" }}>
-          <h3>Messages in Conversation</h3>
-          {messages.length === 0 && <p>No messages found.</p>}
-
-          <ul>
-            {messages.map((msg) => (
-              <li key={msg.id}>
-                <strong>{msg.from?.name || "Unknown"}:</strong> {msg.message}
-              </li>
+              </Button>
             ))}
-          </ul>
-        </div>
-      )}
-    </div>
+          </>
+        )}
+
+        {selectedConversation && (
+          <div style={{ marginTop: "30px" }}>
+            <Text variant="headingMd">Messages</Text>
+            {messages.length === 0 && <Text>No messages found.</Text>}
+
+            <ul>
+              {messages.map((msg) => (
+                <li key={msg.id}>
+                  <strong>{msg.from?.name || "Unknown"}:</strong> {msg.message}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Card>
+    </Page>
   );
 }
