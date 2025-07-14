@@ -11,7 +11,7 @@ export default function FacebookPageMessages() {
 
   const FACEBOOK_APP_ID = "1071620057726715";
 
-  // Initialize Facebook SDK
+  // ✅ Initialize Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -25,9 +25,7 @@ export default function FacebookPageMessages() {
     (function (d, s, id) {
       var js,
         fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) {
-        return;
-      }
+      if (d.getElementById(id)) return;
       js = d.createElement(s);
       js.id = id;
       js.src = "https://connect.facebook.net/en_US/sdk.js";
@@ -35,7 +33,7 @@ export default function FacebookPageMessages() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
-  // Handle Facebook login
+  // ✅ Handle Facebook login
   const handleFacebookLogin = () => {
     window.FB.login(
       function (response) {
@@ -53,7 +51,7 @@ export default function FacebookPageMessages() {
     );
   };
 
-  // Fetch user's page details
+  // ✅ Fetch user's page details
   const fetchPageDetails = (userAccessToken) => {
     fetch(
       `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
@@ -73,26 +71,26 @@ export default function FacebookPageMessages() {
       .catch((err) => console.error("Error fetching page details:", err));
   };
 
-  // Fetch all conversations for the page
-const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null) => {
-  try {
-    const url = nextURL || `https://graph.facebook.com/v20.0/${PAGE_ID}/conversations?access_token=${PAGE_ACCESS_TOKEN}`;
-    const response = await fetch(url);
-    const data = await response.json();
+  // ✅ Fetch all conversations for the page with pagination
+  const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null) => {
+    try {
+      const url = nextURL || `https://graph.facebook.com/v20.0/${PAGE_ID}/conversations?limit=100&access_token=${PAGE_ACCESS_TOKEN}`;
+      const response = await fetch(url);
+      const data = await response.json();
 
-    // Append new conversations to existing state
-    setConversations(prev => [...prev, ...(data.data || [])]);
+      // Append new conversations to existing state
+      setConversations(prev => [...prev, ...(data.data || [])]);
 
-    // If there's another page, fetch it recursively
-    if (data.paging && data.paging.next) {
-      await fetchPageConversations(PAGE_ID, PAGE_ACCESS_TOKEN, data.paging.next);
+      // If there's another page, fetch it recursively
+      if (data.paging && data.paging.next) {
+        await fetchPageConversations(PAGE_ID, PAGE_ACCESS_TOKEN, data.paging.next);
+      }
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
     }
-  } catch (error) {
-    console.error("Error fetching conversations:", error);
-  }
-};
+  };
 
-  // Fetch messages in a conversation
+  // ✅ Fetch messages in a conversation
   const fetchMessages = async (conversationId) => {
     try {
       const response = await fetch(
@@ -107,6 +105,7 @@ const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null
     }
   };
 
+  // ✅ Render UI
   return (
     <Page title="Facebook Page Messages">
       <Card sectioned>
