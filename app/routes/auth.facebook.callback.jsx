@@ -10,7 +10,7 @@ export const loader = async ({ request }) => {
   }
 
   try {
-    // Exchange code for access token
+    // 1. Exchange code for access token
     const tokenResponse = await axios.get(
       `https://graph.facebook.com/v18.0/oauth/access_token`,
       {
@@ -25,7 +25,7 @@ export const loader = async ({ request }) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // Fetch user profile
+    // 2. Fetch user profile using the access token
     const userProfileResponse = await axios.get(
       `https://graph.facebook.com/me`,
       {
@@ -37,12 +37,22 @@ export const loader = async ({ request }) => {
     );
 
     const userProfile = userProfileResponse.data;
-
     console.log("✅ Facebook user profile:", userProfile);
 
-    // TODO: Save userProfile to DB or create session here
+    // 3. (Recommended) Fetch pages of user to get page access token if needed
+    // const pagesResponse = await axios.get(
+    //   `https://graph.facebook.com/me/accounts`,
+    //   {
+    //     params: {
+    //       access_token: accessToken,
+    //     },
+    //   }
+    // );
+    // console.log("✅ User pages:", pagesResponse.data);
 
-    // Return HTML that auto-closes popup
+    // 4. TODO: Save userProfile and accessToken to DB or create session here
+
+    // 5. Return HTML that posts a success message to opener and closes the popup
     return new Response(
       `
       <html>
@@ -60,7 +70,7 @@ export const loader = async ({ request }) => {
       }
     );
   } catch (error) {
-    console.error("❌ Facebook callback error:", error);
+    console.error("❌ Facebook callback error:", error?.response?.data || error);
     return json({ error: "Facebook login failed" }, { status: 500 });
   }
 };
