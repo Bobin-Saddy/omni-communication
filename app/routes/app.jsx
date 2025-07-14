@@ -49,7 +49,7 @@ export default function App() {
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shop}>
       <NavMenu>
            <PersistentLink to="/app/pricing">Plan</PersistentLink>
-           <PersistentLink to="/app/index">Facebook</PersistentLink>
+           <PersistentLink to="/app/facebook">Facebook</PersistentLink>
       </NavMenu>
 
       {isLoading ? (
