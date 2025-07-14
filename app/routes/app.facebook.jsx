@@ -6,7 +6,7 @@ export default function Index() {
     import.meta.env.VITE_FACEBOOK_APP_ID
   }&redirect_uri=${
     import.meta.env.VITE_FB_REDIRECT_URI
-  }&scope=email,public_profile`;
+  }&scope=email`;
 
   useEffect(() => {
     const handleMessage = (event) => {
