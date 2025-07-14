@@ -40,15 +40,15 @@ export const loader = async ({ request }) => {
     console.log("✅ Facebook user profile:", userProfile);
 
     // 3. (Recommended) Fetch pages of user to get page access token if needed
-    const pagesResponse = await axios.get(
-      `https://graph.facebook.com/me/accounts`,
-      {
-        params: {
-          access_token: accessToken,
-        },
-      }
-    );
-    console.log("✅ User pages:", pagesResponse.data);
+    // const pagesResponse = await axios.get(
+    //   `https://graph.facebook.com/me/accounts`,
+    //   {
+    //     params: {
+    //       access_token: accessToken,
+    //     },
+    //   }
+    // );
+    // console.log("✅ User pages:", pagesResponse.data);
 
     // 4. TODO: Save userProfile and accessToken to DB or create session here
 

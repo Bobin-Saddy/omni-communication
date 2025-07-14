@@ -11,6 +11,7 @@ export default function FacebookPageMessages() {
 
   const FACEBOOK_APP_ID = "1071620057726715";
 
+  // Initialize Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -34,19 +35,25 @@ export default function FacebookPageMessages() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
+  // Handle Facebook login
   const handleFacebookLogin = () => {
     window.FB.login(
       function (response) {
         if (response.authResponse) {
+          console.log("✅ Facebook login successful:", response);
           fetchPageDetails(response.authResponse.accessToken);
         } else {
-          console.log("User cancelled login or did not fully authorize.");
+          console.log("❌ User cancelled login or did not fully authorize.");
         }
       },
-      { scope: "pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging" }
+      {
+        scope:
+          "pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging",
+      }
     );
   };
 
+  // Fetch user's page details
   const fetchPageDetails = (userAccessToken) => {
     fetch(
       `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
@@ -60,30 +67,34 @@ export default function FacebookPageMessages() {
           setIsConnected(true);
           fetchPageConversations(firstPage.id, firstPage.access_token);
         } else {
-          console.log("No pages found for this user.");
+          console.log("❌ No pages found for this user.");
         }
       })
       .catch((err) => console.error("Error fetching page details:", err));
   };
 
-  const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN) => {
+  // Fetch all conversations for the page
+  const fetchPageConversations = async (pageId, accessToken) => {
     try {
       const response = await fetch(
-        `https://graph.facebook.com/v20.0/${PAGE_ID}/conversations?access_token=${PAGE_ACCESS_TOKEN}`
+        `https://graph.facebook.com/v20.0/${pageId}/conversations?access_token=${accessToken}`
       );
       const data = await response.json();
+      console.log("✅ Conversations fetched:", data);
       setConversations(data.data || []);
     } catch (error) {
       console.error("Error fetching conversations:", error);
     }
   };
 
+  // Fetch messages in a conversation
   const fetchMessages = async (conversationId) => {
     try {
       const response = await fetch(
-        `https://graph.facebook.com/v20.0/${conversationId}/messages?access_token=${pageAccessToken}`
+        `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
       );
       const data = await response.json();
+      console.log("✅ Messages fetched:", data);
       setMessages(data.data || []);
       setSelectedConversation(conversationId);
     } catch (error) {
@@ -127,7 +138,10 @@ export default function FacebookPageMessages() {
             <ul>
               {messages.map((msg) => (
                 <li key={msg.id}>
-                  <strong>{msg.from?.name || "Unknown"}:</strong> {msg.message}
+                  <strong>
+                    {msg.from?.name || msg.from?.id || "Anonymous"}:
+                  </strong>{" "}
+                  {msg.message}
                 </li>
               ))}
             </ul>
