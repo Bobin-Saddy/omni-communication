@@ -6,6 +6,7 @@ export default function FacebookPageMessages() {
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [replyText, setReplyText] = useState("");
   const [pageAccessToken, setPageAccessToken] = useState(null);
   const [pageId, setPageId] = useState(null);
 
@@ -71,19 +72,29 @@ export default function FacebookPageMessages() {
       .catch((err) => console.error("Error fetching page details:", err));
   };
 
-  // ✅ Fetch all conversations for the page with pagination
-  const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null) => {
+  // ✅ Fetch all conversations for the page with pagination and participants
+  const fetchPageConversations = async (
+    PAGE_ID,
+    PAGE_ACCESS_TOKEN,
+    nextURL = null
+  ) => {
     try {
-      const url = nextURL || `https://graph.facebook.com/v20.0/${PAGE_ID}/conversations?limit=100&access_token=${PAGE_ACCESS_TOKEN}`;
+      const url =
+        nextURL ||
+        `https://graph.facebook.com/v20.0/${PAGE_ID}/conversations?fields=participants&limit=100&access_token=${PAGE_ACCESS_TOKEN}`;
       const response = await fetch(url);
       const data = await response.json();
 
       // Append new conversations to existing state
-      setConversations(prev => [...prev, ...(data.data || [])]);
+      setConversations((prev) => [...prev, ...(data.data || [])]);
 
       // If there's another page, fetch it recursively
       if (data.paging && data.paging.next) {
-        await fetchPageConversations(PAGE_ID, PAGE_ACCESS_TOKEN, data.paging.next);
+        await fetchPageConversations(
+          PAGE_ID,
+          PAGE_ACCESS_TOKEN,
+          data.paging.next
+        );
       }
     } catch (error) {
       console.error("Error fetching conversations:", error);
@@ -102,6 +113,61 @@ export default function FacebookPageMessages() {
       setSelectedConversation(conversationId);
     } catch (error) {
       console.error("Error fetching messages:", error);
+    }
+  };
+
+  // ✅ Helper to get recipient ID (user who is not the page)
+  const getRecipientId = (conversationId) => {
+    const conv = conversations.find((c) => c.id === conversationId);
+    if (!conv || !conv.participants || !conv.participants.data) return null;
+
+    const recipient = conv.participants.data.find(
+      (p) => p.id !== pageId
+    );
+    return recipient?.id || null;
+  };
+
+  // ✅ Send a reply message
+  const sendMessage = async () => {
+    if (!selectedConversation || !replyText.trim()) {
+      alert("Select a conversation and enter a message.");
+      return;
+    }
+
+    const recipientId = getRecipientId(selectedConversation);
+    if (!recipientId) {
+      alert("Recipient ID not found.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/v20.0/${pageId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            recipient: {
+              id: recipientId,
+            },
+            message: {
+              text: replyText,
+            },
+            access_token: pageAccessToken,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("✅ Message sent:", data);
+
+      // Refresh messages after sending
+      fetchMessages(selectedConversation);
+      setReplyText("");
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
   };
 
@@ -149,6 +215,19 @@ export default function FacebookPageMessages() {
                 </li>
               ))}
             </ul>
+
+            <div style={{ marginTop: "20px" }}>
+              <input
+                type="text"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Type your reply here..."
+                style={{ padding: "10px", width: "70%", marginRight: "10px" }}
+              />
+              <Button onClick={sendMessage} primary>
+                Send Reply
+              </Button>
+            </div>
           </div>
         )}
       </Card>
