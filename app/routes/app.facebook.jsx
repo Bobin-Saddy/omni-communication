@@ -5,12 +5,11 @@ export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
   const [pages, setPages] = useState([]);
   const [selectedPageId, setSelectedPageId] = useState(null);
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [pageAccessToken, setPageAccessToken] = useState(null);
+  const [conversationsByPage, setConversationsByPage] = useState({});
+  const [messagesByConversation, setMessagesByConversation] = useState({});
+  const [pageAccessTokens, setPageAccessTokens] = useState({});
 
-  const FACEBOOK_APP_ID = "544704651303656";
+  const FACEBOOK_APP_ID = "YOUR_APP_ID_HERE";
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -57,6 +56,11 @@ export default function FacebookPagesConversations() {
       .then((res) => res.json())
       .then((data) => {
         if (data.data && data.data.length > 0) {
+          const tokens = {};
+          data.data.forEach((page) => {
+            tokens[page.id] = page.access_token;
+          });
+          setPageAccessTokens(tokens);
           setPages(data.data);
           setIsConnected(true);
         } else {
@@ -66,29 +70,33 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error fetching pages:", err));
   };
 
-  const fetchConversations = (pageId, accessToken) => {
+  const fetchConversations = (pageId) => {
+    const accessToken = pageAccessTokens[pageId];
     setSelectedPageId(pageId);
-    setPageAccessToken(accessToken);
     fetch(
       `https://graph.facebook.com/v20.0/${pageId}/conversations?fields=participants&limit=100&access_token=${accessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
-        setConversations(data.data || []);
-        setSelectedConversation(null);
-        setMessages([]);
+        setConversationsByPage((prev) => ({
+          ...prev,
+          [pageId]: data.data || [],
+        }));
       })
       .catch((err) => console.error("Error fetching conversations:", err));
   };
 
-  const fetchConversationMessages = (conversationId) => {
-    setSelectedConversation(conversationId);
+  const fetchConversationMessages = (pageId, conversationId) => {
+    const accessToken = pageAccessTokens[pageId];
     fetch(
-      `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
+      `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${accessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
-        setMessages(data.data || []);
+        setMessagesByConversation((prev) => ({
+          ...prev,
+          [conversationId]: data.data || [],
+        }));
       })
       .catch((err) => console.error("Error fetching messages:", err));
   };
@@ -125,128 +133,127 @@ export default function FacebookPagesConversations() {
                     Page: <strong>{page.name}</strong>
                   </Text>
                   <Button
-                    onClick={() =>
-                      fetchConversations(page.id, page.access_token)
-                    }
+                    onClick={() => fetchConversations(page.id)}
                     plain
                     size="slim"
                     style={{ marginTop: "10px" }}
                   >
                     View Conversations
                   </Button>
+
+                  {conversationsByPage[page.id] && (
+                    <div style={{ marginTop: "20px" }}>
+                      <Text
+                        variant="headingMd"
+                        as="h3"
+                        style={{ marginBottom: "10px" }}
+                      >
+                        Conversations
+                      </Text>
+                      <ul style={{ listStyle: "none", padding: "0" }}>
+                        {conversationsByPage[page.id].map((conv) => (
+                          <li
+                            key={conv.id}
+                            style={{
+                              background: "#f6f6f7",
+                              border: "1px solid #ccc",
+                              borderRadius: "6px",
+                              padding: "10px",
+                              marginBottom: "10px",
+                            }}
+                          >
+                            <Text variant="bodyMd">
+                              Conversation ID: <strong>{conv.id}</strong>
+                            </Text>
+                            <div style={{ marginTop: "8px" }}>
+                              <Text variant="bodyMd">Participants:</Text>
+                              {conv.participants.data.map((p) => (
+                                <div
+                                  key={p.id}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    marginTop: "5px",
+                                  }}
+                                >
+                                  <Avatar customer name={p.name} />
+                                  <span style={{ marginLeft: "10px" }}>
+                                    {p.name || p.id}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+
+                            <Button
+                              onClick={() =>
+                                fetchConversationMessages(page.id, conv.id)
+                              }
+                              plain
+                              size="slim"
+                              style={{ marginTop: "10px" }}
+                            >
+                              View Messages
+                            </Button>
+
+                            {messagesByConversation[conv.id] && (
+                              <div
+                                style={{
+                                  marginTop: "15px",
+                                  background: "#eef1f5",
+                                  padding: "10px",
+                                  borderRadius: "6px",
+                                }}
+                              >
+                                <Text
+                                  variant="headingSm"
+                                  as="h4"
+                                  style={{ marginBottom: "10px" }}
+                                >
+                                  Messages
+                                </Text>
+                                {messagesByConversation[conv.id].length ===
+                                0 ? (
+                                  <Text>No messages found.</Text>
+                                ) : (
+                                  <ul
+                                    style={{
+                                      listStyle: "none",
+                                      padding: "0",
+                                      maxHeight: "300px",
+                                      overflowY: "auto",
+                                    }}
+                                  >
+                                    {messagesByConversation[conv.id].map(
+                                      (msg) => (
+                                        <li
+                                          key={msg.id}
+                                          style={{
+                                            marginBottom: "8px",
+                                            padding: "8px",
+                                            background: "#fff",
+                                            borderRadius: "4px",
+                                            border: "1px solid #ddd",
+                                          }}
+                                        >
+                                          <strong>
+                                            {msg.from?.name || "Anonymous"}:
+                                          </strong>{" "}
+                                          {msg.message}
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
-
-            {selectedPageId && (
-              <div style={{ marginTop: "30px" }}>
-                <Text
-                  variant="headingMd"
-                  as="h2"
-                  style={{ marginBottom: "15px" }}
-                >
-                  Conversations for Page ID: {selectedPageId}
-                </Text>
-                {conversations.length === 0 ? (
-                  <Text>No conversations found.</Text>
-                ) : (
-                  <ul style={{ listStyle: "none", padding: "0" }}>
-                    {conversations.map((conv) => (
-                      <li
-                        key={conv.id}
-                        style={{
-                          background: "#f6f6f7",
-                          border: "1px solid #ccc",
-                          borderRadius: "6px",
-                          padding: "10px",
-                          marginBottom: "10px",
-                        }}
-                      >
-                        <Text variant="bodyMd">
-                          Conversation ID: <strong>{conv.id}</strong>
-                        </Text>
-                        <div style={{ marginTop: "8px" }}>
-                          <Text variant="bodyMd">Participants:</Text>
-                          {conv.participants.data.map((p) => (
-                            <div
-                              key={p.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                marginTop: "5px",
-                              }}
-                            >
-                              <Avatar customer name={p.name} />
-                              <span style={{ marginLeft: "10px" }}>
-                                {p.name || p.id}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <Button
-                          onClick={() => fetchConversationMessages(conv.id)}
-                          plain
-                          size="slim"
-                          style={{ marginTop: "10px" }}
-                        >
-                          View Messages
-                        </Button>
-
-                        {selectedConversation === conv.id && (
-                          <div
-                            style={{
-                              marginTop: "15px",
-                              background: "#eef1f5",
-                              padding: "10px",
-                              borderRadius: "6px",
-                            }}
-                          >
-                            <Text
-                              variant="headingSm"
-                              as="h3"
-                              style={{ marginBottom: "10px" }}
-                            >
-                              Messages
-                            </Text>
-                            {messages.length === 0 ? (
-                              <Text>No messages found.</Text>
-                            ) : (
-                              <ul
-                                style={{
-                                  listStyle: "none",
-                                  padding: "0",
-                                  maxHeight: "300px",
-                                  overflowY: "auto",
-                                }}
-                              >
-                                {messages.map((msg) => (
-                                  <li
-                                    key={msg.id}
-                                    style={{
-                                      marginBottom: "8px",
-                                      padding: "8px",
-                                      background: "#fff",
-                                      borderRadius: "4px",
-                                      border: "1px solid #ddd",
-                                    }}
-                                  >
-                                    <strong>
-                                      {msg.from?.name || "Anonymous"}:
-                                    </strong>{" "}
-                                    {msg.message}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
           </div>
         )}
       </Card>
