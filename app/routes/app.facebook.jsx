@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text } from "@shopify/polaris";
+import { Page, Card, Button, Text, Avatar } from "@shopify/polaris";
 
 export default function FacebookPageMessages() {
   const [isConnected, setIsConnected] = useState(false);
@@ -9,10 +9,10 @@ export default function FacebookPageMessages() {
   const [replyText, setReplyText] = useState("");
   const [pageAccessToken, setPageAccessToken] = useState(null);
   const [pageId, setPageId] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  // ✅ Initialize Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -34,7 +34,6 @@ export default function FacebookPageMessages() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
-  // ✅ Handle Facebook login
   const handleFacebookLogin = () => {
     window.FB.login(
       (response) => {
@@ -52,14 +51,12 @@ export default function FacebookPageMessages() {
     );
   };
 
-  // ✅ Fetch user's page details
   const fetchPageDetails = (userAccessToken) => {
     fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.data && data.data.length > 0) {
           const firstPage = data.data[0];
-          console.log("✅ Page Details:", firstPage);
           setPageId(firstPage.id);
           setPageAccessToken(firstPage.access_token);
           setIsConnected(true);
@@ -71,7 +68,6 @@ export default function FacebookPageMessages() {
       .catch((err) => console.error("Error fetching page details:", err));
   };
 
-  // ✅ Fetch all conversations with pagination
   const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null) => {
     try {
       const url =
@@ -90,22 +86,40 @@ export default function FacebookPageMessages() {
     }
   };
 
-  // ✅ Fetch messages in a conversation
   const fetchMessages = async (conversationId) => {
     try {
       const response = await fetch(
         `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
       );
       const data = await response.json();
-      console.log("✅ Messages fetched:", data);
       setMessages(data.data || []);
       setSelectedConversation(conversationId);
+
+      // ✅ Fetch user profile after selecting conversation
+      const recipientId = getRecipientId(conversationId);
+      if (recipientId) fetchUserProfile(recipientId);
     } catch (error) {
       console.error("Error fetching messages:", error);
     }
   };
 
-  // ✅ Get recipient ID (user who is not the page)
+  // ✅ Fetch user profile (name, picture)
+  const fetchUserProfile = async (userId) => {
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/${userId}?fields=name,picture&access_token=${pageAccessToken}`
+      );
+      const data = await response.json();
+      console.log("✅ User profile fetched:", data);
+      setUserProfile({
+        name: data.name,
+        picture: data.picture?.data?.url,
+      });
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+    }
+  };
+
   const getRecipientId = (conversationId) => {
     const conv = conversations.find((c) => c.id === conversationId);
     if (!conv || !conv.participants || !conv.participants.data) return null;
@@ -114,7 +128,6 @@ export default function FacebookPageMessages() {
     return recipient?.id || null;
   };
 
-  // ✅ Send a reply message
   const sendMessage = async () => {
     if (!selectedConversation || !replyText.trim()) {
       alert("Select a conversation and enter a message.");
@@ -150,7 +163,6 @@ export default function FacebookPageMessages() {
     }
   };
 
-  // ✅ Render UI
   return (
     <Page title="Facebook Page Messages">
       <Card sectioned>
@@ -179,6 +191,25 @@ export default function FacebookPageMessages() {
 
         {selectedConversation && (
           <div style={{ marginTop: "30px" }}>
+            {userProfile && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginBottom: "20px",
+                }}
+              >
+                <Avatar
+                  customer
+                  name={userProfile.name}
+                  source={userProfile.picture}
+                />
+                <Text variant="headingMd" as="h2" style={{ marginLeft: "10px" }}>
+                  {userProfile.name}
+                </Text>
+              </div>
+            )}
+
             <Text variant="headingMd" as="h2" style={{ marginBottom: "10px" }}>
               Messages
             </Text>
