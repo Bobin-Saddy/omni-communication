@@ -13,6 +13,7 @@ export default function FacebookPageMessages() {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
+  // ✅ Initialize Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -34,11 +35,11 @@ export default function FacebookPageMessages() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
+  // ✅ Handle Facebook login
   const handleFacebookLogin = () => {
     window.FB.login(
       (response) => {
         if (response.authResponse) {
-          console.log("✅ Facebook login successful:", response);
           fetchPageDetails(response.authResponse.accessToken);
         } else {
           console.log("❌ User cancelled login or did not fully authorize.");
@@ -51,6 +52,7 @@ export default function FacebookPageMessages() {
     );
   };
 
+  // ✅ Fetch page details after login
   const fetchPageDetails = (userAccessToken) => {
     fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`)
       .then((res) => res.json())
@@ -68,6 +70,7 @@ export default function FacebookPageMessages() {
       .catch((err) => console.error("Error fetching page details:", err));
   };
 
+  // ✅ Fetch conversations with participants
   const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null) => {
     try {
       const url =
@@ -86,49 +89,33 @@ export default function FacebookPageMessages() {
     }
   };
 
-const fetchMessages = async (conversationId) => {
-  try {
-    const response = await fetch(
-      `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
-    );
-    const data = await response.json();
-    setMessages(data.data || []);
-    setSelectedConversation(conversationId);
-
-    // ✅ Get participant info from existing conversations state
-    const conv = conversations.find((c) => c.id === conversationId);
-    if (conv && conv.participants && conv.participants.data) {
-      const recipient = conv.participants.data.find((p) => p.id !== pageId);
-      if (recipient) {
-        setUserProfile({
-          name: recipient.name,
-          picture: null, // FB may not provide it
-        });
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-  }
-};
-
-
-  // ✅ Fetch user profile (name, picture)
-  const fetchUserProfile = async (userId) => {
+  // ✅ Fetch messages in a conversation
+  const fetchMessages = async (conversationId) => {
     try {
       const response = await fetch(
-        `https://graph.facebook.com/${userId}?fields=name,picture&access_token=${pageAccessToken}`
+        `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
       );
       const data = await response.json();
-      console.log("✅ User profile fetched:", data);
-      setUserProfile({
-        name: data.name,
-        picture: data.picture?.data?.url,
-      });
+      setMessages(data.data || []);
+      setSelectedConversation(conversationId);
+
+      // ✅ Get user profile from participants data
+      const conv = conversations.find((c) => c.id === conversationId);
+      if (conv && conv.participants && conv.participants.data) {
+        const recipient = conv.participants.data.find((p) => p.id !== pageId);
+        if (recipient) {
+          setUserProfile({
+            name: recipient.name,
+            picture: null, // Profile picture not available via PSID
+          });
+        }
+      }
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      console.error("Error fetching messages:", error);
     }
   };
 
+  // ✅ Get recipient ID for sending messages
   const getRecipientId = (conversationId) => {
     const conv = conversations.find((c) => c.id === conversationId);
     if (!conv || !conv.participants || !conv.participants.data) return null;
@@ -137,6 +124,7 @@ const fetchMessages = async (conversationId) => {
     return recipient?.id || null;
   };
 
+  // ✅ Send reply message
   const sendMessage = async () => {
     if (!selectedConversation || !replyText.trim()) {
       alert("Select a conversation and enter a message.");
@@ -172,6 +160,7 @@ const fetchMessages = async (conversationId) => {
     }
   };
 
+  // ✅ Render UI
   return (
     <Page title="Facebook Page Messages">
       <Card sectioned>
@@ -189,11 +178,18 @@ const fetchMessages = async (conversationId) => {
               Conversations
             </Text>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-              {conversations.map((conv) => (
-                <Button key={conv.id} onClick={() => fetchMessages(conv.id)}>
-                  View Conversation {conv.id.slice(-4)}
-                </Button>
-              ))}
+              {conversations.map((conv) => {
+                const participant = conv.participants?.data?.find(
+                  (p) => p.id !== pageId
+                );
+                const participantName = participant?.name || "Unknown User";
+
+                return (
+                  <Button key={conv.id} onClick={() => fetchMessages(conv.id)}>
+                    {participantName}
+                  </Button>
+                );
+              })}
             </div>
           </>
         )}
