@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text, Avatar, TextField } from "@shopify/polaris";
+import {
+  Page,
+  Card,
+  Button,
+  Text,
+  Avatar,
+  TextField,
+  Divider,
+} from "@shopify/polaris";
 
 export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
@@ -122,38 +130,31 @@ export default function FacebookPagesConversations() {
     <Page title="Facebook Chat Manager">
       <Card sectioned>
         {!isConnected ? (
-          <div style={{ textAlign: "center" }}>
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
             <Button onClick={handleFacebookLogin} primary>
               Connect with Facebook
             </Button>
           </div>
         ) : !selectedPage ? (
           <div>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
               Select a Page
             </Text>
-            {pages.map((page) => (
-              <div
-                key={page.id}
-                style={{
-                  background: "#f9f9f9",
-                  border: "1px solid #ddd",
-                  borderRadius: "6px",
-                  padding: "10px",
-                  marginBottom: "10px",
-                }}
-              >
-                <Text>{page.name}</Text>
-                <Button
-                  onClick={() => fetchConversations(page)}
-                  primary
-                  size="slim"
-                  style={{ marginTop: "10px" }}
-                >
-                  View Conversations
-                </Button>
-              </div>
-            ))}
+            <div style={{ display: "grid", gap: "15px" }}>
+              {pages.map((page) => (
+                <Card
+                  key={page.id}
+                  sectioned
+                  title={page.name}
+                  actions={[
+                    {
+                      content: "View Conversations",
+                      onAction: () => fetchConversations(page),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
           </div>
         ) : !selectedConversation ? (
           <div>
@@ -164,33 +165,32 @@ export default function FacebookPagesConversations() {
             >
               ⬅ Back to Pages
             </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
-              Conversations for {selectedPage.name}
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
+              Conversations for <strong>{selectedPage.name}</strong>
             </Text>
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                style={{
-                  background: "#f1f3f5",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  padding: "10px",
-                  marginBottom: "10px",
-                }}
-              >
-                <Text>
-                  Participants:{" "}
-                  {conv.participants.data.map((p) => p.name).join(", ")}
-                </Text>
-                <Button
-                  onClick={() => fetchMessages(conv)}
-                  size="slim"
-                  style={{ marginTop: "5px" }}
-                >
-                  View Chat
-                </Button>
+            <Divider />
+            {conversations.length === 0 ? (
+              <Text>No conversations found.</Text>
+            ) : (
+              <div style={{ display: "grid", gap: "10px", marginTop: "10px" }}>
+                {conversations.map((conv) => (
+                  <Card
+                    key={conv.id}
+                    sectioned
+                    title={
+                      conv.participants.data.map((p) => p.name).join(", ") ||
+                      "Unnamed Conversation"
+                    }
+                    actions={[
+                      {
+                        content: "View Chat",
+                        onAction: () => fetchMessages(conv),
+                      },
+                    ]}
+                  />
+                ))}
               </div>
-            ))}
+            )}
           </div>
         ) : (
           <div>
@@ -201,13 +201,13 @@ export default function FacebookPagesConversations() {
             >
               ⬅ Back to Conversations
             </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "10px" }}>
               Chat with{" "}
               {selectedConversation.participants.data
                 .map((p) => p.name)
                 .join(", ")}
             </Text>
-
+            <Divider />
             <div
               style={{
                 maxHeight: "400px",
@@ -216,31 +216,36 @@ export default function FacebookPagesConversations() {
                 padding: "10px",
                 borderRadius: "6px",
                 border: "1px solid #ddd",
-                marginBottom: "10px",
+                margin: "15px 0",
               }}
             >
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  style={{
-                    marginBottom: "8px",
-                    padding: "8px",
-                    background: "#fff",
-                    borderRadius: "4px",
-                    border: "1px solid #dee2e6",
-                  }}
-                >
-                  <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
-                  {msg.message}
-                </div>
-              ))}
+              {messages.length === 0 ? (
+                <Text>No messages found.</Text>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      marginBottom: "8px",
+                      padding: "10px",
+                      background: "#fff",
+                      borderRadius: "6px",
+                      border: "1px solid #dee2e6",
+                    }}
+                  >
+                    <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
+                    {msg.message}
+                  </div>
+                ))
+              )}
             </div>
-
             <div style={{ display: "flex", gap: "10px" }}>
               <TextField
                 value={newMessage}
                 onChange={setNewMessage}
                 placeholder="Type your message..."
+                multiline
+                autoComplete="off"
               />
               <Button onClick={sendMessage} primary>
                 Send
