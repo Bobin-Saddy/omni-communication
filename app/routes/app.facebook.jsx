@@ -10,7 +10,7 @@ export default function FacebookPagesConversations() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
 
-  const FACEBOOK_APP_ID = "YOUR_APP_ID";
+  const FACEBOOK_APP_ID = "544704651303656";
 
   // ✅ Initialize Facebook SDK
   useEffect(() => {
