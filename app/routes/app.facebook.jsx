@@ -60,24 +60,29 @@ export default function FacebookPagesConversations() {
     );
   };
 
-  const fetchPages = (userAccessToken) => {
-    fetch(
-      `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data && data.data.length > 0) {
-          const tokens = {};
-          data.data.forEach((page) => {
-            tokens[page.id] = page.access_token;
-          });
-          setPageAccessTokens(tokens);
-          setPages(data.data);
-          setIsConnected(true);
-        }
-      })
-      .catch((err) => console.error("Error fetching pages:", err));
-  };
+const fetchPages = (userAccessToken) => {
+fetch(
+  `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}`
+)
+
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("Pages API response:", data); // ✅ ADD THIS LINE
+      if (data.data && data.data.length > 0) {
+        const tokens = {};
+        data.data.forEach((page) => {
+          tokens[page.id] = page.access_token;
+        });
+        setPageAccessTokens(tokens);
+        setPages(data.data);
+        setIsConnected(true);
+      } else {
+        console.log("❌ No pages found for this user.");
+      }
+    })
+    .catch((err) => console.error("Error fetching pages:", err));
+};
+
 
   const fetchConversations = (page) => {
     const accessToken = pageAccessTokens[page.id];
