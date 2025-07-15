@@ -118,32 +118,63 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error sending message:", err));
   };
 
+  const cardStyle = {
+    borderRadius: "12px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    border: "none",
+  };
+
+  const listItemStyle = {
+    background: "#fff",
+    border: "1px solid #e1e3e5",
+    borderRadius: "8px",
+    padding: "12px",
+    marginBottom: "12px",
+    transition: "all 0.3s ease",
+  };
+
+  const listItemHover = {
+    cursor: "pointer",
+    background: "#f9fafb",
+    transform: "scale(1.02)",
+  };
+
+  const messageStyle = (isOwn) => ({
+    marginBottom: "10px",
+    padding: "10px",
+    borderRadius: "8px",
+    maxWidth: "75%",
+    alignSelf: isOwn ? "flex-end" : "flex-start",
+    background: isOwn ? "#dcf8c6" : "#ffffff",
+    border: "1px solid #ddd",
+  });
+
   return (
-    <Page title="Facebook Chat Manager">
-      <Card sectioned>
+    <Page title="💬 Facebook Chat Manager">
+      <Card sectioned style={cardStyle}>
         {!isConnected ? (
-          <div style={{ textAlign: "center" }}>
-            <Button onClick={handleFacebookLogin} primary>
+          <div style={{ textAlign: "center", padding: "40px 0" }}>
+            <Button onClick={handleFacebookLogin} primary size="large">
               Connect with Facebook
             </Button>
           </div>
         ) : !selectedPage ? (
           <div>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
               Select a Page
             </Text>
             {pages.map((page) => (
               <div
                 key={page.id}
-                style={{
-                  background: "#f9f9f9",
-                  border: "1px solid #ddd",
-                  borderRadius: "6px",
-                  padding: "10px",
-                  marginBottom: "10px",
-                }}
+                style={listItemStyle}
+                onMouseOver={(e) =>
+                  Object.assign(e.currentTarget.style, listItemHover)
+                }
+                onMouseOut={(e) =>
+                  Object.assign(e.currentTarget.style, listItemStyle)
+                }
               >
-                <Text>{page.name}</Text>
+                <Text variant="bodyMd">{page.name}</Text>
                 <Button
                   onClick={() => fetchConversations(page)}
                   primary
@@ -160,32 +191,32 @@ export default function FacebookPagesConversations() {
             <Button
               onClick={() => setSelectedPage(null)}
               plain
-              style={{ marginBottom: "10px" }}
+              style={{ marginBottom: "20px" }}
             >
               ⬅ Back to Pages
             </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
               Conversations for {selectedPage.name}
             </Text>
             {conversations.map((conv) => (
               <div
                 key={conv.id}
-                style={{
-                  background: "#f1f3f5",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  padding: "10px",
-                  marginBottom: "10px",
-                }}
+                style={listItemStyle}
+                onMouseOver={(e) =>
+                  Object.assign(e.currentTarget.style, listItemHover)
+                }
+                onMouseOut={(e) =>
+                  Object.assign(e.currentTarget.style, listItemStyle)
+                }
               >
-                <Text>
+                <Text variant="bodyMd">
                   Participants:{" "}
                   {conv.participants.data.map((p) => p.name).join(", ")}
                 </Text>
                 <Button
                   onClick={() => fetchMessages(conv)}
                   size="slim"
-                  style={{ marginTop: "5px" }}
+                  style={{ marginTop: "10px" }}
                 >
                   View Chat
                 </Button>
@@ -193,15 +224,15 @@ export default function FacebookPagesConversations() {
             ))}
           </div>
         ) : (
-          <div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             <Button
               onClick={() => setSelectedConversation(null)}
               plain
-              style={{ marginBottom: "10px" }}
+              style={{ marginBottom: "20px" }}
             >
               ⬅ Back to Conversations
             </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
               Chat with{" "}
               {selectedConversation.participants.data
                 .map((p) => p.name)
@@ -210,25 +241,24 @@ export default function FacebookPagesConversations() {
 
             <div
               style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
                 maxHeight: "400px",
                 overflowY: "auto",
-                background: "#f8f9fa",
-                padding: "10px",
-                borderRadius: "6px",
-                border: "1px solid #ddd",
-                marginBottom: "10px",
+                background: "#f6f8fa",
+                padding: "15px",
+                borderRadius: "8px",
+                border: "1px solid #e1e4e8",
+                marginBottom: "20px",
               }}
             >
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  style={{
-                    marginBottom: "8px",
-                    padding: "8px",
-                    background: "#fff",
-                    borderRadius: "4px",
-                    border: "1px solid #dee2e6",
-                  }}
+                  style={messageStyle(
+                    msg.from?.name === selectedPage.name
+                  )}
                 >
                   <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
                   {msg.message}
