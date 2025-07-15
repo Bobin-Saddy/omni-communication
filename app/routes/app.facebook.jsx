@@ -61,6 +61,7 @@ export default function FacebookPageMessages() {
       .then((data) => {
         if (data.data && data.data.length > 0) {
           const firstPage = data.data[0];
+          console.log("firstPage-----------===========>",firstPage);
           setPageId(firstPage.id);
           setPageAccessToken(firstPage.access_token);
           setIsConnected(true);
