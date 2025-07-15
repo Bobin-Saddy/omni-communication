@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text, Avatar } from "@shopify/polaris";
+import { Page, Card, Button, Text, Avatar, TextField } from "@shopify/polaris";
 
 export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
   const [pages, setPages] = useState([]);
-  const [currentPageIndex, setCurrentPageIndex] = useState(0);
-  const [selectedPageId, setSelectedPageId] = useState(null);
-  const [conversationsByPage, setConversationsByPage] = useState({});
-  const [messagesByConversation, setMessagesByConversation] = useState({});
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
   const [pageAccessTokens, setPageAccessTokens] = useState({});
 
   const FACEBOOK_APP_ID = "544704651303656";
-  const PAGES_PER_VIEW = 5;
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -38,15 +38,14 @@ export default function FacebookPagesConversations() {
     window.FB.login(
       (response) => {
         if (response.authResponse) {
-          console.log("✅ Facebook login successful:", response);
           fetchPages(response.authResponse.accessToken);
         } else {
-          console.log("❌ User cancelled login or did not fully authorize.");
+          console.log("User cancelled login or did not fully authorize.");
         }
       },
       {
         scope:
-          "pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging",
+          "pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging,pages_manage_posts",
       }
     );
   };
@@ -65,49 +64,62 @@ export default function FacebookPagesConversations() {
           setPageAccessTokens(tokens);
           setPages(data.data);
           setIsConnected(true);
-        } else {
-          console.log("❌ No pages found for this user.");
         }
       })
       .catch((err) => console.error("Error fetching pages:", err));
   };
 
-  const fetchConversations = (pageId) => {
-    const accessToken = pageAccessTokens[pageId];
-    setSelectedPageId(pageId);
+  const fetchConversations = (page) => {
+    const accessToken = pageAccessTokens[page.id];
+    setSelectedPage(page);
     fetch(
-      `https://graph.facebook.com/v20.0/${pageId}/conversations?fields=participants&limit=100&access_token=${accessToken}`
+      `https://graph.facebook.com/${page.id}/conversations?fields=participants&access_token=${accessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
-        setConversationsByPage((prev) => ({
-          ...prev,
-          [pageId]: data.data || [],
-        }));
+        setConversations(data.data || []);
       })
       .catch((err) => console.error("Error fetching conversations:", err));
   };
 
-  const fetchConversationMessages = (pageId, conversationId) => {
-    const accessToken = pageAccessTokens[pageId];
+  const fetchMessages = (conversation) => {
+    const accessToken = pageAccessTokens[selectedPage.id];
+    setSelectedConversation(conversation);
     fetch(
-      `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${accessToken}`
+      `https://graph.facebook.com/${conversation.id}/messages?fields=message,from&access_token=${accessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
-        setMessagesByConversation((prev) => ({
-          ...prev,
-          [conversationId]: data.data || [],
-        }));
+        setMessages(data.data.reverse() || []); // show oldest first
       })
       .catch((err) => console.error("Error fetching messages:", err));
   };
 
-  const startIndex = currentPageIndex * PAGES_PER_VIEW;
-  const paginatedPages = pages.slice(startIndex, startIndex + PAGES_PER_VIEW);
+  const sendMessage = () => {
+    if (!newMessage.trim()) return;
+    const accessToken = pageAccessTokens[selectedPage.id];
+    fetch(
+      `https://graph.facebook.com/${selectedConversation.id}/messages`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: newMessage,
+          access_token: accessToken,
+        }),
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Message sent:", data);
+        setNewMessage("");
+        fetchMessages(selectedConversation);
+      })
+      .catch((err) => console.error("Error sending message:", err));
+  };
 
   return (
-    <Page title="Facebook Pages & Conversations">
+    <Page title="Facebook Chat Manager">
       <Card sectioned>
         {!isConnected ? (
           <div style={{ textAlign: "center" }}>
@@ -115,209 +127,123 @@ export default function FacebookPagesConversations() {
               Connect with Facebook
             </Button>
           </div>
-        ) : pages.length === 0 ? (
-          <Text>No pages found.</Text>
+        ) : !selectedPage ? (
+          <div>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+              Select a Page
+            </Text>
+            {pages.map((page) => (
+              <div
+                key={page.id}
+                style={{
+                  background: "#f9f9f9",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  padding: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <Text>{page.name}</Text>
+                <Button
+                  onClick={() => fetchConversations(page)}
+                  primary
+                  size="slim"
+                  style={{ marginTop: "10px" }}
+                >
+                  View Conversations
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : !selectedConversation ? (
+          <div>
+            <Button
+              onClick={() => setSelectedPage(null)}
+              plain
+              style={{ marginBottom: "10px" }}
+            >
+              ⬅ Back to Pages
+            </Button>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+              Conversations for {selectedPage.name}
+            </Text>
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                style={{
+                  background: "#f1f3f5",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  padding: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <Text>
+                  Participants:{" "}
+                  {conv.participants.data.map((p) => p.name).join(", ")}
+                </Text>
+                <Button
+                  onClick={() => fetchMessages(conv)}
+                  size="slim"
+                  style={{ marginTop: "5px" }}
+                >
+                  View Chat
+                </Button>
+              </div>
+            ))}
+          </div>
         ) : (
           <div>
-            <Text
-              variant="headingMd"
-              as="h2"
-              style={{
-                marginBottom: "15px",
-                background: "linear-gradient(90deg, #4c6ef5, #15aabf)",
-                color: "white",
-                padding: "10px 15px",
-                borderRadius: "8px",
-              }}
+            <Button
+              onClick={() => setSelectedConversation(null)}
+              plain
+              style={{ marginBottom: "10px" }}
             >
-              Your Facebook Pages
+              ⬅ Back to Conversations
+            </Button>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+              Chat with{" "}
+              {selectedConversation.participants.data
+                .map((p) => p.name)
+                .join(", ")}
             </Text>
-
-            <ul style={{ listStyle: "none", padding: "0" }}>
-              {paginatedPages.map((page) => (
-                <li
-                  key={page.id}
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #ddd",
-                    borderRadius: "8px",
-                    padding: "15px",
-                    marginBottom: "15px",
-                    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-                    transition: "transform 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "scale(1.02)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "scale(1)")
-                  }
-                >
-                  <Text variant="bodyMd">
-                    <strong style={{ color: "#4c6ef5" }}>Page:</strong>{" "}
-                    {page.name}
-                  </Text>
-                  <Button
-                    onClick={() => fetchConversations(page.id)}
-                    primary
-                    size="slim"
-                    style={{ marginTop: "10px" }}
-                  >
-                    View Conversations
-                  </Button>
-
-                  {conversationsByPage[page.id] && (
-                    <div style={{ marginTop: "20px" }}>
-                      <Text
-                        variant="headingMd"
-                        as="h3"
-                        style={{
-                          marginBottom: "10px",
-                          color: "#15aabf",
-                          borderBottom: "2px solid #15aabf",
-                          paddingBottom: "5px",
-                        }}
-                      >
-                        Conversations
-                      </Text>
-                      <ul style={{ listStyle: "none", padding: "0" }}>
-                        {conversationsByPage[page.id].map((conv) => (
-                          <li
-                            key={conv.id}
-                            style={{
-                              background: "#f8f9fa",
-                              border: "1px solid #e0e0e0",
-                              borderRadius: "6px",
-                              padding: "10px",
-                              marginBottom: "10px",
-                            }}
-                          >
-                            <Text variant="bodyMd">
-                              <strong>ID:</strong> {conv.id}
-                            </Text>
-                            <div style={{ marginTop: "8px" }}>
-                              <Text variant="bodyMd">Participants:</Text>
-                              {conv.participants.data.map((p) => (
-                                <div
-                                  key={p.id}
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    marginTop: "5px",
-                                  }}
-                                >
-                                  <Avatar customer name={p.name} />
-                                  <span style={{ marginLeft: "10px" }}>
-                                    {p.name || p.id}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-
-                            <Button
-                              onClick={() =>
-                                fetchConversationMessages(page.id, conv.id)
-                              }
-                              plain
-                              size="slim"
-                              style={{
-                                marginTop: "10px",
-                                background: "#e7f5ff",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              View Messages
-                            </Button>
-
-                            {messagesByConversation[conv.id] && (
-                              <div
-                                style={{
-                                  marginTop: "15px",
-                                  background: "#edf2ff",
-                                  padding: "10px",
-                                  borderRadius: "6px",
-                                }}
-                              >
-                                <Text
-                                  variant="headingSm"
-                                  as="h4"
-                                  style={{
-                                    marginBottom: "10px",
-                                    color: "#364fc7",
-                                  }}
-                                >
-                                  Messages
-                                </Text>
-                                {messagesByConversation[conv.id].length ===
-                                0 ? (
-                                  <Text>No messages found.</Text>
-                                ) : (
-                                  <ul
-                                    style={{
-                                      listStyle: "none",
-                                      padding: "0",
-                                      maxHeight: "300px",
-                                      overflowY: "auto",
-                                    }}
-                                  >
-                                    {messagesByConversation[conv.id].map(
-                                      (msg) => (
-                                        <li
-                                          key={msg.id}
-                                          style={{
-                                            marginBottom: "8px",
-                                            padding: "8px",
-                                            background: "#fff",
-                                            borderRadius: "4px",
-                                            border: "1px solid #dee2e6",
-                                          }}
-                                        >
-                                          <strong style={{ color: "#4c6ef5" }}>
-                                            {msg.from?.name || "Anonymous"}:
-                                          </strong>{" "}
-                                          {msg.message}
-                                        </li>
-                                      )
-                                    )}
-                                  </ul>
-                                )}
-                              </div>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
 
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: "20px",
+                maxHeight: "400px",
+                overflowY: "auto",
+                background: "#f8f9fa",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #ddd",
+                marginBottom: "10px",
               }}
             >
-              <Button
-                onClick={() =>
-                  setCurrentPageIndex((prev) => Math.max(prev - 1, 0))
-                }
-                disabled={currentPageIndex === 0}
-              >
-                Previous
-              </Button>
-              <Button
-                onClick={() =>
-                  setCurrentPageIndex((prev) =>
-                    (prev + 1) * PAGES_PER_VIEW >= pages.length
-                      ? prev
-                      : prev + 1
-                  )
-                }
-                disabled={(currentPageIndex + 1) * PAGES_PER_VIEW >= pages.length}
-              >
-                Next
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    marginBottom: "8px",
+                    padding: "8px",
+                    background: "#fff",
+                    borderRadius: "4px",
+                    border: "1px solid #dee2e6",
+                  }}
+                >
+                  <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
+                  {msg.message}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              <TextField
+                value={newMessage}
+                onChange={setNewMessage}
+                placeholder="Type your message..."
+              />
+              <Button onClick={sendMessage} primary>
+                Send
               </Button>
             </div>
           </div>
