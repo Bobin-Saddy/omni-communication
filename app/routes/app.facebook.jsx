@@ -86,22 +86,31 @@ export default function FacebookPageMessages() {
     }
   };
 
-  const fetchMessages = async (conversationId) => {
-    try {
-      const response = await fetch(
-        `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
-      );
-      const data = await response.json();
-      setMessages(data.data || []);
-      setSelectedConversation(conversationId);
+const fetchMessages = async (conversationId) => {
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
+    );
+    const data = await response.json();
+    setMessages(data.data || []);
+    setSelectedConversation(conversationId);
 
-      // ✅ Fetch user profile after selecting conversation
-      const recipientId = getRecipientId(conversationId);
-      if (recipientId) fetchUserProfile(recipientId);
-    } catch (error) {
-      console.error("Error fetching messages:", error);
+    // ✅ Get participant info from existing conversations state
+    const conv = conversations.find((c) => c.id === conversationId);
+    if (conv && conv.participants && conv.participants.data) {
+      const recipient = conv.participants.data.find((p) => p.id !== pageId);
+      if (recipient) {
+        setUserProfile({
+          name: recipient.name,
+          picture: null, // FB may not provide it
+        });
+      }
     }
-  };
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+  }
+};
+
 
   // ✅ Fetch user profile (name, picture)
   const fetchUserProfile = async (userId) => {
