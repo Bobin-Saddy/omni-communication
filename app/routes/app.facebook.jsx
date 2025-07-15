@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { Page, Card, Button, Text, Avatar } from "@shopify/polaris";
 
-export default function FacebookPageMessages() {
+export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
+  const [pages, setPages] = useState([]);
+  const [selectedPage, setSelectedPage] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [replyText, setReplyText] = useState("");
-  const [pageAccessToken, setPageAccessToken] = useState(null);
-  const [pageId, setPageId] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
@@ -40,7 +40,7 @@ export default function FacebookPageMessages() {
     window.FB.login(
       (response) => {
         if (response.authResponse) {
-          fetchPageDetails(response.authResponse.accessToken);
+          fetchPages(response.authResponse.accessToken);
         } else {
           console.log("❌ User cancelled login or did not fully authorize.");
         }
@@ -52,38 +52,34 @@ export default function FacebookPageMessages() {
     );
   };
 
-  // ✅ Fetch page details after login
-  const fetchPageDetails = (userAccessToken) => {
+  // ✅ Fetch all pages
+  const fetchPages = (userAccessToken) => {
     fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.data && data.data.length > 0) {
-          const firstPage = data.data[0];
-          setPageId(firstPage.id);
-          setPageAccessToken(firstPage.access_token);
+          setPages(data.data);
           setIsConnected(true);
-          fetchPageConversations(firstPage.id, firstPage.access_token);
         } else {
           console.log("❌ No pages found for this user.");
         }
       })
-      .catch((err) => console.error("Error fetching page details:", err));
+      .catch((err) => console.error("Error fetching pages:", err));
   };
 
-  // ✅ Fetch conversations with participants
-  const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null) => {
+  // ✅ Fetch conversations for selected page
+  const fetchPageConversations = async (page) => {
+    setSelectedPage(page);
+    setConversations([]);
+    setMessages([]);
+    setSelectedConversation(null);
+    setUserProfile(null);
+
     try {
-      const url =
-        nextURL ||
-        `https://graph.facebook.com/v20.0/${PAGE_ID}/conversations?fields=participants&limit=100&access_token=${PAGE_ACCESS_TOKEN}`;
+      const url = `https://graph.facebook.com/v20.0/${page.id}/conversations?fields=participants&limit=100&access_token=${page.access_token}`;
       const response = await fetch(url);
       const data = await response.json();
-
-      setConversations((prev) => [...prev, ...(data.data || [])]);
-
-      if (data.paging && data.paging.next) {
-        await fetchPageConversations(PAGE_ID, PAGE_ACCESS_TOKEN, data.paging.next);
-      }
+      setConversations(data.data || []);
     } catch (error) {
       console.error("Error fetching conversations:", error);
     }
@@ -93,20 +89,19 @@ export default function FacebookPageMessages() {
   const fetchMessages = async (conversationId) => {
     try {
       const response = await fetch(
-        `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${pageAccessToken}`
+        `https://graph.facebook.com/v20.0/${conversationId}/messages?fields=message,from&access_token=${selectedPage.access_token}`
       );
       const data = await response.json();
       setMessages(data.data || []);
       setSelectedConversation(conversationId);
 
-      // ✅ Get user profile from participants data
       const conv = conversations.find((c) => c.id === conversationId);
       if (conv && conv.participants && conv.participants.data) {
-        const recipient = conv.participants.data.find((p) => p.id !== pageId);
+        const recipient = conv.participants.data.find((p) => p.id !== selectedPage.id);
         if (recipient) {
           setUserProfile({
             name: recipient.name,
-            picture: null, // Profile picture not available via PSID
+            picture: null, // Profile picture restricted
           });
         }
       }
@@ -115,38 +110,31 @@ export default function FacebookPageMessages() {
     }
   };
 
-  // ✅ Get recipient ID for sending messages
-  const getRecipientId = (conversationId) => {
-    const conv = conversations.find((c) => c.id === conversationId);
-    if (!conv || !conv.participants || !conv.participants.data) return null;
-
-    const recipient = conv.participants.data.find((p) => p.id !== pageId);
-    return recipient?.id || null;
-  };
-
-  // ✅ Send reply message
+  // ✅ Send message to user
   const sendMessage = async () => {
     if (!selectedConversation || !replyText.trim()) {
       alert("Select a conversation and enter a message.");
       return;
     }
 
-    const recipientId = getRecipientId(selectedConversation);
-    if (!recipientId) {
-      alert("Recipient ID not found.");
+    const conv = conversations.find((c) => c.id === selectedConversation);
+    const recipient = conv?.participants?.data?.find((p) => p.id !== selectedPage.id);
+
+    if (!recipient) {
+      alert("Recipient not found.");
       return;
     }
 
     try {
       const response = await fetch(
-        `https://graph.facebook.com/v20.0/${pageId}/messages`,
+        `https://graph.facebook.com/v20.0/${selectedPage.id}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            recipient: { id: recipientId },
+            recipient: { id: recipient.id },
             message: { text: replyText },
-            access_token: pageAccessToken,
+            access_token: selectedPage.access_token,
           }),
         }
       );
@@ -162,7 +150,7 @@ export default function FacebookPageMessages() {
 
   // ✅ Render UI
   return (
-    <Page title="Facebook Page Messages">
+    <Page title="Facebook Pages & Conversations">
       <Card sectioned>
         {!isConnected ? (
           <div style={{ textAlign: "center" }}>
@@ -170,45 +158,54 @@ export default function FacebookPageMessages() {
               Connect with Facebook
             </Button>
           </div>
-        ) : conversations.length === 0 ? (
-          <Text>No conversations found.</Text>
+        ) : pages.length === 0 ? (
+          <Text>No pages found.</Text>
         ) : (
           <>
             <Text variant="headingMd" as="h2" style={{ marginBottom: "10px" }}>
-              Conversations
+              Your Pages
             </Text>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-              {conversations.map((conv) => {
-                const participant = conv.participants?.data?.find(
-                  (p) => p.id !== pageId
-                );
-                const participantName = participant?.name || "Unknown User";
-
-                return (
-                  <Button key={conv.id} onClick={() => fetchMessages(conv.id)}>
-                    {participantName}
-                  </Button>
-                );
-              })}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "20px" }}>
+              {pages.map((page) => (
+                <Button key={page.id} onClick={() => fetchPageConversations(page)}>
+                  {page.name}
+                </Button>
+              ))}
             </div>
+
+            {selectedPage && (
+              <>
+                <Text variant="headingMd" as="h2" style={{ marginBottom: "10px" }}>
+                  Conversations for {selectedPage.name}
+                </Text>
+                {conversations.length === 0 ? (
+                  <Text>No conversations found.</Text>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                    {conversations.map((conv) => {
+                      const participant = conv.participants?.data?.find(
+                        (p) => p.id !== selectedPage.id
+                      );
+                      const participantName = participant?.name || "Unknown User";
+
+                      return (
+                        <Button key={conv.id} onClick={() => fetchMessages(conv.id)}>
+                          {participantName}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </>
         )}
 
         {selectedConversation && (
           <div style={{ marginTop: "30px" }}>
             {userProfile && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "20px",
-                }}
-              >
-                <Avatar
-                  customer
-                  name={userProfile.name}
-                  source={userProfile.picture}
-                />
+              <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
+                <Avatar customer name={userProfile.name} source={userProfile.picture} />
                 <Text variant="headingMd" as="h2" style={{ marginLeft: "10px" }}>
                   {userProfile.name}
                 </Text>
