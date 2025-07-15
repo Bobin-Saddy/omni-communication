@@ -4,12 +4,14 @@ import { Page, Card, Button, Text, Avatar } from "@shopify/polaris";
 export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
   const [pages, setPages] = useState([]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [conversationsByPage, setConversationsByPage] = useState({});
   const [messagesByConversation, setMessagesByConversation] = useState({});
   const [pageAccessTokens, setPageAccessTokens] = useState({});
 
   const FACEBOOK_APP_ID = "544704651303656";
+  const PAGES_PER_VIEW = 5;
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -101,6 +103,9 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error fetching messages:", err));
   };
 
+  const startIndex = currentPageIndex * PAGES_PER_VIEW;
+  const paginatedPages = pages.slice(startIndex, startIndex + PAGES_PER_VIEW);
+
   return (
     <Page title="Facebook Pages & Conversations">
       <Card sectioned>
@@ -117,8 +122,9 @@ export default function FacebookPagesConversations() {
             <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
               Your Facebook Pages
             </Text>
+
             <ul style={{ listStyle: "none", padding: "0" }}>
-              {pages.map((page) => (
+              {paginatedPages.map((page) => (
                 <li
                   key={page.id}
                   style={{
@@ -254,6 +260,35 @@ export default function FacebookPagesConversations() {
                 </li>
               ))}
             </ul>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "20px",
+              }}
+            >
+              <Button
+                onClick={() =>
+                  setCurrentPageIndex((prev) => Math.max(prev - 1, 0))
+                }
+                disabled={currentPageIndex === 0}
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={() =>
+                  setCurrentPageIndex((prev) =>
+                    (prev + 1) * PAGES_PER_VIEW >= pages.length
+                      ? prev
+                      : prev + 1
+                  )
+                }
+                disabled={(currentPageIndex + 1) * PAGES_PER_VIEW >= pages.length}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </Card>
