@@ -37,7 +37,7 @@ export default function FacebookPageMessages() {
   // ✅ Handle Facebook login
   const handleFacebookLogin = () => {
     window.FB.login(
-      function (response) {
+      (response) => {
         if (response.authResponse) {
           console.log("✅ Facebook login successful:", response);
           fetchPageDetails(response.authResponse.accessToken);
@@ -54,14 +54,12 @@ export default function FacebookPageMessages() {
 
   // ✅ Fetch user's page details
   const fetchPageDetails = (userAccessToken) => {
-    fetch(
-      `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
-    )
+    fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.data && data.data.length > 0) {
           const firstPage = data.data[0];
-          console.log("firstPage-----------===========>",firstPage);
+          console.log("✅ Page Details:", firstPage);
           setPageId(firstPage.id);
           setPageAccessToken(firstPage.access_token);
           setIsConnected(true);
@@ -73,12 +71,8 @@ export default function FacebookPageMessages() {
       .catch((err) => console.error("Error fetching page details:", err));
   };
 
-  // ✅ Fetch all conversations for the page with pagination and participants
-  const fetchPageConversations = async (
-    PAGE_ID,
-    PAGE_ACCESS_TOKEN,
-    nextURL = null
-  ) => {
+  // ✅ Fetch all conversations with pagination
+  const fetchPageConversations = async (PAGE_ID, PAGE_ACCESS_TOKEN, nextURL = null) => {
     try {
       const url =
         nextURL ||
@@ -86,16 +80,10 @@ export default function FacebookPageMessages() {
       const response = await fetch(url);
       const data = await response.json();
 
-      // Append new conversations to existing state
       setConversations((prev) => [...prev, ...(data.data || [])]);
 
-      // If there's another page, fetch it recursively
       if (data.paging && data.paging.next) {
-        await fetchPageConversations(
-          PAGE_ID,
-          PAGE_ACCESS_TOKEN,
-          data.paging.next
-        );
+        await fetchPageConversations(PAGE_ID, PAGE_ACCESS_TOKEN, data.paging.next);
       }
     } catch (error) {
       console.error("Error fetching conversations:", error);
@@ -117,14 +105,12 @@ export default function FacebookPageMessages() {
     }
   };
 
-  // ✅ Helper to get recipient ID (user who is not the page)
+  // ✅ Get recipient ID (user who is not the page)
   const getRecipientId = (conversationId) => {
     const conv = conversations.find((c) => c.id === conversationId);
     if (!conv || !conv.participants || !conv.participants.data) return null;
 
-    const recipient = conv.participants.data.find(
-      (p) => p.id !== pageId
-    );
+    const recipient = conv.participants.data.find((p) => p.id !== pageId);
     return recipient?.id || null;
   };
 
@@ -146,16 +132,10 @@ export default function FacebookPageMessages() {
         `https://graph.facebook.com/v20.0/${pageId}/messages`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            recipient: {
-              id: recipientId,
-            },
-            message: {
-              text: replyText,
-            },
+            recipient: { id: recipientId },
+            message: { text: replyText },
             access_token: pageAccessToken,
           }),
         }
@@ -163,8 +143,6 @@ export default function FacebookPageMessages() {
 
       const data = await response.json();
       console.log("✅ Message sent:", data);
-
-      // Refresh messages after sending
       fetchMessages(selectedConversation);
       setReplyText("");
     } catch (error) {
@@ -176,54 +154,68 @@ export default function FacebookPageMessages() {
   return (
     <Page title="Facebook Page Messages">
       <Card sectioned>
-        {!isConnected && (
-          <Button onClick={handleFacebookLogin} primary>
-            Connect with Facebook
-          </Button>
-        )}
-
-        {isConnected && conversations.length === 0 && (
+        {!isConnected ? (
+          <div style={{ textAlign: "center" }}>
+            <Button onClick={handleFacebookLogin} primary>
+              Connect with Facebook
+            </Button>
+          </div>
+        ) : conversations.length === 0 ? (
           <Text>No conversations found.</Text>
-        )}
-
-        {isConnected && conversations.length > 0 && (
+        ) : (
           <>
-            <Text variant="headingMd">Conversations</Text>
-            {conversations.map((conv) => (
-              <Button
-                key={conv.id}
-                onClick={() => fetchMessages(conv.id)}
-                style={{ margin: "5px" }}
-              >
-                View Conversation {conv.id}
-              </Button>
-            ))}
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "10px" }}>
+              Conversations
+            </Text>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+              {conversations.map((conv) => (
+                <Button key={conv.id} onClick={() => fetchMessages(conv.id)}>
+                  View Conversation {conv.id.slice(-4)}
+                </Button>
+              ))}
+            </div>
           </>
         )}
 
         {selectedConversation && (
           <div style={{ marginTop: "30px" }}>
-            <Text variant="headingMd">Messages</Text>
-            {messages.length === 0 && <Text>No messages found.</Text>}
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "10px" }}>
+              Messages
+            </Text>
+            {messages.length === 0 ? (
+              <Text>No messages found.</Text>
+            ) : (
+              <ul style={{ listStyle: "none", padding: "0" }}>
+                {messages.map((msg) => (
+                  <li
+                    key={msg.id}
+                    style={{
+                      marginBottom: "8px",
+                      padding: "10px",
+                      background: "#f6f6f7",
+                      borderRadius: "6px",
+                    }}
+                  >
+                    <strong>{msg.from?.name || msg.from?.id || "Anonymous"}:</strong>{" "}
+                    {msg.message}
+                  </li>
+                ))}
+              </ul>
+            )}
 
-            <ul>
-              {messages.map((msg) => (
-                <li key={msg.id}>
-                  <strong>
-                    {msg.from?.name || msg.from?.id || "Anonymous"}:
-                  </strong>{" "}
-                  {msg.message}
-                </li>
-              ))}
-            </ul>
-
-            <div style={{ marginTop: "20px" }}>
+            <div style={{ marginTop: "20px", display: "flex", alignItems: "center" }}>
               <input
                 type="text"
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Type your reply here..."
-                style={{ padding: "10px", width: "70%", marginRight: "10px" }}
+                style={{
+                  flex: "1",
+                  padding: "10px",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  marginRight: "10px",
+                }}
               />
               <Button onClick={sendMessage} primary>
                 Send Reply
