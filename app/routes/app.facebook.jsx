@@ -7,8 +7,10 @@ export default function FacebookPagesConversations() {
   const [selectedPage, setSelectedPage] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [conversationPaging, setConversationPaging] = useState({});
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
 
-  const FACEBOOK_APP_ID = "544704651303656";
+  const FACEBOOK_APP_ID = "YOUR_APP_ID";
 
   // ✅ Initialize Facebook SDK
   useEffect(() => {
@@ -72,8 +74,23 @@ export default function FacebookPagesConversations() {
         setSelectedPage(page);
         setConversations(data.data || []);
         setConversationPaging(data.paging || {});
+        setSelectedConversation(null);
+        setMessages([]);
       })
       .catch((err) => console.error("Error fetching conversations:", err));
+  };
+
+  // ✅ Fetch messages of a conversation
+  const fetchConversationMessages = (convId) => {
+    fetch(
+      `https://graph.facebook.com/v20.0/${convId}/messages?fields=message,from&access_token=${selectedPage.access_token}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        setSelectedConversation(convId);
+        setMessages(data.data || []);
+      })
+      .catch((err) => console.error("Error fetching messages:", err));
   };
 
   return (
@@ -152,6 +169,14 @@ export default function FacebookPagesConversations() {
                         </div>
                       ))}
                     </div>
+                    <Button
+                      onClick={() => fetchConversationMessages(conv.id)}
+                      plain
+                      size="slim"
+                      style={{ marginTop: "10px" }}
+                    >
+                      View Messages
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -184,6 +209,35 @@ export default function FacebookPagesConversations() {
                 Next →
               </Button>
             </div>
+
+            {selectedConversation && (
+              <div style={{ marginTop: "30px" }}>
+                <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+                  Messages for Conversation {selectedConversation.slice(-4)}
+                </Text>
+
+                {messages.length === 0 ? (
+                  <Text>No messages found.</Text>
+                ) : (
+                  <ul style={{ listStyle: "none", padding: "0" }}>
+                    {messages.map((msg) => (
+                      <li
+                        key={msg.id}
+                        style={{
+                          background: "#eef1f5",
+                          padding: "10px",
+                          borderRadius: "6px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
+                        {msg.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Card>
