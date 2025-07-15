@@ -1,14 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Page,
-  Card,
-  Button,
-  Text,
-  TextField,
-  Avatar,
-  Divider,
-  Spinner,
-} from "@shopify/polaris";
+import { Page, Card, Button, Text, Avatar, TextField } from "@shopify/polaris";
 
 export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
@@ -19,7 +10,6 @@ export default function FacebookPagesConversations() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [pageAccessTokens, setPageAccessTokens] = useState({});
-  const [loading, setLoading] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -50,7 +40,7 @@ export default function FacebookPagesConversations() {
         if (response.authResponse) {
           fetchPages(response.authResponse.accessToken);
         } else {
-          console.log("❌ Login cancelled or not authorized.");
+          console.log("User cancelled login or did not fully authorize.");
         }
       },
       {
@@ -60,64 +50,49 @@ export default function FacebookPagesConversations() {
     );
   };
 
-const fetchPages = (userAccessToken) => {
-fetch(
-  `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}`
-)
-
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Pages API response:", data); // ✅ ADD THIS LINE
-      if (data.data && data.data.length > 0) {
-        const tokens = {};
-        data.data.forEach((page) => {
-          tokens[page.id] = page.access_token;
-        });
-        setPageAccessTokens(tokens);
-        setPages(data.data);
-        setIsConnected(true);
-      } else {
-        console.log("❌ No pages found for this user.");
-      }
-    })
-    .catch((err) => console.error("Error fetching pages:", err));
-};
-
+  const fetchPages = (userAccessToken) => {
+    fetch(
+      `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.data && data.data.length > 0) {
+          const tokens = {};
+          data.data.forEach((page) => {
+            tokens[page.id] = page.access_token;
+          });
+          setPageAccessTokens(tokens);
+          setPages(data.data);
+          setIsConnected(true);
+        }
+      })
+      .catch((err) => console.error("Error fetching pages:", err));
+  };
 
   const fetchConversations = (page) => {
     const accessToken = pageAccessTokens[page.id];
     setSelectedPage(page);
-    setLoading(true);
     fetch(
       `https://graph.facebook.com/${page.id}/conversations?fields=participants&access_token=${accessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
         setConversations(data.data || []);
-        setLoading(false);
       })
-      .catch((err) => {
-        console.error("Error fetching conversations:", err);
-        setLoading(false);
-      });
+      .catch((err) => console.error("Error fetching conversations:", err));
   };
 
   const fetchMessages = (conversation) => {
     const accessToken = pageAccessTokens[selectedPage.id];
     setSelectedConversation(conversation);
-    setLoading(true);
     fetch(
       `https://graph.facebook.com/${conversation.id}/messages?fields=message,from&access_token=${accessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
-        setMessages(data.data.reverse() || []);
-        setLoading(false);
+        setMessages(data.data.reverse() || []); // show oldest first
       })
-      .catch((err) => {
-        console.error("Error fetching messages:", err);
-        setLoading(false);
-      });
+      .catch((err) => console.error("Error fetching messages:", err));
   };
 
   const sendMessage = () => {
@@ -136,6 +111,7 @@ fetch(
     )
       .then((res) => res.json())
       .then((data) => {
+        console.log("Message sent:", data);
         setNewMessage("");
         fetchMessages(selectedConversation);
       })
@@ -146,67 +122,92 @@ fetch(
     <Page title="Facebook Chat Manager">
       <Card sectioned>
         {!isConnected ? (
-          <div style={{ textAlign: "center", padding: "40px 0" }}>
+          <div style={{ textAlign: "center" }}>
             <Button onClick={handleFacebookLogin} primary>
               Connect with Facebook
             </Button>
           </div>
-        ) : loading ? (
-          <Spinner accessibilityLabel="Loading" size="large" />
         ) : !selectedPage ? (
           <div>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
               Select a Page
             </Text>
             {pages.map((page) => (
-              <Card
+              <div
                 key={page.id}
-                sectioned
-                title={page.name}
-                actions={[
-                  {
-                    content: "View Conversations",
-                    onAction: () => fetchConversations(page),
-                  },
-                ]}
-              />
+                style={{
+                  background: "#f9f9f9",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  padding: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <Text>{page.name}</Text>
+                <Button
+                  onClick={() => fetchConversations(page)}
+                  primary
+                  size="slim"
+                  style={{ marginTop: "10px" }}
+                >
+                  View Conversations
+                </Button>
+              </div>
             ))}
           </div>
         ) : !selectedConversation ? (
           <div>
-            <Button onClick={() => setSelectedPage(null)} plain>
+            <Button
+              onClick={() => setSelectedPage(null)}
+              plain
+              style={{ marginBottom: "10px" }}
+            >
               ⬅ Back to Pages
             </Button>
-            <Text variant="headingMd" as="h2" style={{ margin: "15px 0" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
               Conversations for {selectedPage.name}
             </Text>
-            {conversations.length === 0 ? (
-              <Text>No conversations found.</Text>
-            ) : (
-              conversations.map((conv) => (
-                <Card
-                  key={conv.id}
-                  sectioned
-                  title={conv.participants.data.map((p) => p.name).join(", ")}
-                  actions={[
-                    {
-                      content: "View Chat",
-                      onAction: () => fetchMessages(conv),
-                    },
-                  ]}
-                />
-              ))
-            )}
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                style={{
+                  background: "#f1f3f5",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  padding: "10px",
+                  marginBottom: "10px",
+                }}
+              >
+                <Text>
+                  Participants:{" "}
+                  {conv.participants.data.map((p) => p.name).join(", ")}
+                </Text>
+                <Button
+                  onClick={() => fetchMessages(conv)}
+                  size="slim"
+                  style={{ marginTop: "5px" }}
+                >
+                  View Chat
+                </Button>
+              </div>
+            ))}
           </div>
         ) : (
           <div>
-            <Button onClick={() => setSelectedConversation(null)} plain>
+            <Button
+              onClick={() => setSelectedConversation(null)}
+              plain
+              style={{ marginBottom: "10px" }}
+            >
               ⬅ Back to Conversations
             </Button>
-            <Text variant="headingMd" as="h2" style={{ margin: "15px 0" }}>
-              Chat
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+              Chat with{" "}
+              {selectedConversation.participants.data
+                .map((p) => p.name)
+                .join(", ")}
             </Text>
-            <Divider />
+
             <div
               style={{
                 maxHeight: "400px",
@@ -215,35 +216,31 @@ fetch(
                 padding: "10px",
                 borderRadius: "6px",
                 border: "1px solid #ddd",
-                margin: "15px 0",
+                marginBottom: "10px",
               }}
             >
-              {messages.length === 0 ? (
-                <Text>No messages found.</Text>
-              ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      marginBottom: "8px",
-                      padding: "8px",
-                      background: "#fff",
-                      borderRadius: "4px",
-                      border: "1px solid #ddd",
-                    }}
-                  >
-                    <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
-                    {msg.message}
-                  </div>
-                ))
-              )}
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    marginBottom: "8px",
+                    padding: "8px",
+                    background: "#fff",
+                    borderRadius: "4px",
+                    border: "1px solid #dee2e6",
+                  }}
+                >
+                  <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
+                  {msg.message}
+                </div>
+              ))}
             </div>
+
             <div style={{ display: "flex", gap: "10px" }}>
               <TextField
                 value={newMessage}
                 onChange={setNewMessage}
                 placeholder="Type your message..."
-                multiline
               />
               <Button onClick={sendMessage} primary>
                 Send
