@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text, Avatar, TextField } from "@shopify/polaris";
+import { Page, Card, Button, Text, TextField } from "@shopify/polaris";
 
 export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
@@ -90,7 +90,7 @@ export default function FacebookPagesConversations() {
     )
       .then((res) => res.json())
       .then((data) => {
-        setMessages(data.data.reverse() || []); // show oldest first
+        setMessages(data.data.reverse() || []);
       })
       .catch((err) => console.error("Error fetching messages:", err));
   };
@@ -118,68 +118,75 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error sending message:", err));
   };
 
+  // CSS Styles
   const cardStyle = {
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+    borderRadius: "14px",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
     border: "none",
+    background: "linear-gradient(145deg, #ffffff, #f4f6f8)",
+    padding: "20px",
   };
 
   const listItemStyle = {
     background: "#fff",
     border: "1px solid #e1e3e5",
-    borderRadius: "8px",
-    padding: "12px",
-    marginBottom: "12px",
+    borderRadius: "10px",
+    padding: "15px",
+    marginBottom: "15px",
     transition: "all 0.3s ease",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
   };
 
-  const listItemHover = {
-    cursor: "pointer",
-    background: "#f9fafb",
-    transform: "scale(1.02)",
+  const messageContainerStyle = {
+    maxHeight: "450px",
+    overflowY: "auto",
+    background: "#f0f2f5",
+    padding: "15px",
+    borderRadius: "10px",
+    border: "1px solid #e1e3e5",
+    marginBottom: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
   };
 
-  const messageStyle = (isOwn) => ({
-    marginBottom: "10px",
-    padding: "10px",
-    borderRadius: "8px",
-    maxWidth: "75%",
+  const messageBubble = (isOwn) => ({
     alignSelf: isOwn ? "flex-end" : "flex-start",
-    background: isOwn ? "#dcf8c6" : "#ffffff",
-    border: "1px solid #ddd",
+    background: isOwn ? "#d1e7dd" : "#fff",
+    color: "#333",
+    padding: "10px 14px",
+    borderRadius: isOwn ? "18px 18px 0 18px" : "18px 18px 18px 0",
+    maxWidth: "70%",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
   });
 
   return (
     <Page title="💬 Facebook Chat Manager">
       <Card sectioned style={cardStyle}>
         {!isConnected ? (
-          <div style={{ textAlign: "center", padding: "40px 0" }}>
+          <div style={{ textAlign: "center", padding: "50px 0" }}>
             <Button onClick={handleFacebookLogin} primary size="large">
               Connect with Facebook
             </Button>
           </div>
         ) : !selectedPage ? (
           <div>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
               Select a Page
             </Text>
             {pages.map((page) => (
               <div
                 key={page.id}
-                style={listItemStyle}
-                onMouseOver={(e) =>
-                  Object.assign(e.currentTarget.style, listItemHover)
-                }
-                onMouseOut={(e) =>
-                  Object.assign(e.currentTarget.style, listItemStyle)
-                }
+                style={{ ...listItemStyle, cursor: "pointer" }}
               >
-                <Text variant="bodyMd">{page.name}</Text>
+                <Text variant="bodyMd" as="p" fontWeight="medium">
+                  {page.name}
+                </Text>
                 <Button
                   onClick={() => fetchConversations(page)}
                   primary
                   size="slim"
-                  style={{ marginTop: "10px" }}
+                  style={{ marginTop: "12px" }}
                 >
                   View Conversations
                 </Button>
@@ -195,19 +202,13 @@ export default function FacebookPagesConversations() {
             >
               ⬅ Back to Pages
             </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
               Conversations for {selectedPage.name}
             </Text>
             {conversations.map((conv) => (
               <div
                 key={conv.id}
-                style={listItemStyle}
-                onMouseOver={(e) =>
-                  Object.assign(e.currentTarget.style, listItemHover)
-                }
-                onMouseOut={(e) =>
-                  Object.assign(e.currentTarget.style, listItemStyle)
-                }
+                style={{ ...listItemStyle, cursor: "pointer" }}
               >
                 <Text variant="bodyMd">
                   Participants:{" "}
@@ -239,26 +240,11 @@ export default function FacebookPagesConversations() {
                 .join(", ")}
             </Text>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                maxHeight: "400px",
-                overflowY: "auto",
-                background: "#f6f8fa",
-                padding: "15px",
-                borderRadius: "8px",
-                border: "1px solid #e1e4e8",
-                marginBottom: "20px",
-              }}
-            >
+            <div style={messageContainerStyle}>
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  style={messageStyle(
-                    msg.from?.name === selectedPage.name
-                  )}
+                  style={messageBubble(msg.from?.name === selectedPage.name)}
                 >
                   <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
                   {msg.message}
@@ -266,7 +252,7 @@ export default function FacebookPagesConversations() {
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "12px" }}>
               <TextField
                 value={newMessage}
                 onChange={setNewMessage}
