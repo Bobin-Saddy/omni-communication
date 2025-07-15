@@ -9,7 +9,7 @@ export default function FacebookPagesConversations() {
   const [messagesByConversation, setMessagesByConversation] = useState({});
   const [pageAccessTokens, setPageAccessTokens] = useState({});
 
-  const FACEBOOK_APP_ID = "YOUR_APP_ID_HERE";
+  const FACEBOOK_APP_ID = "544704651303656";
 
   useEffect(() => {
     window.fbAsyncInit = function () {
