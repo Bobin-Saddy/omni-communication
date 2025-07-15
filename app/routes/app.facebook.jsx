@@ -119,7 +119,17 @@ export default function FacebookPagesConversations() {
           <Text>No pages found.</Text>
         ) : (
           <div>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "15px" }}>
+            <Text
+              variant="headingMd"
+              as="h2"
+              style={{
+                marginBottom: "15px",
+                background: "linear-gradient(90deg, #4c6ef5, #15aabf)",
+                color: "white",
+                padding: "10px 15px",
+                borderRadius: "8px",
+              }}
+            >
               Your Facebook Pages
             </Text>
 
@@ -128,19 +138,28 @@ export default function FacebookPagesConversations() {
                 <li
                   key={page.id}
                   style={{
-                    background: "#f9f9f9",
+                    background: "#fff",
                     border: "1px solid #ddd",
-                    borderRadius: "6px",
-                    padding: "10px",
-                    marginBottom: "10px",
+                    borderRadius: "8px",
+                    padding: "15px",
+                    marginBottom: "15px",
+                    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+                    transition: "transform 0.2s",
                   }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.transform = "scale(1.02)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
                 >
                   <Text variant="bodyMd">
-                    Page: <strong>{page.name}</strong>
+                    <strong style={{ color: "#4c6ef5" }}>Page:</strong>{" "}
+                    {page.name}
                   </Text>
                   <Button
                     onClick={() => fetchConversations(page.id)}
-                    plain
+                    primary
                     size="slim"
                     style={{ marginTop: "10px" }}
                   >
@@ -152,7 +171,12 @@ export default function FacebookPagesConversations() {
                       <Text
                         variant="headingMd"
                         as="h3"
-                        style={{ marginBottom: "10px" }}
+                        style={{
+                          marginBottom: "10px",
+                          color: "#15aabf",
+                          borderBottom: "2px solid #15aabf",
+                          paddingBottom: "5px",
+                        }}
                       >
                         Conversations
                       </Text>
@@ -161,15 +185,15 @@ export default function FacebookPagesConversations() {
                           <li
                             key={conv.id}
                             style={{
-                              background: "#f6f6f7",
-                              border: "1px solid #ccc",
+                              background: "#f8f9fa",
+                              border: "1px solid #e0e0e0",
                               borderRadius: "6px",
                               padding: "10px",
                               marginBottom: "10px",
                             }}
                           >
                             <Text variant="bodyMd">
-                              Conversation ID: <strong>{conv.id}</strong>
+                              <strong>ID:</strong> {conv.id}
                             </Text>
                             <div style={{ marginTop: "8px" }}>
                               <Text variant="bodyMd">Participants:</Text>
@@ -196,7 +220,11 @@ export default function FacebookPagesConversations() {
                               }
                               plain
                               size="slim"
-                              style={{ marginTop: "10px" }}
+                              style={{
+                                marginTop: "10px",
+                                background: "#e7f5ff",
+                                borderRadius: "4px",
+                              }}
                             >
                               View Messages
                             </Button>
@@ -205,7 +233,7 @@ export default function FacebookPagesConversations() {
                               <div
                                 style={{
                                   marginTop: "15px",
-                                  background: "#eef1f5",
+                                  background: "#edf2ff",
                                   padding: "10px",
                                   borderRadius: "6px",
                                 }}
@@ -213,7 +241,10 @@ export default function FacebookPagesConversations() {
                                 <Text
                                   variant="headingSm"
                                   as="h4"
-                                  style={{ marginBottom: "10px" }}
+                                  style={{
+                                    marginBottom: "10px",
+                                    color: "#364fc7",
+                                  }}
                                 >
                                   Messages
                                 </Text>
@@ -238,10 +269,10 @@ export default function FacebookPagesConversations() {
                                             padding: "8px",
                                             background: "#fff",
                                             borderRadius: "4px",
-                                            border: "1px solid #ddd",
+                                            border: "1px solid #dee2e6",
                                           }}
                                         >
-                                          <strong>
+                                          <strong style={{ color: "#4c6ef5" }}>
                                             {msg.from?.name || "Anonymous"}:
                                           </strong>{" "}
                                           {msg.message}
