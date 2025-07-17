@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text, TextField } from "@shopify/polaris";
+import { Page, Card, Button, Text } from "@shopify/polaris";
 
 export default function FacebookPagesConversations() {
   const [isConnected, setIsConnected] = useState(false);
@@ -148,14 +148,6 @@ export default function FacebookPagesConversations() {
     }
   }, [selectedConversation]);
 
-  // Handle enter key to send message
-  const handleKeyPress = (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {
-      event.preventDefault();
-      sendMessage();
-    }
-  };
-
   // Styles
   const styles = {
     card: {
@@ -195,6 +187,13 @@ export default function FacebookPagesConversations() {
       maxWidth: "70%",
       boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
     }),
+    input: {
+      width: "100%",
+      padding: "10px 14px",
+      border: "1px solid #dfe3e8",
+      borderRadius: "6px",
+      fontSize: "14px",
+    },
   };
 
   return (
@@ -300,25 +299,24 @@ export default function FacebookPagesConversations() {
               ))}
             </div>
 
-<div style={{ display: "flex", gap: "12px", width: "100%" }}>
-  <TextField
-    value={newMessage}
-    onChange={setNewMessage}
-    placeholder="Type your message..."
-    multiline={false}
-    autoComplete="off"
-    onKeyUp={(event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-      }
-    }}
-  />
-  <Button onClick={sendMessage} primary>
-    Send
-  </Button>
-</div>
-
+            <div style={{ display: "flex", gap: "12px", width: "100%" }}>
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder="Type your message..."
+                style={styles.input}
+              />
+              <Button onClick={sendMessage} primary>
+                Send
+              </Button>
+            </div>
           </div>
         )}
       </Card>
