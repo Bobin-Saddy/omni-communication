@@ -11,7 +11,7 @@ export default function FacebookPagesConversations() {
   const [newMessage, setNewMessage] = useState("");
   const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [recipientId, setRecipientId] = useState(null);
-  const [newMessages, setNewMessages] = useState({}); // store unseen message flags per conversation
+  const [newMessages, setNewMessages] = useState({}); // new message tracking
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -26,7 +26,8 @@ export default function FacebookPagesConversations() {
     };
 
     (function (d, s, id) {
-      var js, fjs = d.getElementsByTagName(s)[0];
+      var js,
+        fjs = d.getElementsByTagName(s)[0];
       if (d.getElementById(id)) return;
       js = d.createElement(s);
       js.id = id;
@@ -79,9 +80,12 @@ export default function FacebookPagesConversations() {
       .then((res) => res.json())
       .then((data) => {
         setConversations(data.data || []);
-        // Initialize newMessages state for conversations
+
+        // Initialize newMessages state for these conversations
         const newMsgs = {};
-        data.data.forEach(conv => newMsgs[conv.id] = false);
+        data.data.forEach((conv) => {
+          newMsgs[conv.id] = false;
+        });
         setNewMessages(newMsgs);
       })
       .catch((err) => console.error("Error fetching conversations:", err));
@@ -103,8 +107,8 @@ export default function FacebookPagesConversations() {
       .then((data) => {
         if (data.data) setMessages(data.data.reverse());
 
-        // Mark this conversation as seen (no new messages) when viewed
-        setNewMessages(prev => ({ ...prev, [conversation.id]: false }));
+        // Mark as seen when opened
+        setNewMessages((prev) => ({ ...prev, [conversation.id]: false }));
       })
       .catch((err) => console.error("Error fetching messages:", err));
   };
@@ -144,11 +148,11 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error sending message:", err));
   };
 
-  // Polling for new messages every second
+  // Polling for new messages in all conversations
   useEffect(() => {
     const interval = setInterval(() => {
-      if (selectedPage) {
-        conversations.forEach(conv => {
+      if (selectedPage && conversations.length > 0) {
+        conversations.forEach((conv) => {
           const accessToken = pageAccessTokens[selectedPage.id];
           fetch(
             `https://graph.facebook.com/${conv.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
@@ -156,11 +160,11 @@ export default function FacebookPagesConversations() {
             .then((res) => res.json())
             .then((data) => {
               if (data.data && data.data.length > 0) {
-                const lastMessage = data.data[0];
-                const isOwn = lastMessage.from?.name === selectedPage.name;
+                const lastMsg = data.data[0];
+                const isOwn = lastMsg.from?.name === selectedPage.name;
                 if (!isOwn) {
                   // New message from user
-                  setNewMessages(prev => ({ ...prev, [conv.id]: true }));
+                  setNewMessages((prev) => ({ ...prev, [conv.id]: true }));
                 }
               }
             })
@@ -169,12 +173,20 @@ export default function FacebookPagesConversations() {
             );
         });
       }
-    }, 1000);
+    }, 2000); // polling every 2 seconds
 
     return () => clearInterval(interval);
-  }, [conversations, selectedPage]);
+  }, [selectedPage, conversations]);
 
+  // Styles
   const styles = {
+    card: {
+      borderRadius: "14px",
+      boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+      background: "#f9fafb",
+      padding: "25px",
+      border: "1px solid #e1e3e5",
+    },
     listItem: {
       background: "#fff",
       border: "1px solid #e1e3e5",
@@ -184,11 +196,14 @@ export default function FacebookPagesConversations() {
       transition: "all 0.3s ease",
       boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
     },
+    badge: {
+      marginLeft: "10px",
+    },
   };
 
   return (
     <Page title="💬 Facebook Chat Manager">
-      <Card sectioned>
+      <Card sectioned style={styles.card}>
         {!isConnected ? (
           <div style={{ textAlign: "center", padding: "50px 0" }}>
             <Button onClick={handleFacebookLogin} primary size="large">
@@ -241,7 +256,9 @@ export default function FacebookPagesConversations() {
                   {conv.participants.data.map((p) => p.name).join(", ")}
                 </Text>
                 {newMessages[conv.id] && (
-                  <Badge status="critical">🔴 New Message</Badge>
+                  <Badge status="critical" style={styles.badge}>
+                    🔴 New Message
+                  </Badge>
                 )}
                 <Button
                   onClick={() => fetchMessages(conv)}
@@ -254,7 +271,7 @@ export default function FacebookPagesConversations() {
             ))}
           </div>
         ) : (
-          <div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             <Button
               onClick={() => setSelectedConversation(null)}
               plain
@@ -262,8 +279,88 @@ export default function FacebookPagesConversations() {
             >
               ⬅ Back to Conversations
             </Button>
-            {/* existing chat view code */}
-            {/* ... */}
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
+              Chat with{" "}
+              {selectedConversation.participants.data
+                .map((p) => p.name)
+                .join(", ")}
+            </Text>
+
+            <div
+              style={{
+                maxHeight: "450px",
+                overflowY: "auto",
+                background: "#f4f6f8",
+                padding: "15px",
+                borderRadius: "10px",
+                border: "1px solid #e1e3e5",
+                marginBottom: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "10px",
+              }}
+            >
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={{
+                    alignSelf:
+                      msg.from?.name === selectedPage.name
+                        ? "flex-end"
+                        : "flex-start",
+                    background:
+                      msg.from?.name === selectedPage.name
+                        ? "#d1e7dd"
+                        : "#fff",
+                    color: "#333",
+                    padding: "10px 14px",
+                    borderRadius:
+                      msg.from?.name === selectedPage.name
+                        ? "18px 18px 0 18px"
+                        : "18px 18px 18px 0",
+                    maxWidth: "70%",
+                    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
+                  {msg.message}
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      marginTop: "4px",
+                    }}
+                  >
+                    {new Date(msg.created_time).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", width: "100%" }}>
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder="Type your message..."
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: "1px solid #dfe3e8",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                }}
+              />
+              <Button onClick={sendMessage} primary>
+                Send
+              </Button>
+            </div>
           </div>
         )}
       </Card>
