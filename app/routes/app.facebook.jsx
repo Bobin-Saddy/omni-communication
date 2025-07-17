@@ -300,17 +300,25 @@ export default function FacebookPagesConversations() {
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: "12px" }}>
-              <TextField
-                value={newMessage}
-                onChange={setNewMessage}
-                placeholder="Type your message..."
-                onKeyPress={handleKeyPress}
-              />
-              <Button onClick={sendMessage} primary>
-                Send
-              </Button>
-            </div>
+<div style={{ display: "flex", gap: "12px", width: "100%" }}>
+  <TextField
+    value={newMessage}
+    onChange={setNewMessage}
+    placeholder="Type your message..."
+    multiline={false}
+    autoComplete="off"
+    onKeyUp={(event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }}
+  />
+  <Button onClick={sendMessage} primary>
+    Send
+  </Button>
+</div>
+
           </div>
         )}
       </Card>
