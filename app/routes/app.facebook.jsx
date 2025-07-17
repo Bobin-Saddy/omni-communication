@@ -87,7 +87,6 @@ export default function FacebookPagesConversations() {
     const accessToken = pageAccessTokens[selectedPage.id];
     setSelectedConversation(conversation);
 
-    // Get recipientId (the user, not the page)
     const recipient = conversation.participants.data.find(
       (p) => p.name !== selectedPage.name
     );
@@ -121,7 +120,7 @@ export default function FacebookPagesConversations() {
           recipient: { id: recipientId },
           message: { text: newMessage },
           messaging_type: "MESSAGE_TAG",
-          tag: "ACCOUNT_UPDATE", // use appropriate tag as per your use-case
+          tag: "ACCOUNT_UPDATE",
         }),
       }
     )
@@ -138,7 +137,7 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error sending message:", err));
   };
 
-  // Polling for new messages every 5 seconds
+  // Polling for new messages every second
   useEffect(() => {
     if (selectedConversation) {
       const interval = setInterval(() => {
@@ -149,51 +148,58 @@ export default function FacebookPagesConversations() {
     }
   }, [selectedConversation]);
 
-  // CSS Styles
-  const cardStyle = {
-    borderRadius: "14px",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-    border: "none",
-    background: "linear-gradient(145deg, #ffffff, #f4f6f8)",
-    padding: "20px",
+  // Handle enter key to send message
+  const handleKeyPress = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
   };
 
-  const listItemStyle = {
-    background: "#fff",
-    border: "1px solid #e1e3e5",
-    borderRadius: "10px",
-    padding: "15px",
-    marginBottom: "15px",
-    transition: "all 0.3s ease",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+  // Styles
+  const styles = {
+    card: {
+      borderRadius: "14px",
+      boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+      background: "#f9fafb",
+      padding: "25px",
+      border: "1px solid #e1e3e5",
+    },
+    listItem: {
+      background: "#fff",
+      border: "1px solid #e1e3e5",
+      borderRadius: "10px",
+      padding: "15px",
+      marginBottom: "15px",
+      transition: "all 0.3s ease",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+    },
+    messageContainer: {
+      maxHeight: "450px",
+      overflowY: "auto",
+      background: "#f4f6f8",
+      padding: "15px",
+      borderRadius: "10px",
+      border: "1px solid #e1e3e5",
+      marginBottom: "20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+    },
+    messageBubble: (isOwn) => ({
+      alignSelf: isOwn ? "flex-end" : "flex-start",
+      background: isOwn ? "#d1e7dd" : "#fff",
+      color: "#333",
+      padding: "10px 14px",
+      borderRadius: isOwn ? "18px 18px 0 18px" : "18px 18px 18px 0",
+      maxWidth: "70%",
+      boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+    }),
   };
-
-  const messageContainerStyle = {
-    maxHeight: "450px",
-    overflowY: "auto",
-    background: "#f0f2f5",
-    padding: "15px",
-    borderRadius: "10px",
-    border: "1px solid #e1e3e5",
-    marginBottom: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  };
-
-  const messageBubble = (isOwn) => ({
-    alignSelf: isOwn ? "flex-end" : "flex-start",
-    background: isOwn ? "#d1e7dd" : "#fff",
-    color: "#333",
-    padding: "10px 14px",
-    borderRadius: isOwn ? "18px 18px 0 18px" : "18px 18px 18px 0",
-    maxWidth: "70%",
-    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-  });
 
   return (
     <Page title="💬 Facebook Chat Manager">
-      <Card sectioned style={cardStyle}>
+      <Card sectioned style={styles.card}>
         {!isConnected ? (
           <div style={{ textAlign: "center", padding: "50px 0" }}>
             <Button onClick={handleFacebookLogin} primary size="large">
@@ -208,7 +214,7 @@ export default function FacebookPagesConversations() {
             {pages.map((page) => (
               <div
                 key={page.id}
-                style={{ ...listItemStyle, cursor: "pointer" }}
+                style={{ ...styles.listItem, cursor: "pointer" }}
               >
                 <Text variant="bodyMd" as="p" fontWeight="medium">
                   {page.name}
@@ -239,7 +245,7 @@ export default function FacebookPagesConversations() {
             {conversations.map((conv) => (
               <div
                 key={conv.id}
-                style={{ ...listItemStyle, cursor: "pointer" }}
+                style={{ ...styles.listItem, cursor: "pointer" }}
               >
                 <Text variant="bodyMd">
                   Participants:{" "}
@@ -271,16 +277,22 @@ export default function FacebookPagesConversations() {
                 .join(", ")}
             </Text>
 
-            <div style={messageContainerStyle}>
+            <div style={styles.messageContainer}>
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  style={messageBubble(msg.from?.name === selectedPage.name)}
+                  style={styles.messageBubble(
+                    msg.from?.name === selectedPage.name
+                  )}
                 >
                   <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
                   {msg.message}
                   <div
-                    style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      marginTop: "4px",
+                    }}
                   >
                     {new Date(msg.created_time).toLocaleString()}
                   </div>
@@ -293,6 +305,7 @@ export default function FacebookPagesConversations() {
                 value={newMessage}
                 onChange={setNewMessage}
                 placeholder="Type your message..."
+                onKeyPress={handleKeyPress}
               />
               <Button onClick={sendMessage} primary>
                 Send
