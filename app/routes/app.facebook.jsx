@@ -242,22 +242,49 @@ export default function FacebookPagesConversations() {
               Conversations for {selectedPage.name}
             </Text>
             {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                style={{ ...styles.listItem, cursor: "pointer" }}
-              >
-                <Text variant="bodyMd">
-                  Participants:{" "}
-                  {conv.participants.data.map((p) => p.name).join(", ")}
-                </Text>
-                <Button
-                  onClick={() => fetchMessages(conv)}
-                  size="slim"
-                  style={{ marginTop: "10px" }}
-                >
-                  View Chat
-                </Button>
-              </div>
+<div
+  key={conv.id}
+  style={{
+    ...styles.listItem,
+    cursor: "pointer",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  }}
+>
+  <div>
+    <Text variant="bodyMd">
+      Participants:{" "}
+      {conv.participants.data.map((p) => p.name).join(", ")}
+    </Text>
+    <Button
+      onClick={() => {
+        fetchMessages(conv);
+        markMessagesAsRead(conv.id); // ✅ mark as read when opened
+      }}
+      size="slim"
+      style={{ marginTop: "10px" }}
+    >
+      View Chat
+    </Button>
+  </div>
+
+  {unreadCounts[conv.id] > 0 && (
+    <div
+      style={{
+        background: "#d72c0d",
+        color: "white",
+        borderRadius: "12px",
+        padding: "4px 10px",
+        fontSize: "12px",
+      }}
+    >
+      New {unreadCounts[conv.id]} message
+      {unreadCounts[conv.id] > 1 ? "s" : ""}
+    </div>
+  )}
+</div>
+
             ))}
           </div>
         ) : (
