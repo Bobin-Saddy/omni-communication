@@ -10,6 +10,7 @@ export default function FacebookPagesConversations() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [pageAccessTokens, setPageAccessTokens] = useState({});
+  const [recipientId, setRecipientId] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -85,35 +86,52 @@ export default function FacebookPagesConversations() {
   const fetchMessages = (conversation) => {
     const accessToken = pageAccessTokens[selectedPage.id];
     setSelectedConversation(conversation);
+
+    // Get recipientId (the user, not the page)
+    const recipient = conversation.participants.data.find(
+      (p) => p.name !== selectedPage.name
+    );
+    setRecipientId(recipient?.id || null);
+
     fetch(
       `https://graph.facebook.com/${conversation.id}/messages?fields=message,from&access_token=${accessToken}`
     )
       .then((res) => res.json())
       .then((data) => {
-        setMessages(data.data.reverse() || []);
+        if (data.data) setMessages(data.data.reverse());
       })
       .catch((err) => console.error("Error fetching messages:", err));
   };
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;
+    if (!recipientId) {
+      console.error("Recipient ID not found.");
+      return;
+    }
+
     const accessToken = pageAccessTokens[selectedPage.id];
+
     fetch(
-      `https://graph.facebook.com/${selectedConversation.id}/messages`,
+      `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: newMessage,
-          access_token: accessToken,
+          recipient: { id: recipientId },
+          message: { text: newMessage },
         }),
       }
     )
       .then((res) => res.json())
       .then((data) => {
-        console.log("Message sent:", data);
-        setNewMessage("");
-        fetchMessages(selectedConversation);
+        if (data.message_id) {
+          console.log("Message sent:", data);
+          setNewMessage("");
+          fetchMessages(selectedConversation);
+        } else {
+          console.error("Error sending message:", data);
+        }
       })
       .catch((err) => console.error("Error sending message:", err));
   };
