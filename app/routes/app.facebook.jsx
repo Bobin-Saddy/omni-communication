@@ -11,6 +11,7 @@ export default function FacebookPagesConversations() {
   const [newMessage, setNewMessage] = useState("");
   const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [recipientId, setRecipientId] = useState(null);
+  const [unreadCounts, setUnreadCounts] = useState({});
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -25,8 +26,7 @@ export default function FacebookPagesConversations() {
     };
 
     (function (d, s, id) {
-      var js,
-        fjs = d.getElementsByTagName(s)[0];
+      var js, fjs = d.getElementsByTagName(s)[0];
       if (d.getElementById(id)) return;
       js = d.createElement(s);
       js.id = id;
@@ -34,6 +34,30 @@ export default function FacebookPagesConversations() {
       fjs.parentNode.insertBefore(js, fjs);
     })(document, "script", "facebook-jssdk");
   }, []);
+
+  const fetchUnreadCounts = () => {
+    fetch("/api/unread-counts")
+      .then((res) => res.json())
+      .then((data) => setUnreadCounts(data))
+      .catch((err) => console.error("Error fetching unread counts:", err));
+  };
+
+  useEffect(() => {
+    const interval = setInterval(fetchUnreadCounts, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markAsRead = (conversationId) => {
+    fetch("/api/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId }),
+    })
+      .then(() => {
+        setUnreadCounts((prev) => ({ ...prev, [conversationId]: 0 }));
+      })
+      .catch((err) => console.error("Error marking as read:", err));
+  };
 
   const handleFacebookLogin = () => {
     window.FB.login(
@@ -98,6 +122,7 @@ export default function FacebookPagesConversations() {
       .then((res) => res.json())
       .then((data) => {
         if (data.data) setMessages(data.data.reverse());
+        markAsRead(conversation.id);
       })
       .catch((err) => console.error("Error fetching messages:", err));
   };
@@ -127,7 +152,6 @@ export default function FacebookPagesConversations() {
       .then((res) => res.json())
       .then((data) => {
         if (data.message_id) {
-          console.log("Message sent:", data);
           setNewMessage("");
           fetchMessages(selectedConversation);
         } else {
@@ -137,93 +161,22 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error sending message:", err));
   };
 
-  // Polling for new messages every second
-  useEffect(() => {
-    if (selectedConversation) {
-      const interval = setInterval(() => {
-        fetchMessages(selectedConversation);
-      }, 1000);
-
-      return () => clearInterval(interval);
-    }
-  }, [selectedConversation]);
-
-  // Styles
-  const styles = {
-    card: {
-      borderRadius: "14px",
-      boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
-      background: "#f9fafb",
-      padding: "25px",
-      border: "1px solid #e1e3e5",
-    },
-    listItem: {
-      background: "#fff",
-      border: "1px solid #e1e3e5",
-      borderRadius: "10px",
-      padding: "15px",
-      marginBottom: "15px",
-      transition: "all 0.3s ease",
-      boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-    },
-    messageContainer: {
-      maxHeight: "450px",
-      overflowY: "auto",
-      background: "#f4f6f8",
-      padding: "15px",
-      borderRadius: "10px",
-      border: "1px solid #e1e3e5",
-      marginBottom: "20px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "10px",
-    },
-    messageBubble: (isOwn) => ({
-      alignSelf: isOwn ? "flex-end" : "flex-start",
-      background: isOwn ? "#d1e7dd" : "#fff",
-      color: "#333",
-      padding: "10px 14px",
-      borderRadius: isOwn ? "18px 18px 0 18px" : "18px 18px 18px 0",
-      maxWidth: "70%",
-      boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-    }),
-    input: {
-      width: "100%",
-      padding: "10px 14px",
-      border: "1px solid #dfe3e8",
-      borderRadius: "6px",
-      fontSize: "14px",
-    },
-  };
-
   return (
     <Page title="💬 Facebook Chat Manager">
-      <Card sectioned style={styles.card}>
+      <Card sectioned>
         {!isConnected ? (
-          <div style={{ textAlign: "center", padding: "50px 0" }}>
-            <Button onClick={handleFacebookLogin} primary size="large">
-              Connect with Facebook
-            </Button>
-          </div>
+          <Button onClick={handleFacebookLogin} primary>
+            Connect with Facebook
+          </Button>
         ) : !selectedPage ? (
           <div>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
+            <Text variant="headingMd" as="h2">
               Select a Page
             </Text>
             {pages.map((page) => (
-              <div
-                key={page.id}
-                style={{ ...styles.listItem, cursor: "pointer" }}
-              >
-                <Text variant="bodyMd" as="p" fontWeight="medium">
-                  {page.name}
-                </Text>
-                <Button
-                  onClick={() => fetchConversations(page)}
-                  primary
-                  size="slim"
-                  style={{ marginTop: "12px" }}
-                >
+              <div key={page.id}>
+                <Text>{page.name}</Text>
+                <Button onClick={() => fetchConversations(page)}>
                   View Conversations
                 </Button>
               </div>
@@ -231,119 +184,74 @@ export default function FacebookPagesConversations() {
           </div>
         ) : !selectedConversation ? (
           <div>
-            <Button
-              onClick={() => setSelectedPage(null)}
-              plain
-              style={{ marginBottom: "20px" }}
-            >
+            <Button onClick={() => setSelectedPage(null)} plain>
               ⬅ Back to Pages
             </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
+            <Text variant="headingMd" as="h2">
               Conversations for {selectedPage.name}
             </Text>
             {conversations.map((conv) => (
-<div
-  key={conv.id}
-  style={{
-    ...styles.listItem,
-    cursor: "pointer",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  }}
->
-  <div>
-    <Text variant="bodyMd">
-      Participants:{" "}
-      {conv.participants.data.map((p) => p.name).join(", ")}
-    </Text>
-    <Button
-      onClick={() => {
-        fetchMessages(conv);
-        markMessagesAsRead(conv.id); // ✅ mark as read when opened
-      }}
-      size="slim"
-      style={{ marginTop: "10px" }}
-    >
-      View Chat
-    </Button>
-  </div>
+              <div
+                key={conv.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid #eee",
+                  padding: "10px 0",
+                }}
+              >
+                <div>
+                  <Text>
+                    Participants:{" "}
+                    {conv.participants.data.map((p) => p.name).join(", ")}
+                  </Text>
+                  <Button onClick={() => fetchMessages(conv)} size="slim">
+                    View Chat
+                  </Button>
+                </div>
 
-  {unreadCounts[conv.id] > 0 && (
-    <div
-      style={{
-        background: "#d72c0d",
-        color: "white",
-        borderRadius: "12px",
-        padding: "4px 10px",
-        fontSize: "12px",
-      }}
-    >
-      New {unreadCounts[conv.id]} message
-      {unreadCounts[conv.id] > 1 ? "s" : ""}
-    </div>
-  )}
-</div>
-
+                {unreadCounts[conv.id] > 0 && (
+                  <div
+                    style={{
+                      background: "#d72c0d",
+                      color: "white",
+                      borderRadius: "12px",
+                      padding: "4px 10px",
+                      fontSize: "12px",
+                    }}
+                  >
+                    New {unreadCounts[conv.id]} message
+                    {unreadCounts[conv.id] > 1 ? "s" : ""}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <Button
-              onClick={() => setSelectedConversation(null)}
-              plain
-              style={{ marginBottom: "20px" }}
-            >
+          <div>
+            <Button onClick={() => setSelectedConversation(null)} plain>
               ⬅ Back to Conversations
             </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
-              Chat with{" "}
-              {selectedConversation.participants.data
-                .map((p) => p.name)
-                .join(", ")}
+            <Text variant="headingMd" as="h2">
+              Chat
             </Text>
-
-            <div style={styles.messageContainer}>
+            <div style={{ maxHeight: "400px", overflowY: "auto" }}>
               {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  style={styles.messageBubble(
-                    msg.from?.name === selectedPage.name
-                  )}
-                >
-                  <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
-                  {msg.message}
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#666",
-                      marginTop: "4px",
-                    }}
-                  >
-                    {new Date(msg.created_time).toLocaleString()}
-                  </div>
+                <div key={msg.id}>
+                  <strong>{msg.from?.name}</strong>: {msg.message}
                 </div>
               ))}
             </div>
-
-            <div style={{ display: "flex", gap: "12px", width: "100%" }}>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Type your message..."
-                style={styles.input}
-              />
-              <Button onClick={sendMessage} primary>
-                Send
-              </Button>
-            </div>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type your message..."
+            />
+            <Button onClick={sendMessage} primary>
+              Send
+            </Button>
           </div>
         )}
       </Card>
