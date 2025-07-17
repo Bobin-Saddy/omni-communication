@@ -112,17 +112,20 @@ export default function FacebookPagesConversations() {
 
     const accessToken = pageAccessTokens[selectedPage.id];
 
-    fetch(
-      `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-        }),
-      }
-    )
+fetch(
+  `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      recipient: { id: recipientId },
+      message: { text: newMessage },
+      messaging_type: "MESSAGE_TAG",
+      tag: "ACCOUNT_UPDATE", // example tag, use as per your use case
+    }),
+  }
+)
+
       .then((res) => res.json())
       .then((data) => {
         if (data.message_id) {
