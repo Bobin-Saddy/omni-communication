@@ -93,10 +93,9 @@ export default function FacebookPagesConversations() {
     );
     setRecipientId(recipient?.id || null);
 
-fetch(
-  `https://graph.facebook.com/${conversation.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
-)
-
+    fetch(
+      `https://graph.facebook.com/${conversation.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.data) setMessages(data.data.reverse());
@@ -113,20 +112,19 @@ fetch(
 
     const accessToken = pageAccessTokens[selectedPage.id];
 
-fetch(
-  `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      recipient: { id: recipientId },
-      message: { text: newMessage },
-      messaging_type: "MESSAGE_TAG",
-      tag: "ACCOUNT_UPDATE", // example tag, use as per your use case
-    }),
-  }
-)
-
+    fetch(
+      `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text: newMessage },
+          messaging_type: "MESSAGE_TAG",
+          tag: "ACCOUNT_UPDATE", // use appropriate tag as per your use-case
+        }),
+      }
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.message_id) {
@@ -139,6 +137,17 @@ fetch(
       })
       .catch((err) => console.error("Error sending message:", err));
   };
+
+  // Polling for new messages every 5 seconds
+  useEffect(() => {
+    if (selectedConversation) {
+      const interval = setInterval(() => {
+        fetchMessages(selectedConversation);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [selectedConversation]);
 
   // CSS Styles
   const cardStyle = {
@@ -263,18 +272,20 @@ fetch(
             </Text>
 
             <div style={messageContainerStyle}>
-    {messages.map((msg) => (
-  <div
-    key={msg.id}
-    style={messageBubble(msg.from?.name === selectedPage.name)}
-  >
-    <strong>{msg.from?.name || "Anonymous"}:</strong> {msg.message}
-    <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
-      {new Date(msg.created_time).toLocaleString()}
-    </div>
-  </div>
-))}
-
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  style={messageBubble(msg.from?.name === selectedPage.name)}
+                >
+                  <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
+                  {msg.message}
+                  <div
+                    style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}
+                  >
+                    {new Date(msg.created_time).toLocaleString()}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div style={{ display: "flex", gap: "12px" }}>
