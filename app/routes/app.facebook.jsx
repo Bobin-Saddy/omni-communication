@@ -93,9 +93,10 @@ export default function FacebookPagesConversations() {
     );
     setRecipientId(recipient?.id || null);
 
-    fetch(
-      `https://graph.facebook.com/${conversation.id}/messages?fields=message,from&access_token=${accessToken}`
-    )
+fetch(
+  `https://graph.facebook.com/${conversation.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
+)
+
       .then((res) => res.json())
       .then((data) => {
         if (data.data) setMessages(data.data.reverse());
@@ -262,15 +263,18 @@ fetch(
             </Text>
 
             <div style={messageContainerStyle}>
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  style={messageBubble(msg.from?.name === selectedPage.name)}
-                >
-                  <strong>{msg.from?.name || "Anonymous"}:</strong>{" "}
-                  {msg.message}
-                </div>
-              ))}
+    {messages.map((msg) => (
+  <div
+    key={msg.id}
+    style={messageBubble(msg.from?.name === selectedPage.name)}
+  >
+    <strong>{msg.from?.name || "Anonymous"}:</strong> {msg.message}
+    <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>
+      {new Date(msg.created_time).toLocaleString()}
+    </div>
+  </div>
+))}
+
             </div>
 
             <div style={{ display: "flex", gap: "12px" }}>
