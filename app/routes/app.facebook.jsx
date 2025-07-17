@@ -143,7 +143,7 @@ export default function FacebookPagesConversations() {
     if (selectedConversation) {
       const interval = setInterval(() => {
         fetchMessages(selectedConversation);
-      }, 5000);
+      }, 1000);
 
       return () => clearInterval(interval);
     }
