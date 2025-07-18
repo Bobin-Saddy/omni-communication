@@ -1,21 +1,169 @@
-{% assign avg_rating = block.settings.product.metafields.demo.avg_rating.value | round %}
-<span style="color:{{ block.settings.colour }}">
-  {% render 'stars', rating: avg_rating %}
-</span>
-{% if avg_rating >= 4 %}
-  <br>
-  <img src="{{ "thumbs-up.png" | asset_img_url: '15x' }}" height="15" width="15" loading="lazy">
-  {{ 'ratings.home.recommendationText' | t }}
-{% endif %}
-
 {% schema %}
 {
-  "name": "Star Rating",
+  "name": "Facebook Chat Manager",
   "target": "section",
-  "settings": [
-    { "type": "product", "id": "product", "label": "product", "autofill": true },
-    { "type": "color", "id": "colour", "label": "Star Colour", "default": "#ff0000" }
-  ]
+  "settings": []
 }
 {% endschema %}
 
+<div id="facebook-chat-manager">
+  <div style="text-align:center;padding:30px;">
+    <button id="fb-login-button" style="background:#1877f2;color:#fff;padding:12px 20px;border:none;border-radius:6px;font-size:16px;cursor:pointer;">
+      Connect with Facebook
+    </button>
+  </div>
+  <div id="fb-pages-container" style="display:none;max-width:600px;margin:20px auto;"></div>
+  <div id="fb-conversations-container" style="display:none;max-width:600px;margin:20px auto;"></div>
+  <div id="fb-messages-container" style="display:none;max-width:600px;margin:20px auto;"></div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const FACEBOOK_APP_ID = "544704651303656";
+
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId: FACEBOOK_APP_ID,
+        cookie: true,
+        xfbml: true,
+        version: "v18.0"
+      });
+    };
+
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+
+    const fbLoginButton = document.getElementById("fb-login-button");
+    const pagesContainer = document.getElementById("fb-pages-container");
+    const conversationsContainer = document.getElementById("fb-conversations-container");
+    const messagesContainer = document.getElementById("fb-messages-container");
+
+    let pageAccessTokens = {};
+    let selectedPage = null;
+    let recipientId = null;
+    let selectedConversation = null;
+
+    fbLoginButton.addEventListener("click", function() {
+      FB.login(function(response) {
+        if (response.authResponse) {
+          fetchPages(response.authResponse.accessToken);
+        } else {
+          alert("Login cancelled or not fully authorized.");
+        }
+      }, {
+        scope: "pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging,pages_manage_posts"
+      });
+    });
+
+    function fetchPages(userAccessToken) {
+      fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.data && data.data.length > 0) {
+            pageAccessTokens = {};
+            pagesContainer.innerHTML = "<h3>Select a Page</h3>";
+            data.data.forEach(page => {
+              pageAccessTokens[page.id] = page.access_token;
+              const btn = document.createElement("button");
+              btn.textContent = page.name;
+              btn.style = "display:block;width:100%;padding:10px;margin:5px 0;background:#f4f6f8;border:1px solid #ccc;border-radius:4px;cursor:pointer;";
+              btn.onclick = () => fetchConversations(page);
+              pagesContainer.appendChild(btn);
+            });
+            fbLoginButton.style.display = "none";
+            pagesContainer.style.display = "block";
+          }
+        })
+        .catch(err => console.error("Error fetching pages:", err));
+    }
+
+    function fetchConversations(page) {
+      selectedPage = page;
+      const accessToken = pageAccessTokens[page.id];
+      fetch(`https://graph.facebook.com/${page.id}/conversations?fields=participants&access_token=${accessToken}`)
+        .then(res => res.json())
+        .then(data => {
+          conversationsContainer.innerHTML = "<h3>Conversations</h3>";
+          data.data.forEach(conv => {
+            const btn = document.createElement("button");
+            const participantNames = conv.participants.data.map(p => p.name).join(", ");
+            btn.textContent = participantNames;
+            btn.style = "display:block;width:100%;padding:10px;margin:5px 0;background:#fff;border:1px solid #ccc;border-radius:4px;cursor:pointer;";
+            btn.onclick = () => fetchMessages(conv);
+            conversationsContainer.appendChild(btn);
+          });
+          pagesContainer.style.display = "none";
+          conversationsContainer.style.display = "block";
+        })
+        .catch(err => console.error("Error fetching conversations:", err));
+    }
+
+    function fetchMessages(conversation) {
+      selectedConversation = conversation;
+      const accessToken = pageAccessTokens[selectedPage.id];
+      const recipient = conversation.participants.data.find(p => p.name !== selectedPage.name);
+      recipientId = recipient?.id || null;
+
+      fetch(`https://graph.facebook.com/${conversation.id}/messages?fields=message,from,created_time&access_token=${accessToken}`)
+        .then(res => res.json())
+        .then(data => {
+          messagesContainer.innerHTML = "<h3>Messages</h3>";
+          data.data.reverse().forEach(msg => {
+            const div = document.createElement("div");
+            div.style = `background:${msg.from?.name === selectedPage.name ? '#d1e7dd' : '#f4f6f8'};padding:10px;border-radius:6px;margin:5px 0;`;
+            div.innerHTML = `<strong>${msg.from?.name || 'Anonymous'}:</strong> ${msg.message}<br><small>${new Date(msg.created_time).toLocaleString()}</small>`;
+            messagesContainer.appendChild(div);
+          });
+
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = "Type your message...";
+          input.style = "width:80%;padding:8px;margin-top:10px;border:1px solid #ccc;border-radius:4px;";
+          messagesContainer.appendChild(input);
+
+          const sendBtn = document.createElement("button");
+          sendBtn.textContent = "Send";
+          sendBtn.style = "padding:8px 12px;margin-left:10px;background:#1877f2;color:#fff;border:none;border-radius:4px;cursor:pointer;";
+          sendBtn.onclick = () => sendMessage(input.value, input);
+          messagesContainer.appendChild(sendBtn);
+
+          conversationsContainer.style.display = "none";
+          messagesContainer.style.display = "block";
+        })
+        .catch(err => console.error("Error fetching messages:", err));
+    }
+
+    function sendMessage(text, inputEl) {
+      if (!text.trim() || !recipientId) {
+        alert("Recipient ID or message is missing.");
+        return;
+      }
+      const accessToken = pageAccessTokens[selectedPage.id];
+      fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text: text },
+          messaging_type: "MESSAGE_TAG",
+          tag: "ACCOUNT_UPDATE"
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.message_id) {
+          inputEl.value = "";
+          fetchMessages(selectedConversation);
+        } else {
+          console.error("Error sending message:", data);
+        }
+      })
+      .catch(err => console.error("Error sending message:", err));
+    }
+  });
+</script>
