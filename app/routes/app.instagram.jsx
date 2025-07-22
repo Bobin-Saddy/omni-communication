@@ -53,25 +53,26 @@ export default function InstagramChatProcessor() {
     );
   };
 
-  const fetchInstagramPages = (userAccessToken) => {
-    fetch(
-      `https://graph.facebook.com/me/accounts?fields=instagram_business_account,access_token,name&access_token=${userAccessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const pagesWithInstagram = data.data.filter(
-          (page) => page.instagram_business_account
-        );
-        const tokens = {};
-        pagesWithInstagram.forEach((page) => {
-          tokens[page.instagram_business_account.id] = page.access_token;
-        });
-        setPageAccessTokens(tokens);
-        setPages(pagesWithInstagram);
-        setIsConnected(true);
-      })
-      .catch((err) => console.error("Error fetching Instagram pages:", err));
-  };
+const fetchInstagramPages = (userAccessToken) => {
+  fetch(
+    `https://graph.facebook.com/me/accounts?fields=instagram_business_account,access_token,name&access_token=${userAccessToken}`
+  )
+    .then((res) => res.json())
+    .then((data) => {
+      const pagesWithInstagram = data.data.filter(
+        (page) => page.instagram_business_account
+      );
+      const tokens = {};
+      pagesWithInstagram.forEach((page) => {
+        tokens[page.id] = page.access_token; // Map page.id
+      });
+      setPageAccessTokens(tokens);
+      setPages(pagesWithInstagram);
+      setIsConnected(true);
+    })
+    .catch((err) => console.error("Error fetching Instagram pages:", err));
+};
+
 
   const fetchConversations = (page) => {
     const igId = page.instagram_business_account.id;
