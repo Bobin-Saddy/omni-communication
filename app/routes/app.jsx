@@ -50,7 +50,7 @@ export default function App() {
       <NavMenu>
            <PersistentLink to="/app/pricing">Plan</PersistentLink>
            <PersistentLink to="/app/facebook">Facebook</PersistentLink>
-             <PersistentLink to="/app/whatsapp">Facebook</PersistentLink>
+             <PersistentLink to="/app/instagram">Instagram</PersistentLink>
       </NavMenu>
 
       {isLoading ? (
