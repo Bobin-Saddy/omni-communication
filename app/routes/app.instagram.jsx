@@ -32,21 +32,23 @@ export default function InstagramChatProcessor() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
-  const handleInstagramLogin = () => {
-    window.FB.login(
-      (response) => {
-        if (response.authResponse) {
-          fetchInstagramAccounts(response.authResponse.accessToken);
-        } else {
-          console.log("User cancelled login or did not fully authorize.");
-        }
-      },
-      {
-        scope:
-          "instagram_basic,pages_show_list,instagram_manage_messages,pages_messaging",
+const handleInstagramLogin = () => {
+  window.FB.login(
+    (response) => {
+      if (response.authResponse) {
+        console.log("Auth response", response);
+        fetchInstagramAccounts(response.authResponse.accessToken);
+      } else {
+        console.log("User cancelled login or did not fully authorize.");
       }
-    );
-  };
+    },
+    {
+      scope:
+        "instagram_basic,instagram_manage_messages,pages_show_list,pages_read_engagement,pages_manage_metadata,pages_messaging",
+    }
+  );
+};
+
 
 const fetchInstagramAccounts = (userAccessToken) => {
   fetch(
