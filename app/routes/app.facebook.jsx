@@ -147,43 +147,43 @@ export default function FacebookPagesConversations() {
   };
 
   // Polling for new messages in all conversations
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (selectedPage && conversations.length > 0) {
-        conversations.forEach((conv) => {
-          const accessToken = pageAccessTokens[selectedPage.id];
-          fetch(
-            `https://graph.facebook.com/${conv.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
-          )
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.data && data.data.length > 0) {
-                const lastMsg = data.data[0];
-                const isOwn = lastMsg.from?.name === selectedPage.name;
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (selectedPage && conversations.length > 0) {
+  //       conversations.forEach((conv) => {
+  //         const accessToken = pageAccessTokens[selectedPage.id];
+  //         fetch(
+  //           `https://graph.facebook.com/${conv.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
+  //         )
+  //           .then((res) => res.json())
+  //           .then((data) => {
+  //             if (data.data && data.data.length > 0) {
+  //               const lastMsg = data.data[0];
+  //               const isOwn = lastMsg.from?.name === selectedPage.name;
 
-                if (!isOwn) {
-                  if (
-                    selectedConversation && 
-                    selectedConversation.id === conv.id
-                  ) {
-                    // If in current conversation, update messages directly
-                    fetchMessages(conv);
-                  } else {
-                    // If not in current conversation, show new message badge
-                    setNewMessages((prev) => ({ ...prev, [conv.id]: true }));
-                  }
-                }
-              }
-            })
-            .catch((err) =>
-              console.error("Error polling conversation messages:", err)
-            );
-        });
-      }
-    }, 2000);
+  //               if (!isOwn) {
+  //                 if (
+  //                   selectedConversation && 
+  //                   selectedConversation.id === conv.id
+  //                 ) {
+  //                   // If in current conversation, update messages directly
+  //                   fetchMessages(conv);
+  //                 } else {
+  //                   // If not in current conversation, show new message badge
+  //                   setNewMessages((prev) => ({ ...prev, [conv.id]: true }));
+  //                 }
+  //               }
+  //             }
+  //           })
+  //           .catch((err) =>
+  //             console.error("Error polling conversation messages:", err)
+  //           );
+  //       });
+  //     }
+  //   }, 2000);
 
-    return () => clearInterval(interval);
-  }, [selectedPage, conversations, selectedConversation]);
+  //   return () => clearInterval(interval);
+  // }, [selectedPage, conversations, selectedConversation]);
 
   // Styles
   const styles = {
