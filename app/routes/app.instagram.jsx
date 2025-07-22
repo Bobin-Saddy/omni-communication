@@ -54,23 +54,22 @@ export default function InstagramChatProcessor() {
   };
 
 const fetchInstagramPages = (userAccessToken) => {
-  fetch(
-    `https://graph.facebook.com/me/accounts?fields=instagram_business_account,access_token,name&access_token=${userAccessToken}`
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      const pagesWithInstagram = data.data.filter(
-        (page) => page.instagram_business_account
-      );
-      const tokens = {};
-      pagesWithInstagram.forEach((page) => {
-        tokens[page.id] = page.access_token; // Map page.id
-      });
-      setPageAccessTokens(tokens);
-      setPages(pagesWithInstagram);
-      setIsConnected(true);
-    })
-    .catch((err) => console.error("Error fetching Instagram pages:", err));
+fetch(`https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`)
+  .then(res => res.json())
+  .then(data => {
+    data.data.forEach(page => {
+      // Fetch connected IG accounts for each page
+      fetch(`https://graph.facebook.com/${page.id}?fields=connected_instagram_account&access_token=${page.access_token}`)
+        .then(res => res.json())
+        .then(igData => {
+          if (igData.connected_instagram_account) {
+            const igId = igData.connected_instagram_account.id;
+            pageAccessTokens[igId] = page.access_token; // Store token for IG id
+          }
+        });
+    });
+  });
+
 };
 
 
