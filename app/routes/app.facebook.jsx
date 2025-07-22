@@ -52,24 +52,27 @@ export default function FacebookPagesConversations() {
     );
   };
 
-  const fetchPages = (userAccessToken) => {
-    fetch(
-      `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.data && data.data.length > 0) {
-          const tokens = {};
-          data.data.forEach((page) => {
-            tokens[page.id] = page.access_token;
-          });
-          setPageAccessTokens(tokens);
-          setPages(data.data);
-          setIsConnected(true);
-        }
-      })
-      .catch((err) => console.error("Error fetching pages:", err));
-  };
+const fetchPages = (userAccessToken) => {
+  fetch(
+    `https://graph.facebook.com/me/accounts?access_token=${userAccessToken}`
+  )
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.data && data.data.length > 0) {
+        const tokens = {};
+        data.data.forEach((page) => {
+          tokens[page.id] = page.access_token;
+          // 👇 LOG ACCESS TOKEN FOR EACH PAGE
+          console.log(`Page: ${page.name}, ID: ${page.id}, Access Token: ${page.access_token}`);
+        });
+        setPageAccessTokens(tokens);
+        setPages(data.data);
+        setIsConnected(true);
+      }
+    })
+    .catch((err) => console.error("Error fetching pages:", err));
+};
+
 
   const fetchConversations = (page) => {
     const accessToken = pageAccessTokens[page.id];
@@ -147,43 +150,43 @@ export default function FacebookPagesConversations() {
   };
 
   // Polling for new messages in all conversations
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     if (selectedPage && conversations.length > 0) {
-  //       conversations.forEach((conv) => {
-  //         const accessToken = pageAccessTokens[selectedPage.id];
-  //         fetch(
-  //           `https://graph.facebook.com/${conv.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
-  //         )
-  //           .then((res) => res.json())
-  //           .then((data) => {
-  //             if (data.data && data.data.length > 0) {
-  //               const lastMsg = data.data[0];
-  //               const isOwn = lastMsg.from?.name === selectedPage.name;
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (selectedPage && conversations.length > 0) {
+        conversations.forEach((conv) => {
+          const accessToken = pageAccessTokens[selectedPage.id];
+          fetch(
+            `https://graph.facebook.com/${conv.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
+          )
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.data && data.data.length > 0) {
+                const lastMsg = data.data[0];
+                const isOwn = lastMsg.from?.name === selectedPage.name;
 
-  //               if (!isOwn) {
-  //                 if (
-  //                   selectedConversation && 
-  //                   selectedConversation.id === conv.id
-  //                 ) {
-  //                   // If in current conversation, update messages directly
-  //                   fetchMessages(conv);
-  //                 } else {
-  //                   // If not in current conversation, show new message badge
-  //                   setNewMessages((prev) => ({ ...prev, [conv.id]: true }));
-  //                 }
-  //               }
-  //             }
-  //           })
-  //           .catch((err) =>
-  //             console.error("Error polling conversation messages:", err)
-  //           );
-  //       });
-  //     }
-  //   }, 2000);
+                if (!isOwn) {
+                  if (
+                    selectedConversation && 
+                    selectedConversation.id === conv.id
+                  ) {
+                    // If in current conversation, update messages directly
+                    fetchMessages(conv);
+                  } else {
+                    // If not in current conversation, show new message badge
+                    setNewMessages((prev) => ({ ...prev, [conv.id]: true }));
+                  }
+                }
+              }
+            })
+            .catch((err) =>
+              console.error("Error polling conversation messages:", err)
+            );
+        });
+      }
+    }, 2000);
 
-  //   return () => clearInterval(interval);
-  // }, [selectedPage, conversations, selectedConversation]);
+    return () => clearInterval(interval);
+  }, [selectedPage, conversations, selectedConversation]);
 
   // Styles
   const styles = {
