@@ -48,24 +48,25 @@ export default function InstagramChatProcessor() {
     );
   };
 
-  const fetchInstagramAccounts = (userAccessToken) => {
-    fetch(
-      `https://graph.facebook.com/me/accounts?fields=instagram_business_account&access_token=${userAccessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        const accounts = data.data
-          .filter((page) => page.instagram_business_account)
-          .map((page) => ({
-            pageId: page.id,
-            igId: page.instagram_business_account.id,
-          }));
+const fetchInstagramAccounts = (userAccessToken) => {
+  fetch(
+    `https://graph.facebook.com/me/accounts?fields=instagram_business_account&access_token=${userAccessToken}`
+  )
+    .then((res) => res.json())
+    .then((data) => {
+      const accounts = data.data
+        .filter((page) => page.instagram_business_account)
+        .map((page) => ({
+          pageId: page.id,
+          igId: page.instagram_business_account.id,
+          pageAccessToken: page.access_token, // ADD THIS LINE
+        }));
 
-        setInstagramAccounts(accounts);
-        setIsConnected(true);
-      })
-      .catch((err) => console.error("Error fetching Instagram accounts:", err));
-  };
+      setInstagramAccounts(accounts);
+      setIsConnected(true);
+    })
+    .catch((err) => console.error("Error fetching Instagram accounts:", err));
+};
 
   const fetchConversations = (igId, pageAccessToken) => {
     fetch(
