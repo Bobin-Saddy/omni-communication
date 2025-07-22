@@ -13,7 +13,7 @@ export default function InstagramChatProcessor() {
   const [recipientId, setRecipientId] = useState(null);
   const [newMessages, setNewMessages] = useState({});
 
-  const FACEBOOK_APP_ID = "572221985329907";
+  const FACEBOOK_APP_ID = "544704651303656";
 
 
   useEffect(() => {
