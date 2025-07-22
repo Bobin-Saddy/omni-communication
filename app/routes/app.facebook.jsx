@@ -163,7 +163,7 @@ export default function FacebookPagesConversations() {
 
                 if (!isOwn) {
                   if (
-                    selectedConversation &&
+                    selectedConversation && 
                     selectedConversation.id === conv.id
                   ) {
                     // If in current conversation, update messages directly
