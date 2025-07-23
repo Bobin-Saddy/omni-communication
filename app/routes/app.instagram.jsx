@@ -99,6 +99,11 @@ const fetchInstagramPages = (userAccessToken) => {
     const igId = selectedPage.instagram_business_account.id;
     const accessToken = pageAccessTokens[igId];
     setSelectedConversation(conversation);
+       const recipient = conversation.participants.data.find(
+      (p) => p.name !== selectedPage.name
+    );
+    setRecipientId(recipient?.id || null);
+
 
     fetch(
       `https://graph.facebook.com/v18.0/${conversation.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
@@ -113,12 +118,15 @@ const fetchInstagramPages = (userAccessToken) => {
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;
-
+   if (!recipientId) {
+      console.error("Recipient ID not found.");
+      return;
+    }
     const igId = selectedPage.instagram_business_account.id;
     const accessToken = pageAccessTokens[igId];
 
     fetch(
-      `https://graph.facebook.com/v18.0/${igId}/messages`,
+      `https://graph.facebook.com/v18.0/${igId}/messages?access_token=${accessToken}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
