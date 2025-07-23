@@ -63,7 +63,9 @@ const pagesWithInstagram = data.data.filter((page) => page.instagram_business_ac
 
 const tokens = {};
 pagesWithInstagram.forEach((page) => {
-  tokens[page.instagram_business_account.id] = page.access_token;
+  if (page.instagram_business_account) {
+    tokens[page.instagram_business_account.id] = page.access_token;
+  }
 });
 
 setPageAccessTokens(tokens);
@@ -82,8 +84,8 @@ console.log("Using igId", igId);
 
 
 const fetchConversations = (page) => {
-  if (!page.instagram_business_account) {
-    console.error("This page does not have an Instagram Business Account connected.");
+  if (!page.instagram_business_account || !page.instagram_business_account.id) {
+    console.error("No Instagram Business Account ID found for this page.");
     return;
   }
 
@@ -91,7 +93,7 @@ const fetchConversations = (page) => {
   const accessToken = pageAccessTokens[igId];
 
   if (!accessToken) {
-    console.error("Access token not found for this Instagram account.");
+    console.error("Access token not found for this IG ID:", igId);
     return;
   }
 
@@ -101,7 +103,14 @@ const fetchConversations = (page) => {
   fetch(`https://graph.facebook.com/v18.0/${igId}/conversations?platform=instagram&access_token=${accessToken}`)
     .then((res) => res.json())
     .then((data) => {
-      setConversations(data.data || []);
+      if (!data.data) {
+        console.error("No conversations found or error in API response", data);
+        setConversations([]);
+        setNewMessages({});
+        return;
+      }
+
+      setConversations(data.data);
       const newMsgs = {};
       data.data.forEach((conv) => {
         newMsgs[conv.id] = false;
@@ -110,6 +119,7 @@ const fetchConversations = (page) => {
     })
     .catch((err) => console.error("Error fetching IG conversations:", err));
 };
+
 
   const fetchMessages = (conversation) => {
     const igId = selectedPage.instagram_business_account.id;
