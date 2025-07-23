@@ -77,6 +77,7 @@ export default function InstagramChatProcessor() {
 
 const fetchConversations = async (page) => {
   const pageId = page.id;
+  const pageName = page.name; // ✅ get your page name
   const accessToken = pageAccessTokens[pageId];
 
   if (!accessToken) {
@@ -112,17 +113,26 @@ const fetchConversations = async (page) => {
           const messagesData = await messagesRes.json();
 
           let userName = "Unknown User";
+          let businessName = pageName; // your page name
+
           if (messagesData.data && messagesData.data.length > 0) {
             const msg = messagesData.data[0];
             if (msg.from) {
-              userName = msg.from.name || msg.from.username || "User";
+              // Check if sender is NOT your page
+              if (msg.from.name !== businessName) {
+                userName = msg.from.name || msg.from.username || "User";
+              }
             }
           }
 
-          return { ...conv, userName };
+          return {
+            ...conv,
+            userName,
+            businessName, // ✅ add your business name
+          };
         } catch (err) {
           console.error("Error fetching message for conversation", conv.id, err);
-          return { ...conv, userName: "User" };
+          return { ...conv, userName: "User", businessName };
         }
       })
     );
@@ -265,29 +275,24 @@ const fetchConversations = async (page) => {
             <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
               Conversations
             </Text>
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                style={{ padding: "15px", borderBottom: "1px solid #eee" }}
-              >
-<Text variant="bodyMd">
-  {conv.userName}
-</Text>
+{conversations.map((conv) => (
+  <div
+    key={conv.id}
+    style={{ padding: "15px", borderBottom: "1px solid #eee" }}
+  >
+    <Text variant="bodyMd">
+      {conv.businessName} ↔️ {conv.userName}
+    </Text>
+    <Button
+      onClick={() => fetchMessages(conv)}
+      size="slim"
+      style={{ marginTop: "10px" }}
+    >
+      View Chat
+    </Button>
+  </div>
+))}
 
-                {newMessages[conv.id] && (
-                  <Badge status="critical" style={{ marginLeft: "10px" }}>
-                    🔴 New Message
-                  </Badge>
-                )}
-                <Button
-                  onClick={() => fetchMessages(conv)}
-                  size="slim"
-                  style={{ marginTop: "10px" }}
-                >
-                  View Chat
-                </Button>
-              </div>
-            ))}
           </div>
         ) : (
           <div>
