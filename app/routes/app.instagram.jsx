@@ -59,19 +59,17 @@ const fetchInstagramPages = (userAccessToken) => {
   )
     .then((res) => res.json())
     .then((data) => {
-      const pagesWithInstagram = data.data.filter(
-        (page) => page.instagram_business_account
-      );
+const pagesWithInstagram = data.data.filter((page) => page.instagram_business_account);
+
 const tokens = {};
 pagesWithInstagram.forEach((page) => {
-  if (page.instagram_business_account) {
-    tokens[page.instagram_business_account.id] = page.access_token;
-  }
+  tokens[page.instagram_business_account.id] = page.access_token;
 });
-setPageAccessTokens(tokens);
 
-      setPages(pagesWithInstagram);
-      setIsConnected(true);
+setPageAccessTokens(tokens);
+setPages(pagesWithInstagram);
+setIsConnected(true);
+
       console.log("PageAccessTokens", pageAccessTokens);
 console.log("Using igId", igId);
 
@@ -83,26 +81,35 @@ console.log("Using igId", igId);
 };
 
 
-  const fetchConversations = (page) => {
-    const igId = page.instagram_business_account.id;
-    const accessToken = pageAccessTokens[igId];
-    setSelectedPage(page);
-    setSelectedConversation(null);
+const fetchConversations = (page) => {
+  if (!page.instagram_business_account) {
+    console.error("This page does not have an Instagram Business Account connected.");
+    return;
+  }
 
-    fetch(
-      `https://graph.facebook.com/v18.0/${igId}/conversations?platform=instagram&access_token=${accessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        setConversations(data.data || []);
-        const newMsgs = {};
-        data.data.forEach((conv) => {
-          newMsgs[conv.id] = false;
-        });
-        setNewMessages(newMsgs);
-      })
-      .catch((err) => console.error("Error fetching IG conversations:", err));
-  };
+  const igId = page.instagram_business_account.id;
+  const accessToken = pageAccessTokens[igId];
+
+  if (!accessToken) {
+    console.error("Access token not found for this Instagram account.");
+    return;
+  }
+
+  setSelectedPage(page);
+  setSelectedConversation(null);
+
+  fetch(`https://graph.facebook.com/v18.0/${igId}/conversations?platform=instagram&access_token=${accessToken}`)
+    .then((res) => res.json())
+    .then((data) => {
+      setConversations(data.data || []);
+      const newMsgs = {};
+      data.data.forEach((conv) => {
+        newMsgs[conv.id] = false;
+      });
+      setNewMessages(newMsgs);
+    })
+    .catch((err) => console.error("Error fetching IG conversations:", err));
+};
 
   const fetchMessages = (conversation) => {
     const igId = selectedPage.instagram_business_account.id;
