@@ -15,7 +15,6 @@ export default function InstagramChatProcessor() {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -53,77 +52,82 @@ export default function InstagramChatProcessor() {
     );
   };
 
-const fetchInstagramPages = (userAccessToken) => {
-  fetch(
-    `https://graph.facebook.com/me/accounts?fields=instagram_business_account,access_token,name&access_token=${userAccessToken}`
-  )
-    .then((res) => res.json())
-    .then((data) => {
-const pagesWithInstagram = data.data.filter((page) => page.instagram_business_account);
+  const fetchInstagramPages = (userAccessToken) => {
+    fetch(
+      `https://graph.facebook.com/me/accounts?fields=instagram_business_account,access_token,name&access_token=${userAccessToken}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const pagesWithInstagram = data.data.filter(
+          (page) => page.instagram_business_account
+        );
 
-const tokens = {};
-pagesWithInstagram.forEach((page) => {
-  if (page.instagram_business_account) {
-    tokens[page.instagram_business_account.id] = page.access_token;
-  }
-});
+        const tokens = {};
+        pagesWithInstagram.forEach((page) => {
+          if (page.instagram_business_account) {
+            tokens[page.instagram_business_account.id] = page.access_token;
+          }
+        });
 
-setPageAccessTokens(tokens);
-setPages(pagesWithInstagram);
-setIsConnected(true);
+        console.log("Mapped pageAccessTokens:", tokens);
 
-      console.log("PageAccessTokens", pageAccessTokens);
-console.log("Using igId", igId);
+        setPageAccessTokens(tokens);
+        setPages(pagesWithInstagram);
+        setIsConnected(true);
+      })
+      .catch((err) => console.error("Error fetching Instagram pages:", err));
+  };
 
-    })
-    .catch((err) => console.error("Error fetching Instagram pages:", err));
-    console.log("PageAccessTokens", pageAccessTokens);
-console.log("Using igId", igId);
+  const fetchConversations = (page) => {
+    if (!page.instagram_business_account || !page.instagram_business_account.id) {
+      console.error("No Instagram Business Account ID found for this page.");
+      return;
+    }
 
-};
+    const igId = page.instagram_business_account.id;
+    const accessToken = pageAccessTokens[igId];
 
+    if (!accessToken) {
+      console.error("Access token not found for this IG ID:", igId);
+      return;
+    }
 
-const fetchConversations = (page) => {
-  if (!page.instagram_business_account || !page.instagram_business_account.id) {
-    console.error("No Instagram Business Account ID found for this page.");
-    return;
-  }
+    console.log("Fetching conversations for igId:", igId, "with token:", accessToken);
 
-  const igId = page.instagram_business_account.id;
-  const accessToken = pageAccessTokens[igId];
+    setSelectedPage(page);
+    setSelectedConversation(null);
 
-  if (!accessToken) {
-    console.error("Access token not found for this IG ID:", igId);
-    return;
-  }
+    fetch(
+      `https://graph.facebook.com/v18.0/${igId}/conversations?platform=instagram&access_token=${accessToken}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.data) {
+          console.error("No conversations found or error in API response", data);
+          setConversations([]);
+          setNewMessages({});
+          return;
+        }
 
-  setSelectedPage(page);
-  setSelectedConversation(null);
-
-  fetch(`https://graph.facebook.com/v18.0/${igId}/conversations?platform=instagram&access_token=${accessToken}`)
-    .then((res) => res.json())
-    .then((data) => {
-      if (!data.data) {
-        console.error("No conversations found or error in API response", data);
-        setConversations([]);
-        setNewMessages({});
-        return;
-      }
-
-      setConversations(data.data);
-      const newMsgs = {};
-      data.data.forEach((conv) => {
-        newMsgs[conv.id] = false;
-      });
-      setNewMessages(newMsgs);
-    })
-    .catch((err) => console.error("Error fetching IG conversations:", err));
-};
-
+        setConversations(data.data);
+        const newMsgs = {};
+        data.data.forEach((conv) => {
+          newMsgs[conv.id] = false;
+        });
+        setNewMessages(newMsgs);
+      })
+      .catch((err) => console.error("Error fetching IG conversations:", err));
+  };
 
   const fetchMessages = (conversation) => {
     const igId = selectedPage.instagram_business_account.id;
     const accessToken = pageAccessTokens[igId];
+
+    if (!accessToken) {
+      console.error("Access token not found for this IG ID:", igId);
+      return;
+    }
+
     setSelectedConversation(conversation);
 
     fetch(
@@ -131,7 +135,14 @@ const fetchConversations = (page) => {
     )
       .then((res) => res.json())
       .then((data) => {
-        if (data.data) setMessages(data.data.reverse());
+        if (data.data) {
+          setMessages(data.data.reverse());
+          if (data.data.length > 0) {
+            const recipient = data.data[0].from.id;
+            setRecipientId(recipient);
+            console.log("Set recipientId:", recipient);
+          }
+        }
         setNewMessages((prev) => ({ ...prev, [conversation.id]: false }));
       })
       .catch((err) => console.error("Error fetching IG messages:", err));
@@ -143,17 +154,19 @@ const fetchConversations = (page) => {
     const igId = selectedPage.instagram_business_account.id;
     const accessToken = pageAccessTokens[igId];
 
-    fetch(
-      `https://graph.facebook.com/v18.0/${igId}/messages`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-        }),
-      }
-    )
+    if (!recipientId) {
+      console.error("Recipient ID not set. Cannot send message.");
+      return;
+    }
+
+    fetch(`https://graph.facebook.com/v18.0/${igId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message: { text: newMessage },
+      }),
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.id) {
