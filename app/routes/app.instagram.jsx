@@ -186,46 +186,72 @@ const fetchConversations = async (page) => {
       .catch((err) => console.error("Error fetching IG messages:", err));
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
+const sendMessage = async () => {
+  if (!newMessage.trim()) return;
 
-    if (!selectedPage || !selectedConversation) {
-      console.error("No page or conversation selected");
+  if (!selectedPage || !selectedConversation) {
+    console.error("No page or conversation selected");
+    return;
+  }
+
+  const pageId = selectedPage.id;
+  const accessToken = pageAccessTokens[pageId];
+
+  if (!accessToken) {
+    console.error("Access token not found for this Page ID:", pageId);
+    return;
+  }
+
+  try {
+    // 🔍 First, fetch the participant IG user ID from messages (last message sender)
+    const messagesRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&limit=1&access_token=${accessToken}`
+    );
+    const messagesData = await messagesRes.json();
+
+    let recipientId = null;
+
+    if (messagesData.data && messagesData.data.length > 0) {
+      const msg = messagesData.data[0];
+      if (msg.from && msg.from.id) {
+        recipientId = msg.from.id;
+      }
+    }
+
+    if (!recipientId) {
+      console.error("Recipient ID not found, cannot send message");
       return;
     }
 
-    const pageId = selectedPage.id;
-    const accessToken = pageAccessTokens[pageId];
+    console.log("Sending message to recipientId:", recipientId);
 
-    if (!accessToken) {
-      console.error("Access token not found for this Page ID:", pageId);
-      return;
-    }
-
-    console.log("Sending message to conversationId:", selectedConversation.id);
-
-    fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`,
+    // ✅ Now, send message to IG user via /messages endpoint of the Instagram business account
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          recipient: { id: recipientId },
           message: { text: newMessage },
+          messaging_type: "RESPONSE",
         }),
       }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.id) {
-          console.log("IG Message sent:", data);
-          setNewMessage("");
-          fetchMessages(selectedConversation);
-        } else {
-          console.error("Error sending IG message:", data);
-        }
-      })
-      .catch((err) => console.error("Error sending IG message:", err));
-  };
+    );
+    const data = await res.json();
+
+    if (data.id) {
+      console.log("IG Message sent:", data);
+      setNewMessage("");
+      fetchMessages(selectedConversation);
+    } else {
+      console.error("Error sending IG message:", data);
+    }
+  } catch (err) {
+    console.error("Error sending IG message:", err);
+  }
+};
+
 
   return (
     <Page title="💬 Instagram Chat Processor">
