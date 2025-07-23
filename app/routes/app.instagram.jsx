@@ -84,7 +84,7 @@ const fetchConversations = async (page) => {
     return;
   }
 
-  console.log("Fetching IG conversations for pageId:", pageId, "with token:", accessToken);
+  console.log("Fetching IG conversations for pageId:", pageId);
 
   setSelectedPage(page);
   setSelectedConversation(null);
@@ -102,28 +102,26 @@ const fetchConversations = async (page) => {
       return;
     }
 
-    // Now fetch participant name for each conversation
+    // Fetch the latest message for each conversation to get user name
     const conversationsWithNames = await Promise.all(
       data.data.map(async (conv) => {
         try {
-          const participantsRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/participants?access_token=${accessToken}`
+          const messagesRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${accessToken}`
           );
-          const participantsData = await participantsRes.json();
+          const messagesData = await messagesRes.json();
 
-          // Extract name from participants
           let userName = "Unknown User";
-          if (participantsData.data && participantsData.data.length > 0) {
-            const user = participantsData.data.find(
-              (p) => p.id !== page.instagram_business_account.id
-            ); // exclude page itself
-
-            if (user) userName = user.name || user.username || "User";
+          if (messagesData.data && messagesData.data.length > 0) {
+            const msg = messagesData.data[0];
+            if (msg.from) {
+              userName = msg.from.name || msg.from.username || "User";
+            }
           }
 
-          return { ...conv, userName }; // append userName to conversation object
+          return { ...conv, userName };
         } catch (err) {
-          console.error("Error fetching participant for conversation", conv.id, err);
+          console.error("Error fetching message for conversation", conv.id, err);
           return { ...conv, userName: "User" };
         }
       })
@@ -140,6 +138,7 @@ const fetchConversations = async (page) => {
     console.error("Error fetching IG conversations:", err);
   }
 };
+
 
 
   const fetchMessages = (conversation) => {
@@ -271,7 +270,7 @@ const fetchConversations = async (page) => {
                 key={conv.id}
                 style={{ padding: "15px", borderBottom: "1px solid #eee" }}
               >
-             <Text variant="bodyMd">
+<Text variant="bodyMd">
   {conv.userName}
 </Text>
 
