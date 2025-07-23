@@ -62,15 +62,24 @@ const fetchInstagramPages = (userAccessToken) => {
       const pagesWithInstagram = data.data.filter(
         (page) => page.instagram_business_account
       );
-      const tokens = {};
-      pagesWithInstagram.forEach((page) => {
-        tokens[page.id] = page.access_token; // Map page.id
-      });
-      setPageAccessTokens(tokens);
+const tokens = {};
+pagesWithInstagram.forEach((page) => {
+  if (page.instagram_business_account) {
+    tokens[page.instagram_business_account.id] = page.access_token;
+  }
+});
+setPageAccessTokens(tokens);
+
       setPages(pagesWithInstagram);
       setIsConnected(true);
+      console.log("PageAccessTokens", pageAccessTokens);
+console.log("Using igId", igId);
+
     })
     .catch((err) => console.error("Error fetching Instagram pages:", err));
+    console.log("PageAccessTokens", pageAccessTokens);
+console.log("Using igId", igId);
+
 };
 
 
@@ -99,11 +108,6 @@ const fetchInstagramPages = (userAccessToken) => {
     const igId = selectedPage.instagram_business_account.id;
     const accessToken = pageAccessTokens[igId];
     setSelectedConversation(conversation);
-       const recipient = conversation.participants.data.find(
-      (p) => p.name !== selectedPage.name
-    );
-    setRecipientId(recipient?.id || null);
-
 
     fetch(
       `https://graph.facebook.com/v18.0/${conversation.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
@@ -118,15 +122,12 @@ const fetchInstagramPages = (userAccessToken) => {
 
   const sendMessage = () => {
     if (!newMessage.trim()) return;
-   if (!recipientId) {
-      console.error("Recipient ID not found.");
-      return;
-    }
+
     const igId = selectedPage.instagram_business_account.id;
     const accessToken = pageAccessTokens[igId];
 
     fetch(
-      `https://graph.facebook.com/v18.0/${igId}/messages?access_token=${accessToken}`,
+      `https://graph.facebook.com/v18.0/${igId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
