@@ -78,46 +78,45 @@ export default function InstagramChatProcessor() {
       .catch((err) => console.error("Error fetching Instagram pages:", err));
   };
 
-  const fetchConversations = (page) => {
-    if (!page.instagram_business_account || !page.instagram_business_account.id) {
-      console.error("No Instagram Business Account ID found for this page.");
-      return;
-    }
+const fetchConversations = (page) => {
+  if (!page.instagram_business_account || !page.instagram_business_account.id) {
+    console.error("No Instagram Business Account ID found for this page.");
+    return;
+  }
 
-    const igId = page.instagram_business_account.id;
-    const accessToken = pageAccessTokens[igId];
+  const igId = page.instagram_business_account.id;
+  const accessToken = pageAccessTokens[igId];
 
-    if (!accessToken) {
-      console.error("Access token not found for this IG ID:", igId);
-      return;
-    }
+  if (!accessToken) {
+    console.error("Access token not found for this IG ID:", igId);
+    return;
+  }
 
-    console.log("Fetching conversations for igId:", igId, "with token:", accessToken);
+  console.log("Fetching conversations/messages for igId:", igId, "with token:", accessToken);
 
-    setSelectedPage(page);
-    setSelectedConversation(null);
+  setSelectedPage(page);
+  setSelectedConversation(null);
 
-    fetch(
-      `https://graph.facebook.com/v18.0/${igId}/conversations?platform=instagram&access_token=${accessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.data) {
-          console.error("No conversations found or error in API response", data);
-          setConversations([]);
-          setNewMessages({});
-          return;
-        }
+  fetch(`https://graph.facebook.com/v18.0/${igId}/messages?fields=id,text,from,to,created_time&access_token=${accessToken}`)
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.data) {
+        console.error("No messages found or error in API response", data);
+        setConversations([]);
+        setNewMessages({});
+        return;
+      }
 
-        setConversations(data.data);
-        const newMsgs = {};
-        data.data.forEach((conv) => {
-          newMsgs[conv.id] = false;
-        });
-        setNewMessages(newMsgs);
-      })
-      .catch((err) => console.error("Error fetching IG conversations:", err));
-  };
+      setConversations(data.data);
+      const newMsgs = {};
+      data.data.forEach((msg) => {
+        newMsgs[msg.id] = false;
+      });
+      setNewMessages(newMsgs);
+    })
+    .catch((err) => console.error("Error fetching IG messages:", err));
+};
+
 
   const fetchMessages = (conversation) => {
     const igId = selectedPage.instagram_business_account.id;
