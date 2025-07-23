@@ -75,42 +75,72 @@ export default function InstagramChatProcessor() {
       .catch((err) => console.error("Error fetching Instagram pages:", err));
   };
 
-  const fetchConversations = (page) => {
-    const pageId = page.id;
-    const accessToken = pageAccessTokens[pageId];
+const fetchConversations = async (page) => {
+  const pageId = page.id;
+  const accessToken = pageAccessTokens[pageId];
 
-    if (!accessToken) {
-      console.error("Access token not found for this Page ID:", pageId);
+  if (!accessToken) {
+    console.error("Access token not found for this Page ID:", pageId);
+    return;
+  }
+
+  console.log("Fetching IG conversations for pageId:", pageId, "with token:", accessToken);
+
+  setSelectedPage(page);
+  setSelectedConversation(null);
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
+    );
+    const data = await res.json();
+
+    if (!data.data) {
+      console.error("No conversations found or error in API response", data);
+      setConversations([]);
+      setNewMessages({});
       return;
     }
 
-    console.log("Fetching IG conversations for pageId:", pageId, "with token:", accessToken);
+    // Now fetch participant name for each conversation
+    const conversationsWithNames = await Promise.all(
+      data.data.map(async (conv) => {
+        try {
+          const participantsRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/participants?access_token=${accessToken}`
+          );
+          const participantsData = await participantsRes.json();
 
-    setSelectedPage(page);
-    setSelectedConversation(null);
+          // Extract name from participants
+          let userName = "Unknown User";
+          if (participantsData.data && participantsData.data.length > 0) {
+            const user = participantsData.data.find(
+              (p) => p.id !== page.instagram_business_account.id
+            ); // exclude page itself
 
-    fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.data) {
-          console.error("No conversations found or error in API response", data);
-          setConversations([]);
-          setNewMessages({});
-          return;
+            if (user) userName = user.name || user.username || "User";
+          }
+
+          return { ...conv, userName }; // append userName to conversation object
+        } catch (err) {
+          console.error("Error fetching participant for conversation", conv.id, err);
+          return { ...conv, userName: "User" };
         }
-
-        setConversations(data.data);
-
-        const newMsgs = {};
-        data.data.forEach((conv) => {
-          newMsgs[conv.id] = false;
-        });
-        setNewMessages(newMsgs);
       })
-      .catch((err) => console.error("Error fetching IG conversations:", err));
-  };
+    );
+
+    setConversations(conversationsWithNames);
+
+    const newMsgs = {};
+    conversationsWithNames.forEach((conv) => {
+      newMsgs[conv.id] = false;
+    });
+    setNewMessages(newMsgs);
+  } catch (err) {
+    console.error("Error fetching IG conversations:", err);
+  }
+};
+
 
   const fetchMessages = (conversation) => {
     if (!selectedPage) {
@@ -241,9 +271,10 @@ export default function InstagramChatProcessor() {
                 key={conv.id}
                 style={{ padding: "15px", borderBottom: "1px solid #eee" }}
               >
-                <Text variant="bodyMd">
-                  Conversation ID: {conv.id}
-                </Text>
+             <Text variant="bodyMd">
+  {conv.userName}
+</Text>
+
                 {newMessages[conv.id] && (
                   <Badge status="critical" style={{ marginLeft: "10px" }}>
                     🔴 New Message
