@@ -10,10 +10,9 @@ export default function InstagramChatProcessor() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [pageAccessTokens, setPageAccessTokens] = useState({});
-  const [recipientId, setRecipientId] = useState(null);
   const [newMessages, setNewMessages] = useState({});
 
-  const FACEBOOK_APP_ID = "544704651303656";
+  const FACEBOOK_APP_ID = "544704651303656"; // replace with your actual app id
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -52,140 +51,142 @@ export default function InstagramChatProcessor() {
     );
   };
 
-const fetchInstagramPages = (userAccessToken) => {
-  fetch(
-    `https://graph.facebook.com/me/accounts?fields=instagram_business_account,access_token,name&access_token=${userAccessToken}`
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      const pagesWithInstagram = data.data.filter(
-        (page) => page.instagram_business_account
-      );
+  const fetchInstagramPages = (userAccessToken) => {
+    fetch(
+      `https://graph.facebook.com/me/accounts?fields=instagram_business_account,access_token,name&access_token=${userAccessToken}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const pagesWithInstagram = data.data.filter(
+          (page) => page.instagram_business_account
+        );
 
-      const tokens = {};
-      pagesWithInstagram.forEach((page) => {
-        tokens[page.id] = page.access_token; // ✅ Map Page ID to access token
-      });
+        const tokens = {};
+        pagesWithInstagram.forEach((page) => {
+          tokens[page.id] = page.access_token; // Map Page ID to access token
+        });
 
-      console.log("Mapped pageAccessTokens:", tokens);
+        console.log("Mapped pageAccessTokens:", tokens);
 
-      setPageAccessTokens(tokens);
-      setPages(pagesWithInstagram);
-      setIsConnected(true);
-    })
-    .catch((err) => console.error("Error fetching Instagram pages:", err));
-};
+        setPageAccessTokens(tokens);
+        setPages(pagesWithInstagram);
+        setIsConnected(true);
+      })
+      .catch((err) => console.error("Error fetching Instagram pages:", err));
+  };
 
-const fetchConversations = (page) => {
-  const pageId = page.id; // ✅ Use Page ID for conversations API
-  const accessToken = pageAccessTokens[pageId];
+  const fetchConversations = (page) => {
+    const pageId = page.id;
+    const accessToken = pageAccessTokens[pageId];
 
-  if (!accessToken) {
-    console.error("Access token not found for this Page ID:", pageId);
-    return;
-  }
-
-  console.log("Fetching IG conversations for pageId:", pageId, "with token:", accessToken);
-
-  setSelectedPage(page);
-  setSelectedConversation(null);
-
-  fetch(
-    `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      if (!data.data) {
-        console.error("No conversations found or error in API response", data);
-        setConversations([]);
-        setNewMessages({});
-        return;
-      }
-
-      setConversations(data.data);
-
-      const newMsgs = {};
-      data.data.forEach((conv) => {
-        newMsgs[conv.id] = false;
-      });
-      setNewMessages(newMsgs);
-    })
-    .catch((err) => console.error("Error fetching IG conversations:", err));
-};
-
-const fetchMessages = (conversation) => {
-  if (!selectedPage) {
-    console.error("No page selected");
-    return;
-  }
-
-  const pageId = selectedPage.id; // ✅ Use Page ID here
-  const accessToken = pageAccessTokens[pageId];
-
-  if (!accessToken) {
-    console.error("Access token not found for this Page ID:", pageId);
-    return;
-  }
-
-  console.log("Fetching messages for conversationId:", conversation.id);
-
-  setSelectedConversation(conversation);
-
-  fetch(
-    `https://graph.facebook.com/v18.0/${conversation.id}/messages?fields=message,from,created_time&access_token=${accessToken}`
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.data) {
-        setMessages(data.data.reverse());
-        setNewMessages((prev) => ({ ...prev, [conversation.id]: false }));
-      } else {
-        console.error("No messages found or error in API response", data);
-        setMessages([]);
-      }
-    })
-    .catch((err) => console.error("Error fetching IG messages:", err));
-};
-
-const sendMessage = () => {
-  if (!newMessage.trim()) return;
-
-  if (!selectedPage || !selectedConversation) {
-    console.error("No page or conversation selected");
-    return;
-  }
-
-  const pageId = selectedPage.id; // ✅ Use Page ID here
-  const accessToken = pageAccessTokens[pageId];
-
-  if (!accessToken) {
-    console.error("Access token not found for this Page ID:", pageId);
-    return;
-  }
-
-  fetch(
-    `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: { text: newMessage },
-      }),
+    if (!accessToken) {
+      console.error("Access token not found for this Page ID:", pageId);
+      return;
     }
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.id) {
-        console.log("IG Message sent:", data);
-        setNewMessage("");
-        fetchMessages(selectedConversation);
-      } else {
-        console.error("Error sending IG message:", data);
-      }
-    })
-    .catch((err) => console.error("Error sending IG message:", err));
-};
 
+    console.log("Fetching IG conversations for pageId:", pageId, "with token:", accessToken);
+
+    setSelectedPage(page);
+    setSelectedConversation(null);
+
+    fetch(
+      `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.data) {
+          console.error("No conversations found or error in API response", data);
+          setConversations([]);
+          setNewMessages({});
+          return;
+        }
+
+        setConversations(data.data);
+
+        const newMsgs = {};
+        data.data.forEach((conv) => {
+          newMsgs[conv.id] = false;
+        });
+        setNewMessages(newMsgs);
+      })
+      .catch((err) => console.error("Error fetching IG conversations:", err));
+  };
+
+  const fetchMessages = (conversation) => {
+    if (!selectedPage) {
+      console.error("No page selected");
+      return;
+    }
+
+    const pageId = selectedPage.id;
+    const accessToken = pageAccessTokens[pageId];
+
+    if (!accessToken) {
+      console.error("Access token not found for this Page ID:", pageId);
+      return;
+    }
+
+    console.log("Fetching messages for conversationId:", conversation.id);
+
+    setSelectedConversation(conversation);
+
+    fetch(
+      `https://graph.facebook.com/v18.0/${conversation.id}/messages?fields=message,from{id,name,username},created_time&access_token=${accessToken}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Fetched message data:", data.data);
+        if (data.data) {
+          setMessages(data.data.reverse());
+          setNewMessages((prev) => ({ ...prev, [conversation.id]: false }));
+        } else {
+          console.error("No messages found or error in API response", data);
+          setMessages([]);
+        }
+      })
+      .catch((err) => console.error("Error fetching IG messages:", err));
+  };
+
+  const sendMessage = () => {
+    if (!newMessage.trim()) return;
+
+    if (!selectedPage || !selectedConversation) {
+      console.error("No page or conversation selected");
+      return;
+    }
+
+    const pageId = selectedPage.id;
+    const accessToken = pageAccessTokens[pageId];
+
+    if (!accessToken) {
+      console.error("Access token not found for this Page ID:", pageId);
+      return;
+    }
+
+    console.log("Sending message to conversationId:", selectedConversation.id);
+
+    fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: { text: newMessage },
+        }),
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.id) {
+          console.log("IG Message sent:", data);
+          setNewMessage("");
+          fetchMessages(selectedConversation);
+        } else {
+          console.error("Error sending IG message:", data);
+        }
+      })
+      .catch((err) => console.error("Error sending IG message:", err));
+  };
 
   return (
     <Page title="💬 Instagram Chat Processor">
@@ -284,7 +285,10 @@ const sendMessage = () => {
             >
               {messages.map((msg) => (
                 <div key={msg.id} style={{ marginBottom: "10px" }}>
-                  <strong>{msg.from?.username || "User"}:</strong> {msg.message}
+                  <strong>
+                    {msg.from?.name || msg.from?.username || "User"}:
+                  </strong>{" "}
+                  {msg.message}
                   <div style={{ fontSize: "12px", color: "#666" }}>
                     {new Date(msg.created_time).toLocaleString()}
                   </div>
