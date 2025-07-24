@@ -77,7 +77,7 @@ export default function InstagramChatProcessor() {
 
 const fetchConversations = async (page) => {
   const pageId = page.id;
-  const pageName = page.name;
+  const pageName = page.name; // ✅ get your page name
   const accessToken = pageAccessTokens[pageId];
 
   if (!accessToken) {
@@ -92,7 +92,7 @@ const fetchConversations = async (page) => {
 
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&fields=participants,updated_time&access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
     );
     const data = await res.json();
 
@@ -103,56 +103,44 @@ const fetchConversations = async (page) => {
       return;
     }
 
-    const conversationsWithDetails = await Promise.all(
+    // Fetch the latest message for each conversation to get user name
+    const conversationsWithNames = await Promise.all(
       data.data.map(async (conv) => {
-        let userId = null;
-        let userName = "Unknown User";
-        const businessName = pageName;
-
-        // ✅ Extract participant (IG user) ID and name
-        if (conv.participants && conv.participants.data.length > 0) {
-          const participant = conv.participants.data.find(
-            p => p.id !== page.instagram_business_account.id
-          );
-          if (participant) {
-            userId = participant.id;
-            userName = participant.username || participant.name || "User";
-          }
-        }
-
-        // 🔍 Fetch latest message (optional, retains your current logic)
         try {
           const messagesRes = await fetch(
             `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${accessToken}`
           );
           const messagesData = await messagesRes.json();
 
+          let userName = "Unknown User";
+          let businessName = pageName; // your page name
+
           if (messagesData.data && messagesData.data.length > 0) {
             const msg = messagesData.data[0];
             if (msg.from) {
-              // If sender is NOT your page, use message sender name
+              // Check if sender is NOT your page
               if (msg.from.name !== businessName) {
-                userName = msg.from.name || msg.from.username || userName;
+                userName = msg.from.name || msg.from.username || "User";
               }
             }
           }
+
+          return {
+            ...conv,
+            userName,
+            businessName, // ✅ add your business name
+          };
         } catch (err) {
           console.error("Error fetching message for conversation", conv.id, err);
+          return { ...conv, userName: "User", businessName };
         }
-
-        return {
-          ...conv,
-          userId,       // ✅ Save recipient IG user ID here
-          userName,     // ✅ Save user name
-          businessName, // ✅ Your page name
-        };
       })
     );
 
-    setConversations(conversationsWithDetails);
+    setConversations(conversationsWithNames);
 
     const newMsgs = {};
-    conversationsWithDetails.forEach((conv) => {
+    conversationsWithNames.forEach((conv) => {
       newMsgs[conv.id] = false;
     });
     setNewMessages(newMsgs);
@@ -160,7 +148,6 @@ const fetchConversations = async (page) => {
     console.error("Error fetching IG conversations:", err);
   }
 };
-
 
 
 
@@ -216,39 +203,47 @@ const sendMessage = async () => {
   }
 
   try {
-    console.log("Selected Conversation:", selectedConversation);
-    console.log("Selected Page IG business account:", selectedPage.instagram_business_account);
+    // 🔍 Fetch conversation participants to get recipient IG user ID
+    const participantsRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
+    );
+    const participantsData = await participantsRes.json();
 
-    // ✅ Fetch recipient IG user ID from selectedConversation
-    const recipientId = selectedConversation.userId; // Make sure you save this when fetching conversations
+    console.log("Fetched participants data:", participantsData);
+
+    let recipientId = null;
+
+    if (participantsData.data && participantsData.data.length > 0) {
+      // Find participant that is NOT the page itself (i.e. the IG user)
+      const recipient = participantsData.data.find(p => p.id !== selectedPage.instagram_business_account.id);
+      if (recipient) {
+        recipientId = recipient.id;
+      }
+    }
 
     if (!recipientId) {
       console.error("Recipient IG user ID not found. Cannot send message.");
       return;
     }
 
-    console.log("Sending to IG Business ID:", selectedPage.instagram_business_account.id);
-    console.log("Recipient IG user ID:", recipientId);
-    console.log("Access token:", accessToken);
+    console.log("Sending IG message to recipientId:", recipientId);
 
+    // ✅ Send message using the Facebook Page ID endpoint
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
+      `https://graph.facebook.com/v18.0/${pageId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messaging_product: "instagram",
-          recipient: { id: recipientId }, // ✅ Use IG user ID here
+          messaging_type: "RESPONSE",
+          recipient: { id: recipientId },
           message: { text: newMessage },
-          access_token: accessToken
         }),
       }
     );
-
     const data = await res.json();
-    console.log("IG message send response:", data);
 
-    if (data.id) {
+    if (data.message_id) {
       console.log("IG Message sent successfully:", data);
       setNewMessage("");
       fetchMessages(selectedConversation);
@@ -259,8 +254,6 @@ const sendMessage = async () => {
     console.error("Error sending IG message:", err);
   }
 };
-
-
 
 
 
