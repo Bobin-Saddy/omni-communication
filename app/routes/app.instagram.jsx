@@ -197,25 +197,25 @@ const sendMessage = async () => {
   const pageId = selectedPage.id;
   const accessToken = pageAccessTokens[pageId];
 
-  console.log("Sending to IG Business ID:", selectedPage.instagram_business_account.id);
-console.log("Recipient Username:", recipientUsername);
-console.log("Access token:", accessToken);
-
-
   if (!accessToken) {
     console.error("Access token not found for this Page ID:", pageId);
     return;
   }
 
   try {
-    const recipientUsername = selectedConversation.userName; // corrected
+    console.log("Selected Conversation:", selectedConversation);
+    console.log("Selected Page IG business account:", selectedPage.instagram_business_account);
+
+    const recipientUsername = selectedConversation.userName; // ✅ Ensure this line exists
 
     if (!recipientUsername) {
       console.error("Recipient IG username not found. Cannot send message.");
       return;
     }
 
-    console.log("Sending IG message to username:", recipientUsername);
+    console.log("Sending to IG Business ID:", selectedPage.instagram_business_account.id);
+    console.log("Recipient Username:", recipientUsername);
+    console.log("Access token:", accessToken);
 
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
@@ -245,6 +245,7 @@ console.log("Access token:", accessToken);
     console.error("Error sending IG message:", err);
   }
 };
+
 
 
 
