@@ -217,19 +217,27 @@ const sendMessage = async () => {
     console.log("Recipient Username:", recipientUsername);
     console.log("Access token:", accessToken);
 
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "instagram",
-          recipient: { username: recipientUsername },
-          message: { text: newMessage },
-          access_token: accessToken
-        }),
-      }
-    );
+const recipientId = selectedConversation.userId; // Ensure you save this when fetching conversations
+
+if (!recipientId) {
+  console.error("Recipient IG user ID not found. Cannot send message.");
+  return;
+}
+
+const res = await fetch(
+  `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "instagram",
+      recipient: { id: recipientId }, // ✅ Use user ID here
+      message: { text: newMessage },
+      access_token: accessToken
+    }),
+  }
+);
+
 
     const data = await res.json();
     console.log("IG message send response:", data);
