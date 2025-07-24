@@ -196,8 +196,11 @@ const sendMessage = async () => {
 
   const pageId = selectedPage.id;
   const accessToken = pageAccessTokens[pageId];
-console.log("Selected Conversation:", selectedConversation);
-console.log("Selected Page IG business account:", selectedPage.instagram_business_account);
+
+  console.log("Sending to IG Business ID:", selectedPage.instagram_business_account.id);
+console.log("Recipient Username:", recipientUsername);
+console.log("Access token:", accessToken);
+
 
   if (!accessToken) {
     console.error("Access token not found for this Page ID:", pageId);
@@ -205,8 +208,7 @@ console.log("Selected Page IG business account:", selectedPage.instagram_busines
   }
 
   try {
-    // Assuming you have recipient IG username or user id saved earlier when fetching conversation threads.
-    const recipientUsername = selectedConversation.username; // Adjust based on your fetched conversation data
+    const recipientUsername = selectedConversation.userName; // corrected
 
     if (!recipientUsername) {
       console.error("Recipient IG username not found. Cannot send message.");
@@ -243,6 +245,7 @@ console.log("Selected Page IG business account:", selectedPage.instagram_busines
     console.error("Error sending IG message:", err);
   }
 };
+
 
 
 
