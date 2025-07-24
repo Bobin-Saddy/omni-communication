@@ -206,38 +206,31 @@ const sendMessage = async () => {
     console.log("Selected Conversation:", selectedConversation);
     console.log("Selected Page IG business account:", selectedPage.instagram_business_account);
 
-    const recipientUsername = selectedConversation.userName; // ✅ Ensure this line exists
+    // ✅ Fetch recipient IG user ID from selectedConversation
+    const recipientId = selectedConversation.userId; // Make sure you save this when fetching conversations
 
-    if (!recipientUsername) {
-      console.error("Recipient IG username not found. Cannot send message.");
+    if (!recipientId) {
+      console.error("Recipient IG user ID not found. Cannot send message.");
       return;
     }
 
     console.log("Sending to IG Business ID:", selectedPage.instagram_business_account.id);
-    console.log("Recipient Username:", recipientUsername);
+    console.log("Recipient IG user ID:", recipientId);
     console.log("Access token:", accessToken);
 
-const recipientId = selectedConversation.userId; // Ensure you save this when fetching conversations
-
-if (!recipientId) {
-  console.error("Recipient IG user ID not found. Cannot send message.");
-  return;
-}
-
-const res = await fetch(
-  `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "instagram",
-      recipient: { id: recipientId }, // ✅ Use user ID here
-      message: { text: newMessage },
-      access_token: accessToken
-    }),
-  }
-);
-
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messaging_product: "instagram",
+          recipient: { id: recipientId }, // ✅ Use IG user ID here
+          message: { text: newMessage },
+          access_token: accessToken
+        }),
+      }
+    );
 
     const data = await res.json();
     console.log("IG message send response:", data);
