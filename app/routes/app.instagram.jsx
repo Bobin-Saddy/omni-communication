@@ -196,6 +196,8 @@ const sendMessage = async () => {
 
   const pageId = selectedPage.id;
   const accessToken = pageAccessTokens[pageId];
+console.log("Selected Conversation:", selectedConversation);
+console.log("Selected Page IG business account:", selectedPage.instagram_business_account);
 
   if (!accessToken) {
     console.error("Access token not found for this Page ID:", pageId);
@@ -203,47 +205,34 @@ const sendMessage = async () => {
   }
 
   try {
-    // 🔍 Fetch conversation participants to get recipient IG user ID
-    const participantsRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
-    );
-    const participantsData = await participantsRes.json();
+    // Assuming you have recipient IG username or user id saved earlier when fetching conversation threads.
+    const recipientUsername = selectedConversation.username; // Adjust based on your fetched conversation data
 
-    console.log("Fetched participants data:", participantsData);
-
-    let recipientId = null;
-
-    if (participantsData.data && participantsData.data.length > 0) {
-      // Find participant that is NOT the page itself (i.e. the IG user)
-      const recipient = participantsData.data.find(p => p.id !== selectedPage.instagram_business_account.id);
-      if (recipient) {
-        recipientId = recipient.id;
-      }
-    }
-
-    if (!recipientId) {
-      console.error("Recipient IG user ID not found. Cannot send message.");
+    if (!recipientUsername) {
+      console.error("Recipient IG username not found. Cannot send message.");
       return;
     }
 
-    console.log("Sending IG message to recipientId:", recipientId);
+    console.log("Sending IG message to username:", recipientUsername);
 
-    // ✅ Send message using the Facebook Page ID endpoint
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/messages`,
+      `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messaging_type: "RESPONSE",
-          recipient: { id: recipientId },
+          messaging_product: "instagram",
+          recipient: { username: recipientUsername },
           message: { text: newMessage },
+          access_token: accessToken
         }),
       }
     );
-    const data = await res.json();
 
-    if (data.message_id) {
+    const data = await res.json();
+    console.log("IG message send response:", data);
+
+    if (data.id) {
       console.log("IG Message sent successfully:", data);
       setNewMessage("");
       fetchMessages(selectedConversation);

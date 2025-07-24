@@ -58,17 +58,27 @@
     box-shadow: 0 8px 20px rgba(0,0,0,0.3);
   }
 
-  #fb-chat-box {
-    display: none;
-    width: 360px;
-    max-height: 520px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-    overflow: hidden;
-    flex-direction: column;
-    animation: slideUp 0.4s ease forwards;
-  }
+#fb-chat-box {
+  width: 360px;
+  max-height: 520px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(50px);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  position: relative;
+}
+#fb-chat-box.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    margin: 7px 0 0 0;
+}
+
 
   @keyframes slideUp {
     from { transform: translateY(50px); opacity: 0; }
@@ -89,13 +99,20 @@
     margin: 0;
     font-size: 16px;
     text-align: center;
+    color: white;
+    font-weight:600;
   }
 
   #fb-back-button {
     cursor: pointer;
     margin-right: 10px;
     font-size: 16px;
-  }
+    /* font-weight: 600; */
+}
+/* 
+h4#fb-header-title {
+    margin: 0 80px 0 0;
+} */
 
   #fb-login-button {
     background: #1877f2;
@@ -262,9 +279,10 @@
     let recipientId = null;
     let selectedConversation = null;
 
-    chatButton.addEventListener("click", function() {
-      chatBox.style.display = chatBox.style.display === "block" ? "none" : "block";
-    });
+chatButton.addEventListener("click", function() {
+  chatBox.classList.toggle("show");
+});
+
 
     fbBackButton.addEventListener("click", function() {
       if (currentView === "messages") {
