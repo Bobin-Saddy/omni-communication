@@ -195,17 +195,28 @@ const sendMessage = async () => {
 
     console.log("Fetched messages data for recipient ID:", messagesData);
 
-    let recipientId = null;
+ let recipientId = null;
 
-    if (messagesData.data && messagesData.data.length > 0) {
-      // Find message sender that is NOT the page itself (i.e. the IG user)
-      const recipientMsg = messagesData.data.find(
-        (msg) => msg.from.id !== igBusinessAccountId
-      );
-      if (recipientMsg) {
-        recipientId = recipientMsg.from.id;
-      }
-    }
+if (messagesData.data && messagesData.data.length > 0) {
+  // Extract all unique sender IDs
+  const uniqueSenderIds = [
+    ...new Set(messagesData.data.map((msg) => msg.from.id)),
+  ];
+  console.log("Unique sender IDs:", uniqueSenderIds);
+
+  // Choose sender ID different from your business (i.e. IG user)
+  // If your page sends messages, its sender ID will appear
+  recipientId = uniqueSenderIds.find((id) => {
+    return !messagesData.data.some(
+      (msg) =>
+        msg.from.id === id &&
+        (msg.from.name.includes(selectedPage.name) ||
+          msg.from.username === selectedPage.name)
+    );
+  });
+}
+
+console.log("Final selected recipientId:", recipientId);
 
     if (!recipientId) {
       console.error("Recipient IG user ID not found from messages. Cannot send message.");
