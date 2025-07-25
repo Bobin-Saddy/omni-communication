@@ -187,28 +187,28 @@ const sendMessage = async () => {
   }
 
   try {
-    // 🔍 Fetch conversation participants to get recipient IG user ID
-    const participantsRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
+    // ✅ Fetch messages to get recipient IG user ID
+    const messagesRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${accessToken}`
     );
-    const participantsData = await participantsRes.json();
+    const messagesData = await messagesRes.json();
 
-    console.log("Fetched participants data:", participantsData);
+    console.log("Fetched messages data for recipient ID:", messagesData);
 
     let recipientId = null;
 
-    if (participantsData.data && participantsData.data.length > 0) {
-      // Find participant that is NOT the page itself (i.e. the IG user)
-      const recipient = participantsData.data.find(
-        (p) => p.id !== igBusinessAccountId
+    if (messagesData.data && messagesData.data.length > 0) {
+      // Find message sender that is NOT the page itself (i.e. the IG user)
+      const recipientMsg = messagesData.data.find(
+        (msg) => msg.from.id !== igBusinessAccountId
       );
-      if (recipient) {
-        recipientId = recipient.id;
+      if (recipientMsg) {
+        recipientId = recipientMsg.from.id;
       }
     }
 
     if (!recipientId) {
-      console.error("Recipient IG user ID not found. Cannot send message.");
+      console.error("Recipient IG user ID not found from messages. Cannot send message.");
       return;
     }
 
@@ -245,6 +245,7 @@ const sendMessage = async () => {
     console.error("Error sending IG message:", err);
   }
 };
+
 
 
   return (
