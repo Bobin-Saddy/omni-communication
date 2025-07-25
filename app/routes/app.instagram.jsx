@@ -178,7 +178,6 @@ const sendMessage = async () => {
   }
 
   const pageId = selectedPage.id;
-  const igBusinessAccountId = selectedPage.instagram_business_account.id;
   const accessToken = pageAccessTokens[pageId];
 
   if (!accessToken) {
@@ -187,38 +186,34 @@ const sendMessage = async () => {
   }
 
   try {
-    // ✅ Fetch messages to get recipient IG user ID
+    const igBusinessAccountId = selectedPage.instagram_business_account.id;
+
+    // 🔍 Fetch conversation messages to get unique sender IDs
     const messagesRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${accessToken}`
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from{id,username,name}&access_token=${accessToken}`
     );
     const messagesData = await messagesRes.json();
 
     console.log("Fetched messages data for recipient ID:", messagesData);
 
- let recipientId = null;
+    let recipientId = null;
 
-if (messagesData.data && messagesData.data.length > 0) {
-  const uniqueSenderIds = [
-    ...new Set(messagesData.data.map((msg) => msg.from.id)),
-  ];
-  console.log("Unique sender IDs:", uniqueSenderIds);
+    if (messagesData.data && messagesData.data.length > 0) {
+      const uniqueSenderIds = [
+        ...new Set(messagesData.data.map((msg) => msg.from.id)),
+      ];
+      console.log("Unique sender IDs:", uniqueSenderIds);
 
-  recipientId = uniqueSenderIds.find((id) => {
-    return !messagesData.data.some(
-      (msg) =>
-        msg.from.id === id &&
-        (
-          (msg.from.name && msg.from.name.includes(selectedPage.name)) ||
-          (msg.from.username === selectedPage.name)
-        )
-    );
-  });
-}
+      // Find user ID which is NOT your IG business account ID
+      recipientId = uniqueSenderIds.find(
+        (id) => id !== igBusinessAccountId
+      );
+    }
 
-console.log("Final selected recipientId:", recipientId);
+    console.log("Final selected recipientId:", recipientId);
 
     if (!recipientId) {
-      console.error("Recipient IG user ID not found from messages. Cannot send message.");
+      console.error("Recipient IG user ID not found. Cannot send message.");
       return;
     }
 
@@ -229,22 +224,23 @@ console.log("Final selected recipientId:", recipientId);
       igBusinessAccountId
     );
 
-    // ✅ Send message using the IG Business Account ID endpoint
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${igBusinessAccountId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messaging_product: "instagram",
+          messaging_type: "RESPONSE",
           recipient: { id: recipientId },
           message: { text: newMessage },
+          access_token: accessToken,
         }),
       }
     );
+
     const data = await res.json();
 
-    if (data.id || data.message_id) {
+    if (data.message_id) {
       console.log("IG Message sent successfully:", data);
       setNewMessage("");
       fetchMessages(selectedConversation);
