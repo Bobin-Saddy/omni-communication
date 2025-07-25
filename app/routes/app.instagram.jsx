@@ -169,7 +169,7 @@ export default function InstagramChatProcessor() {
       .catch((err) => console.error("Error fetching IG messages:", err));
   };
 
-  const sendMessage = async () => {
+const sendMessage = async () => {
   if (!newMessage.trim()) return;
 
   if (!selectedPage || !selectedConversation) {
@@ -178,6 +178,7 @@ export default function InstagramChatProcessor() {
   }
 
   const pageId = selectedPage.id;
+  const igBusinessAccountId = selectedPage.instagram_business_account.id;
   const accessToken = pageAccessTokens[pageId];
 
   if (!accessToken) {
@@ -186,14 +187,47 @@ export default function InstagramChatProcessor() {
   }
 
   try {
-    console.log("Sending IG message to conversationId:", selectedConversation.id);
+    // 🔍 Fetch conversation participants to get recipient IG user ID
+    const participantsRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
+    );
+    const participantsData = await participantsRes.json();
 
+    console.log("Fetched participants data:", participantsData);
+
+    let recipientId = null;
+
+    if (participantsData.data && participantsData.data.length > 0) {
+      // Find participant that is NOT the page itself (i.e. the IG user)
+      const recipient = participantsData.data.find(
+        (p) => p.id !== igBusinessAccountId
+      );
+      if (recipient) {
+        recipientId = recipient.id;
+      }
+    }
+
+    if (!recipientId) {
+      console.error("Recipient IG user ID not found. Cannot send message.");
+      return;
+    }
+
+    console.log(
+      "Sending IG message to recipientId:",
+      recipientId,
+      "via igBusinessAccountId:",
+      igBusinessAccountId
+    );
+
+    // ✅ Send message using the IG Business Account ID endpoint
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages`,
+      `https://graph.facebook.com/v18.0/${igBusinessAccountId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          messaging_product: "instagram",
+          recipient: { id: recipientId },
           message: { text: newMessage },
         }),
       }
