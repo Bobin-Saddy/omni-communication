@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text, Badge } from "@shopify/polaris";
+import { Page, Card, Button, Text, Badge, TextField } from "@shopify/polaris";
 
 export default function InstagramChatProcessor() {
   const [isConnected, setIsConnected] = useState(false);
@@ -14,6 +14,7 @@ export default function InstagramChatProcessor() {
 
   const FACEBOOK_APP_ID = "544704651303656"; // replace with your actual app id
 
+  // ---------------------- Facebook SDK Init ------------------------
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -35,6 +36,7 @@ export default function InstagramChatProcessor() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
+  // ---------------------- Login & Fetch Pages ------------------------
   const handleInstagramLogin = () => {
     window.FB.login(
       (response) => {
@@ -63,10 +65,8 @@ export default function InstagramChatProcessor() {
 
         const tokens = {};
         pagesWithInstagram.forEach((page) => {
-          tokens[page.id] = page.access_token; // Map Page ID to access token
+          tokens[page.id] = page.access_token;
         });
-
-        console.log("Mapped pageAccessTokens:", tokens);
 
         setPageAccessTokens(tokens);
         setPages(pagesWithInstagram);
@@ -75,82 +75,73 @@ export default function InstagramChatProcessor() {
       .catch((err) => console.error("Error fetching Instagram pages:", err));
   };
 
-const fetchConversations = async (page) => {
-  const pageId = page.id;
-  const pageName = page.name; // ✅ get your page name
-  const accessToken = pageAccessTokens[pageId];
+  // ---------------------- Fetch Conversations ------------------------
+  const fetchConversations = async (page) => {
+    const pageId = page.id;
+    const accessToken = pageAccessTokens[pageId];
 
-  if (!accessToken) {
-    console.error("Access token not found for this Page ID:", pageId);
-    return;
-  }
-
-  console.log("Fetching IG conversations for pageId:", pageId);
-
-  setSelectedPage(page);
-  setSelectedConversation(null);
-
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
-    );
-    const data = await res.json();
-
-    if (!data.data) {
-      console.error("No conversations found or error in API response", data);
-      setConversations([]);
-      setNewMessages({});
+    if (!accessToken) {
+      console.error("Access token not found for this Page ID:", pageId);
       return;
     }
 
-    // Fetch the latest message for each conversation to get user name
-    const conversationsWithNames = await Promise.all(
-      data.data.map(async (conv) => {
-        try {
-          const messagesRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${accessToken}`
-          );
-          const messagesData = await messagesRes.json();
+    setSelectedPage(page);
+    setSelectedConversation(null);
 
-          let userName = "Unknown User";
-          let businessName = pageName; // your page name
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
+      );
+      const data = await res.json();
 
-          if (messagesData.data && messagesData.data.length > 0) {
-            const msg = messagesData.data[0];
-            if (msg.from) {
-              // Check if sender is NOT your page
-              if (msg.from.name !== businessName) {
-                userName = msg.from.name || msg.from.username || "User";
-              }
+      if (!data.data) {
+        console.error("No conversations found or error in API response", data);
+        setConversations([]);
+        setNewMessages({});
+        return;
+      }
+
+      const conversationsWithNames = await Promise.all(
+        data.data.map(async (conv) => {
+          try {
+            const messagesRes = await fetch(
+              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${accessToken}`
+            );
+            const messagesData = await messagesRes.json();
+
+            let userName = "Unknown User";
+            if (
+              messagesData.data &&
+              messagesData.data.length > 0 &&
+              messagesData.data[0].from
+            ) {
+              userName =
+                messagesData.data[0].from.name ||
+                messagesData.data[0].from.username ||
+                "User";
             }
+
+            return { ...conv, userName };
+          } catch (err) {
+            console.error("Error fetching message for conversation", conv.id, err);
+            return { ...conv, userName: "User" };
           }
+        })
+      );
 
-          return {
-            ...conv,
-            userName,
-            businessName, // ✅ add your business name
-          };
-        } catch (err) {
-          console.error("Error fetching message for conversation", conv.id, err);
-          return { ...conv, userName: "User", businessName };
-        }
-      })
-    );
+      setConversations(conversationsWithNames);
 
-    setConversations(conversationsWithNames);
+      const newMsgs = {};
+      conversationsWithNames.forEach((conv) => {
+        newMsgs[conv.id] = false;
+      });
+      setNewMessages(newMsgs);
+    } catch (err) {
+      console.error("Error fetching IG conversations:", err);
+    }
+  };
 
-    const newMsgs = {};
-    conversationsWithNames.forEach((conv) => {
-      newMsgs[conv.id] = false;
-    });
-    setNewMessages(newMsgs);
-  } catch (err) {
-    console.error("Error fetching IG conversations:", err);
-  }
-};
-
-
-
+  // ---------------------- Fetch Messages ------------------------
   const fetchMessages = (conversation) => {
     if (!selectedPage) {
       console.error("No page selected");
@@ -160,13 +151,6 @@ const fetchConversations = async (page) => {
     const pageId = selectedPage.id;
     const accessToken = pageAccessTokens[pageId];
 
-    if (!accessToken) {
-      console.error("Access token not found for this Page ID:", pageId);
-      return;
-    }
-
-    console.log("Fetching messages for conversationId:", conversation.id);
-
     setSelectedConversation(conversation);
 
     fetch(
@@ -174,7 +158,6 @@ const fetchConversations = async (page) => {
     )
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched message data:", data.data);
         if (data.data) {
           setMessages(data.data.reverse());
           setNewMessages((prev) => ({ ...prev, [conversation.id]: false }));
@@ -186,202 +169,119 @@ const fetchConversations = async (page) => {
       .catch((err) => console.error("Error fetching IG messages:", err));
   };
 
-const sendMessage = async () => {
-  if (!newMessage.trim()) return;
-
-  if (!selectedPage || !selectedConversation) {
-    console.error("No page or conversation selected");
-    return;
-  }
-
-  const pageId = selectedPage.id;
-  const accessToken = pageAccessTokens[pageId];
-
-  if (!accessToken) {
-    console.error("Access token not found for this Page ID:", pageId);
-    return;
-  }
-
-  try {
-    // 🔍 Fetch conversation participants to get recipient IG user ID
-    const participantsRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
-    );
-    const participantsData = await participantsRes.json();
-
-    console.log("Fetched participants data:", participantsData);
-
-    let recipientId = null;
-
-    if (participantsData.data && participantsData.data.length > 0) {
-      // Find participant that is NOT the page itself (i.e. the IG user)
-      const recipient = participantsData.data.find(p => p.id !== selectedPage.instagram_business_account.id);
-      if (recipient) {
-        recipientId = recipient.id;
-      }
-    }
-
-    if (!recipientId) {
-      console.error("Recipient IG user ID not found. Cannot send message.");
+  // ---------------------- Send Message ------------------------
+  const sendMessage = async () => {
+    if (!newMessage.trim()) return;
+    if (!selectedPage || !selectedConversation) {
+      console.error("No page or conversation selected");
       return;
     }
 
-    console.log("Sending IG message to recipientId:", recipientId);
+    const pageId = selectedPage.id;
+    const accessToken = pageAccessTokens[pageId];
 
-    // ✅ Send message using the Facebook Page ID endpoint
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/messages`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_type: "RESPONSE",
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-        }),
+    try {
+      // Fetch participants to get recipient ID
+      const participantsRes = await fetch(
+        `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
+      );
+      const participantsData = await participantsRes.json();
+
+      let recipientId = null;
+
+      if (participantsData.data && participantsData.data.length > 0) {
+        // Get IG user participant (not the page itself)
+        recipientId = participantsData.data.find(
+          (p) => p.id !== selectedPage.instagram_business_account.id
+        )?.id;
       }
-    );
-    const data = await res.json();
 
-    if (data.message_id) {
-      console.log("IG Message sent successfully:", data);
-      setNewMessage("");
-      fetchMessages(selectedConversation);
-    } else {
-      console.error("Error sending IG message:", data);
+      if (!recipientId) {
+        console.error("Recipient IG user ID not found. Cannot send message.");
+        return;
+      }
+
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: { text: newMessage },
+            recipient: { id: recipientId },
+            messaging_type: "RESPONSE",
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.id || data.message_id) {
+        console.log("IG Message sent successfully:", data);
+        setNewMessage("");
+        fetchMessages(selectedConversation);
+      } else {
+        console.error("Error sending IG message:", data);
+      }
+    } catch (err) {
+      console.error("Error sending IG message:", err);
     }
-  } catch (err) {
-    console.error("Error sending IG message:", err);
-  }
-};
+  };
 
-
-
+  // ---------------------- UI JSX ------------------------
   return (
-    <Page title="💬 Instagram Chat Processor">
+    <Page title="Instagram Chat Processor">
       <Card sectioned>
         {!isConnected ? (
-          <div style={{ textAlign: "center", padding: "50px 0" }}>
-            <Button onClick={handleInstagramLogin} primary size="large">
-              Connect with Instagram
-            </Button>
-          </div>
-        ) : !selectedPage ? (
-          <div>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
-              Select an Instagram Account
-            </Text>
-            {pages.map((page) => (
-              <div
-                key={page.id}
-                style={{ padding: "15px", borderBottom: "1px solid #eee" }}
-              >
-                <Text variant="bodyMd" as="p" fontWeight="medium">
-                  {page.name}
-                </Text>
-                <Button
-                  onClick={() => fetchConversations(page)}
-                  primary
-                  size="slim"
-                  style={{ marginTop: "12px" }}
-                >
-                  View Conversations
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : !selectedConversation ? (
-          <div>
-            <Button
-              onClick={() => {
-                setSelectedPage(null);
-                setConversations([]);
-              }}
-              plain
-              style={{ marginBottom: "20px" }}
-            >
-              ⬅ Back to Accounts
-            </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
-              Conversations
-            </Text>
-{conversations.map((conv) => (
-  <div
-    key={conv.id}
-    style={{ padding: "15px", borderBottom: "1px solid #eee" }}
-  >
-    <Text variant="bodyMd">
-      {conv.businessName} ↔️ {conv.userName}
-    </Text>
-    <Button
-      onClick={() => fetchMessages(conv)}
-      size="slim"
-      style={{ marginTop: "10px" }}
-    >
-      View Chat
-    </Button>
-  </div>
-))}
-
-          </div>
+          <Button onClick={handleInstagramLogin}>Connect Instagram</Button>
         ) : (
           <div>
-            <Button
-              onClick={() => setSelectedConversation(null)}
-              plain
-              style={{ marginBottom: "20px" }}
-            >
-              ⬅ Back to Conversations
-            </Button>
-            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
-              Chat
-            </Text>
-
-            <div
-              style={{
-                maxHeight: "450px",
-                overflowY: "auto",
-                background: "#f4f6f8",
-                padding: "15px",
-                borderRadius: "10px",
-                border: "1px solid #e1e3e5",
-                marginBottom: "20px",
-              }}
-            >
-              {messages.map((msg) => (
-                <div key={msg.id} style={{ marginBottom: "10px" }}>
-                  <strong>
-                    {msg.from?.name || msg.from?.username || "User"}:
-                  </strong>{" "}
-                  {msg.message}
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    {new Date(msg.created_time).toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", gap: "12px", width: "100%" }}>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  border: "1px solid #dfe3e8",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                }}
-              />
-              <Button onClick={sendMessage} primary>
-                Send
+            <Text variant="headingMd">Pages:</Text>
+            {pages.map((page) => (
+              <Button
+                key={page.id}
+                onClick={() => fetchConversations(page)}
+                fullWidth
+              >
+                {page.name}
               </Button>
-            </div>
+            ))}
           </div>
         )}
       </Card>
+
+      {conversations.length > 0 && (
+        <Card sectioned>
+          <Text variant="headingMd">Conversations:</Text>
+          {conversations.map((conv) => (
+            <Button
+              key={conv.id}
+              onClick={() => fetchMessages(conv)}
+              fullWidth
+            >
+              {conv.userName}
+            </Button>
+          ))}
+        </Card>
+      )}
+
+      {selectedConversation && (
+        <Card sectioned>
+          <Text variant="headingMd">Messages:</Text>
+          {messages.map((msg) => (
+            <div key={msg.id}>
+              <Badge>{msg.from.name}</Badge>: {msg.message}
+            </div>
+          ))}
+
+          <TextField
+            label="New Message"
+            value={newMessage}
+            onChange={setNewMessage}
+          />
+          <Button onClick={sendMessage}>Send</Button>
+        </Card>
+      )}
     </Page>
   );
 }
