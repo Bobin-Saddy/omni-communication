@@ -75,72 +75,81 @@ export default function InstagramChatProcessor() {
       .catch((err) => console.error("Error fetching Instagram pages:", err));
   };
 
-  const fetchConversations = async (page) => {
-    const pageId = page.id;
-    const accessToken = pageAccessTokens[pageId];
+const fetchConversations = async (page) => {
+  const pageId = page.id;
+  const pageName = page.name; // ✅ get your page name
+  const accessToken = pageAccessTokens[pageId];
 
-    if (!accessToken) {
-      console.error("Access token not found for this Page ID:", pageId);
+  if (!accessToken) {
+    console.error("Access token not found for this Page ID:", pageId);
+    return;
+  }
+
+  console.log("Fetching IG conversations for pageId:", pageId);
+
+  setSelectedPage(page);
+  setSelectedConversation(null);
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
+    );
+    const data = await res.json();
+
+    if (!data.data) {
+      console.error("No conversations found or error in API response", data);
+      setConversations([]);
+      setNewMessages({});
       return;
     }
 
-    console.log("Fetching IG conversations for pageId:", pageId);
+    // Fetch the latest message for each conversation to get user name
+    const conversationsWithNames = await Promise.all(
+      data.data.map(async (conv) => {
+        try {
+          const messagesRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${accessToken}`
+          );
+          const messagesData = await messagesRes.json();
 
-    setSelectedPage(page);
-    setSelectedConversation(null);
+          let userName = "Unknown User";
+          let businessName = pageName; // your page name
 
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${pageId}/conversations?platform=instagram&access_token=${accessToken}`
-      );
-      const data = await res.json();
-
-      if (!data.data) {
-        console.error("No conversations found or error in API response", data);
-        setConversations([]);
-        setNewMessages({});
-        return;
-      }
-
-      const conversationsWithNames = await Promise.all(
-        data.data.map(async (conv) => {
-          try {
-            const messagesRes = await fetch(
-              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${accessToken}`
-            );
-            const messagesData = await messagesRes.json();
-
-            let userName = "Unknown User";
-            if (
-              messagesData.data &&
-              messagesData.data.length > 0 &&
-              messagesData.data[0].from
-            ) {
-              userName =
-                messagesData.data[0].from.name ||
-                messagesData.data[0].from.username ||
-                "User";
+          if (messagesData.data && messagesData.data.length > 0) {
+            const msg = messagesData.data[0];
+            if (msg.from) {
+              // Check if sender is NOT your page
+              if (msg.from.name !== businessName) {
+                userName = msg.from.name || msg.from.username || "User";
+              }
             }
-
-            return { ...conv, userName };
-          } catch (err) {
-            console.error("Error fetching message for conversation", conv.id, err);
-            return { ...conv, userName: "User" };
           }
-        })
-      );
 
-      setConversations(conversationsWithNames);
+          return {
+            ...conv,
+            userName,
+            businessName, // ✅ add your business name
+          };
+        } catch (err) {
+          console.error("Error fetching message for conversation", conv.id, err);
+          return { ...conv, userName: "User", businessName };
+        }
+      })
+    );
 
-      const newMsgs = {};
-      conversationsWithNames.forEach((conv) => {
-        newMsgs[conv.id] = false;
-      });
-      setNewMessages(newMsgs);
-    } catch (err) {
-      console.error("Error fetching IG conversations:", err);
-    }
-  };
+    setConversations(conversationsWithNames);
+
+    const newMsgs = {};
+    conversationsWithNames.forEach((conv) => {
+      newMsgs[conv.id] = false;
+    });
+    setNewMessages(newMsgs);
+  } catch (err) {
+    console.error("Error fetching IG conversations:", err);
+  }
+};
+
+
 
   const fetchMessages = (conversation) => {
     if (!selectedPage) {
@@ -151,6 +160,13 @@ export default function InstagramChatProcessor() {
     const pageId = selectedPage.id;
     const accessToken = pageAccessTokens[pageId];
 
+    if (!accessToken) {
+      console.error("Access token not found for this Page ID:", pageId);
+      return;
+    }
+
+    console.log("Fetching messages for conversationId:", conversation.id);
+
     setSelectedConversation(conversation);
 
     fetch(
@@ -158,6 +174,7 @@ export default function InstagramChatProcessor() {
     )
       .then((res) => res.json())
       .then((data) => {
+        console.log("Fetched message data:", data.data);
         if (data.data) {
           setMessages(data.data.reverse());
           setNewMessages((prev) => ({ ...prev, [conversation.id]: false }));
@@ -186,9 +203,7 @@ const sendMessage = async () => {
   }
 
   try {
-    const igBusinessAccountId = selectedPage.instagram_business_account.id;
-
-    // 🔍 Fetch conversation participants
+    // 🔍 Fetch conversation participants to get recipient IG user ID
     const participantsRes = await fetch(
       `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
     );
@@ -199,9 +214,11 @@ const sendMessage = async () => {
     let recipientId = null;
 
     if (participantsData.data && participantsData.data.length > 0) {
-      recipientId = participantsData.data.find(
-        p => p.id !== igBusinessAccountId
-      )?.id;
+      // Find participant that is NOT the page itself (i.e. the IG user)
+      const recipient = participantsData.data.find(p => p.id !== selectedPage.instagram_business_account.id);
+      if (recipient) {
+        recipientId = recipient.id;
+      }
     }
 
     if (!recipientId) {
@@ -211,8 +228,9 @@ const sendMessage = async () => {
 
     console.log("Sending IG message to recipientId:", recipientId);
 
+    // ✅ Send message using the Facebook Page ID endpoint
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${igBusinessAccountId}/messages`,
+      `https://graph.facebook.com/v18.0/${pageId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -220,11 +238,9 @@ const sendMessage = async () => {
           messaging_type: "RESPONSE",
           recipient: { id: recipientId },
           message: { text: newMessage },
-          access_token: accessToken
-        })
+        }),
       }
     );
-
     const data = await res.json();
 
     if (data.message_id) {
@@ -289,23 +305,24 @@ const sendMessage = async () => {
             <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
               Conversations
             </Text>
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                style={{ padding: "15px", borderBottom: "1px solid #eee" }}
-              >
-                <Text variant="bodyMd">
-                  {conv.userName}
-                </Text>
-                <Button
-                  onClick={() => fetchMessages(conv)}
-                  size="slim"
-                  style={{ marginTop: "10px" }}
-                >
-                  View Chat
-                </Button>
-              </div>
-            ))}
+{conversations.map((conv) => (
+  <div
+    key={conv.id}
+    style={{ padding: "15px", borderBottom: "1px solid #eee" }}
+  >
+    <Text variant="bodyMd">
+      {conv.businessName} ↔️ {conv.userName}
+    </Text>
+    <Button
+      onClick={() => fetchMessages(conv)}
+      size="slim"
+      style={{ marginTop: "10px" }}
+    >
+      View Chat
+    </Button>
+  </div>
+))}
+
           </div>
         ) : (
           <div>
