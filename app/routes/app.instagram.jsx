@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text, Badge, TextField } from "@shopify/polaris";
+import { Page, Card, Button, Text, Badge } from "@shopify/polaris";
 
 export default function InstagramChatProcessor() {
   const [isConnected, setIsConnected] = useState(false);
@@ -14,7 +14,6 @@ export default function InstagramChatProcessor() {
 
   const FACEBOOK_APP_ID = "544704651303656"; // replace with your actual app id
 
-  // ---------------------- Facebook SDK Init ------------------------
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -36,7 +35,6 @@ export default function InstagramChatProcessor() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
-  // ---------------------- Login & Fetch Pages ------------------------
   const handleInstagramLogin = () => {
     window.FB.login(
       (response) => {
@@ -65,8 +63,10 @@ export default function InstagramChatProcessor() {
 
         const tokens = {};
         pagesWithInstagram.forEach((page) => {
-          tokens[page.id] = page.access_token;
+          tokens[page.id] = page.access_token; // Map Page ID to access token
         });
+
+        console.log("Mapped pageAccessTokens:", tokens);
 
         setPageAccessTokens(tokens);
         setPages(pagesWithInstagram);
@@ -75,7 +75,6 @@ export default function InstagramChatProcessor() {
       .catch((err) => console.error("Error fetching Instagram pages:", err));
   };
 
-  // ---------------------- Fetch Conversations ------------------------
   const fetchConversations = async (page) => {
     const pageId = page.id;
     const accessToken = pageAccessTokens[pageId];
@@ -84,6 +83,8 @@ export default function InstagramChatProcessor() {
       console.error("Access token not found for this Page ID:", pageId);
       return;
     }
+
+    console.log("Fetching IG conversations for pageId:", pageId);
 
     setSelectedPage(page);
     setSelectedConversation(null);
@@ -141,7 +142,6 @@ export default function InstagramChatProcessor() {
     }
   };
 
-  // ---------------------- Fetch Messages ------------------------
   const fetchMessages = (conversation) => {
     if (!selectedPage) {
       console.error("No page selected");
@@ -169,9 +169,9 @@ export default function InstagramChatProcessor() {
       .catch((err) => console.error("Error fetching IG messages:", err));
   };
 
-  // ---------------------- Send Message ------------------------
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
+
     if (!selectedPage || !selectedConversation) {
       console.error("No page or conversation selected");
       return;
@@ -181,19 +181,21 @@ export default function InstagramChatProcessor() {
     const accessToken = pageAccessTokens[pageId];
 
     try {
-      // Fetch participants to get recipient ID
       const participantsRes = await fetch(
         `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
       );
       const participantsData = await participantsRes.json();
 
+      console.log("Fetched participants data:", participantsData);
+
       let recipientId = null;
 
       if (participantsData.data && participantsData.data.length > 0) {
-        // Get IG user participant (not the page itself)
-        recipientId = participantsData.data.find(
-          (p) => p.id !== selectedPage.instagram_business_account.id
-        )?.id;
+        // ✅ Improved: compare with Page ID (not IG Business Account ID)
+        const recipient = participantsData.data.find(
+          (p) => p.id !== pageId
+        );
+        if (recipient) recipientId = recipient.id;
       }
 
       if (!recipientId) {
@@ -201,19 +203,20 @@ export default function InstagramChatProcessor() {
         return;
       }
 
+      console.log("Sending IG message to recipientId:", recipientId);
+
       const res = await fetch(
         `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: { text: newMessage },
-            recipient: { id: recipientId },
             messaging_type: "RESPONSE",
+            recipient: { id: recipientId },
+            message: { text: newMessage },
           }),
         }
       );
-
       const data = await res.json();
 
       if (data.id || data.message_id) {
@@ -228,60 +231,130 @@ export default function InstagramChatProcessor() {
     }
   };
 
-  // ---------------------- UI JSX ------------------------
   return (
-    <Page title="Instagram Chat Processor">
+    <Page title="💬 Instagram Chat Processor">
       <Card sectioned>
         {!isConnected ? (
-          <Button onClick={handleInstagramLogin}>Connect Instagram</Button>
+          <div style={{ textAlign: "center", padding: "50px 0" }}>
+            <Button onClick={handleInstagramLogin} primary size="large">
+              Connect with Instagram
+            </Button>
+          </div>
+        ) : !selectedPage ? (
+          <div>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
+              Select an Instagram Account
+            </Text>
+            {pages.map((page) => (
+              <div
+                key={page.id}
+                style={{ padding: "15px", borderBottom: "1px solid #eee" }}
+              >
+                <Text variant="bodyMd" as="p" fontWeight="medium">
+                  {page.name}
+                </Text>
+                <Button
+                  onClick={() => fetchConversations(page)}
+                  primary
+                  size="slim"
+                  style={{ marginTop: "12px" }}
+                >
+                  View Conversations
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : !selectedConversation ? (
+          <div>
+            <Button
+              onClick={() => {
+                setSelectedPage(null);
+                setConversations([]);
+              }}
+              plain
+              style={{ marginBottom: "20px" }}
+            >
+              ⬅ Back to Accounts
+            </Button>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "25px" }}>
+              Conversations
+            </Text>
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                style={{ padding: "15px", borderBottom: "1px solid #eee" }}
+              >
+                <Text variant="bodyMd">
+                  {conv.userName}
+                </Text>
+                <Button
+                  onClick={() => fetchMessages(conv)}
+                  size="slim"
+                  style={{ marginTop: "10px" }}
+                >
+                  View Chat
+                </Button>
+              </div>
+            ))}
+          </div>
         ) : (
           <div>
-            <Text variant="headingMd">Pages:</Text>
-            {pages.map((page) => (
-              <Button
-                key={page.id}
-                onClick={() => fetchConversations(page)}
-                fullWidth
-              >
-                {page.name}
+            <Button
+              onClick={() => setSelectedConversation(null)}
+              plain
+              style={{ marginBottom: "20px" }}
+            >
+              ⬅ Back to Conversations
+            </Button>
+            <Text variant="headingMd" as="h2" style={{ marginBottom: "20px" }}>
+              Chat
+            </Text>
+
+            <div
+              style={{
+                maxHeight: "450px",
+                overflowY: "auto",
+                background: "#f4f6f8",
+                padding: "15px",
+                borderRadius: "10px",
+                border: "1px solid #e1e3e5",
+                marginBottom: "20px",
+              }}
+            >
+              {messages.map((msg) => (
+                <div key={msg.id} style={{ marginBottom: "10px" }}>
+                  <strong>
+                    {msg.from?.name || msg.from?.username || "User"}:
+                  </strong>{" "}
+                  {msg.message}
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    {new Date(msg.created_time).toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", width: "100%" }}>
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: "1px solid #dfe3e8",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                }}
+              />
+              <Button onClick={sendMessage} primary>
+                Send
               </Button>
-            ))}
+            </div>
           </div>
         )}
       </Card>
-
-      {conversations.length > 0 && (
-        <Card sectioned>
-          <Text variant="headingMd">Conversations:</Text>
-          {conversations.map((conv) => (
-            <Button
-              key={conv.id}
-              onClick={() => fetchMessages(conv)}
-              fullWidth
-            >
-              {conv.userName}
-            </Button>
-          ))}
-        </Card>
-      )}
-
-      {selectedConversation && (
-        <Card sectioned>
-          <Text variant="headingMd">Messages:</Text>
-          {messages.map((msg) => (
-            <div key={msg.id}>
-              <Badge>{msg.from.name}</Badge>: {msg.message}
-            </div>
-          ))}
-
-          <TextField
-            label="New Message"
-            value={newMessage}
-            onChange={setNewMessage}
-          />
-          <Button onClick={sendMessage}>Send</Button>
-        </Card>
-      )}
     </Page>
   );
 }
