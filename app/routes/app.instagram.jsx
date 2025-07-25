@@ -188,41 +188,28 @@ const sendMessage = async () => {
   try {
     const igBusinessAccountId = selectedPage.instagram_business_account.id;
 
-    // 🔍 Fetch conversation messages to get unique sender IDs
-    const messagesRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from{id,username,name}&access_token=${accessToken}`
+    // 🔍 Fetch conversation participants
+    const participantsRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
     );
-    const messagesData = await messagesRes.json();
+    const participantsData = await participantsRes.json();
 
-    console.log("Fetched messages data for recipient ID:", messagesData);
+    console.log("Fetched participants data:", participantsData);
 
     let recipientId = null;
 
-    if (messagesData.data && messagesData.data.length > 0) {
-      const uniqueSenderIds = [
-        ...new Set(messagesData.data.map((msg) => msg.from.id)),
-      ];
-      console.log("Unique sender IDs:", uniqueSenderIds);
-
-      // Find user ID which is NOT your IG business account ID
-      recipientId = uniqueSenderIds.find(
-        (id) => id !== igBusinessAccountId
-      );
+    if (participantsData.data && participantsData.data.length > 0) {
+      recipientId = participantsData.data.find(
+        p => p.id !== igBusinessAccountId
+      )?.id;
     }
-
-    console.log("Final selected recipientId:", recipientId);
 
     if (!recipientId) {
       console.error("Recipient IG user ID not found. Cannot send message.");
       return;
     }
 
-    console.log(
-      "Sending IG message to recipientId:",
-      recipientId,
-      "via igBusinessAccountId:",
-      igBusinessAccountId
-    );
+    console.log("Sending IG message to recipientId:", recipientId);
 
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${igBusinessAccountId}/messages`,
@@ -233,8 +220,8 @@ const sendMessage = async () => {
           messaging_type: "RESPONSE",
           recipient: { id: recipientId },
           message: { text: newMessage },
-          access_token: accessToken,
-        }),
+          access_token: accessToken
+        })
       }
     );
 
