@@ -8,6 +8,7 @@ import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import { Spinner } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { PersistentLink } from "./components/PersistentLink";
 import { Suspense } from "react";
@@ -39,7 +40,7 @@ export default function App() {
   if (!apiKey || !shop) {
     return (
       <div style={{ padding: "2rem", textAlign: "center" }}>
-        <p>Initializing app...</p>
+        <Spinner accessibilityLabel="Initializing..." size="large" />
       </div>
     );
   }
@@ -47,17 +48,17 @@ export default function App() {
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shop}>
       <NavMenu>
-        <PersistentLink to="/app/pricing">Plan</PersistentLink>
-        <PersistentLink to="/app/facebook">Facebook</PersistentLink>
-        <PersistentLink to="/app/instagram">Instagram</PersistentLink>
+           <PersistentLink to="/app/pricing">Plan</PersistentLink>
+           <PersistentLink to="/app/facebook">Facebook</PersistentLink>
+             <PersistentLink to="/app/instagram">Instagram</PersistentLink>
       </NavMenu>
 
       {isLoading ? (
         <div style={{ padding: "2rem", textAlign: "center" }}>
-          <p>Loading...</p>
+          <Spinner accessibilityLabel="Loading" size="large" />
         </div>
       ) : (
-        <Suspense fallback={<div style={{ padding: "2rem", textAlign: "center" }}><p>Loading...</p></div>}>
+        <Suspense fallback={<Spinner accessibilityLabel="Loading..." size="large" />}>
           <Outlet />
         </Suspense>
       )}
@@ -65,11 +66,11 @@ export default function App() {
   );
 }
 
-// ✅ Error boundary
+// ✅ Error boundary shows loader instead of error message
 export function ErrorBoundary() {
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
-      <p>Something went wrong. Please try again later.</p>
+      <Spinner accessibilityLabel="Loading..." size="large" />
     </div>
   );
 }
