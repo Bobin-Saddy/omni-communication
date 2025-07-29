@@ -202,34 +202,27 @@ const sendMessage = async () => {
     return;
   }
 
+  const isInstagram = selectedConversation.platform === 'instagram';
   let recipientId = null;
 
   try {
-    // Detect platform type
-    const isInstagram = selectedConversation?.platform === 'instagram';
-
     if (isInstagram) {
-      // ✅ Fetch latest messages in conversation
-      const messagesRes = await fetch(
-        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`
+      // Fetch Instagram conversation details (users field contains participant)
+      const convoRes = await fetch(
+        `https://graph.facebook.com/v18.0/${selectedConversation.id}?fields=participants&access_token=${accessToken}`
       );
-      const messagesData = await messagesRes.json();
-      console.log("Fetched IG messages:", messagesData);
+      const convoData = await convoRes.json();
 
-      if (messagesData?.data?.length > 0) {
-        // Find message sent by the user (not by the Page)
-        const userMsg = messagesData.data.find(m => m.from?.id !== pageId);
-        if (userMsg) {
-          recipientId = userMsg.from.id;
-        }
+      if (convoData?.participants?.data?.length > 0) {
+        const user = convoData.participants.data.find(p => p.id !== pageId);
+        recipientId = user?.id;
       }
     } else {
-      // Facebook: use participants edge
+      // Facebook participants
       const participantsRes = await fetch(
         `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
       );
       const participantsData = await participantsRes.json();
-      console.log("Fetched FB participants:", participantsData);
 
       if (participantsData?.data?.length > 0) {
         const recipient = participantsData.data.find(p => p.id !== pageId);
@@ -238,39 +231,39 @@ const sendMessage = async () => {
     }
 
     if (!recipientId) {
-      console.error("Recipient ID not found. Cannot send message.");
+      console.error("Recipient ID not found.");
       return;
     }
 
-    console.log("Sending message to recipientId:", recipientId);
+    const payload = {
+      messaging_type: "RESPONSE",
+      recipient: { id: recipientId },
+      message: { text: newMessage },
+    };
 
-    // ✅ Send message using Graph API
     const res = await fetch(
       `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_type: "RESPONSE",
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
-    const data = await res.json();
+    const result = await res.json();
 
-    if (data.message_id) {
-      console.log("Message sent successfully:", data);
+    if (result.message_id) {
+      console.log("Message sent successfully");
       setNewMessage("");
-      fetchMessages(selectedConversation);
+      fetchMessages(selectedConversation); // Refresh conversation
     } else {
-      console.error("Error sending message:", data);
+      console.error("Send error:", result);
     }
   } catch (err) {
-    console.error("Error sending message:", err);
+    console.error("Send message error:", err);
   }
 };
+
 
 
 
