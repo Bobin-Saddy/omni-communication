@@ -207,7 +207,10 @@ const sendMessage = async () => {
     const participantsRes = await fetch(
       `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
     );
+    
+
     const participantsData = await participantsRes.json();
+console.log("Selectedconversation-Id---------->", selectedConversation.id);
 
     console.log("Fetched participants data:", participantsData);
 
@@ -221,6 +224,7 @@ const sendMessage = async () => {
       }
     }
 
+    console.log("---reciepient Id--->>>",recipientId)
     if (!recipientId) {
       console.error("Recipient IG user ID not found. Cannot send message.");
       return;
