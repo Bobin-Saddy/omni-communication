@@ -195,6 +195,7 @@ const sendMessage = async () => {
   }
 
   const pageId = selectedPage.id;
+  const igBusinessId = selectedPage.instagram_business_account.id;
   const accessToken = pageAccessTokens[pageId];
 
   if (!accessToken) {
@@ -203,21 +204,19 @@ const sendMessage = async () => {
   }
 
   try {
-    // Step 1: Fetch messages from the conversation
     const messagesRes = await fetch(
       `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`
     );
     const messagesData = await messagesRes.json();
     console.log("Fetched message data:", messagesData);
 
-    // Step 2: Extract recipientId from the messages
     let recipientId = null;
     if (messagesData.data && messagesData.data.length > 0) {
       for (const msg of messagesData.data) {
         if (
           msg.from &&
           msg.from.id &&
-          msg.from.id !== selectedPage.instagram_business_account.id
+          msg.from.id !== igBusinessId
         ) {
           recipientId = msg.from.id;
           break;
@@ -232,9 +231,8 @@ const sendMessage = async () => {
 
     console.log("Sending IG message to recipientId:", recipientId);
 
-    // Step 3: Send message
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/messages`,
+      `https://graph.facebook.com/v18.0/${igBusinessId}/messages?access_token=${accessToken}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -251,7 +249,7 @@ const sendMessage = async () => {
     if (data.message_id) {
       console.log("IG Message sent successfully:", data);
       setNewMessage("");
-      fetchMessages(selectedConversation); // Refresh messages
+      fetchMessages(selectedConversation);
     } else {
       console.error("Error sending IG message:", data);
     }
