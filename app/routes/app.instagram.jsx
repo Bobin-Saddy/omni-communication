@@ -241,18 +241,19 @@ if (messagesData.data && messagesData.data.length > 0) {
     console.log("Sending IG message to recipientId:", recipientId);
 
     // Step 3: Send message
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/messages`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_type: "RESPONSE",
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-        }),
-      }
-    );
+const res = await fetch(
+  `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_type: "RESPONSE",
+      recipient: { id: recipientId },
+      message: { text: newMessage },
+    }),
+  }
+);
+
 
     const data = await res.json();
 
