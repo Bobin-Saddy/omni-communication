@@ -114,40 +114,40 @@ const fetchPages = (userAccessToken) => {
       .catch((err) => console.error("Error fetching messages:", err));
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
-    if (!recipientId) {
-      console.error("Recipient ID not found.");
-      return;
-    }
+const sendMessage = () => {
+  if (!newMessage.trim()) return;
 
-    const accessToken = pageAccessTokens[selectedPage.id];
+  if (!recipientId) {
+    console.error("❌ Recipient ID not found. Cannot send message.");
+    return;
+  }
 
-    fetch(
-      `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-          messaging_type: "MESSAGE_TAG",
-          tag: "ACCOUNT_UPDATE",
-        }),
-      }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.message_id) {
-          console.log("Message sent:", data);
-          setNewMessage("");
-          fetchMessages(selectedConversation);
-        } else {
-          console.error("Error sending message:", data);
-        }
-      })
-      .catch((err) => console.error("Error sending message:", err));
+  const accessToken = pageAccessTokens[selectedPage.id];
+
+  const body = {
+    recipient: { id: recipientId },
+    message: { text: newMessage },
+    messaging_type: "RESPONSE", // 'RESPONSE' is safer if the user messaged the page first
   };
+
+  fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.message_id) {
+        console.log("✅ Message sent:", data);
+        setNewMessage("");
+        fetchMessages(selectedConversation);
+      } else {
+        console.error("❌ Error sending message:", data);
+      }
+    })
+    .catch((err) => console.error("❌ Network error sending message:", err));
+};
+
 
   // Polling for new messages in all conversations
   useEffect(() => {
