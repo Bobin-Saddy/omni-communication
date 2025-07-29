@@ -109,72 +109,87 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error fetching messages:", err));
   };
 
-const sendMessage = async (message, page, accessToken) => {
-  try {
-    const threadId = message.id;
-    let recipientId;
+const sendMessage = async (page, threadId, messageText) => {
+  const pageId = page.id;
+  const pageName = page.name;
+  const accessToken = pageAccessTokens[pageId];
+  const platform = page.platform; // must be either "facebook" or "instagram"
 
-    // Platform-specific logic
-    if (page.platform === 'instagram') {
-      // ✅ Instagram does NOT support the participants edge.
-      // So we use the `from.id` as recipient ID.
-      recipientId = message.from.id;
-    } else {
-      // ✅ Facebook supports the participants edge.
+  if (!accessToken || !platform) {
+    console.error("Missing accessToken or platform.");
+    return;
+  }
+
+  let recipientId = null;
+
+  if (platform === 'instagram') {
+    // Instagram doesn't support the participants edge. Get the conversation to get recipient.
+    try {
+      const threadRes = await fetch(`https://graph.facebook.com/v18.0/${threadId}?fields=messages{from}&access_token=${accessToken}`);
+      const threadData = await threadRes.json();
+      console.log("IG Thread data:", threadData);
+
+      // Look through messages to find one sent by someone other than the page (user message)
+      const messages = threadData?.messages?.data || [];
+      const userMessage = messages.find(msg => msg.from?.id !== pageId);
+
+      if (userMessage) {
+        recipientId = userMessage.from.id;
+      }
+
+      if (!recipientId) {
+        console.error("Recipient IG user ID not found. Cannot send message.");
+        return;
+      }
+    } catch (err) {
+      console.error("Error fetching IG thread:", err);
+      return;
+    }
+  } else {
+    // Facebook: use participants edge
+    try {
       const participantsRes = await fetch(
         `https://graph.facebook.com/v18.0/${threadId}/participants?access_token=${accessToken}`
       );
-
       const participantsData = await participantsRes.json();
+      console.log("Fetched FB participants data:", participantsData);
 
-      if (participantsData.error) {
-        console.error("Failed to fetch participants:", participantsData.error);
-        return;
-      }
-
-      recipientId = participantsData?.data?.[0]?.id;
+      recipientId = participantsData?.data?.find(p => p.id !== pageId)?.id;
 
       if (!recipientId) {
-        console.error("Recipient ID not found from participants");
+        console.error("Recipient FB user ID not found. Cannot send message.");
         return;
       }
+    } catch (err) {
+      console.error("Error fetching FB participants:", err);
+      return;
     }
+  }
 
-    // Now construct the message body depending on platform
-    const body =
-      page.platform === 'instagram'
-        ? {
-            messaging_type: 'RESPONSE',
-            recipient: { id: recipientId },
-            message: { text: 'Your message content here' },
-          }
-        : {
-            recipient: { id: recipientId },
-            message: { text: 'Your message content here' },
-          };
-
-    // Send the message
-    const res = await fetch(
+  // Send the message
+  try {
+    const sendRes = await fetch(
       `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text: messageText },
+          messaging_type: "RESPONSE",
+        }),
       }
     );
 
-    const result = await res.json();
-    console.log('Message sent response:', result);
-
-    if (result.error) {
-      console.error('Error sending message:', result.error);
-    }
+    const sendData = await sendRes.json();
+    console.log("Message sent response:", sendData);
   } catch (err) {
-    console.error('Unexpected error:', err);
+    console.error("Error sending message:", err);
   }
 };
+
 
 
   useEffect(() => {
