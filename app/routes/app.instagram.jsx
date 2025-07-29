@@ -202,16 +202,37 @@ const sendMessage = async () => {
     return;
   }
 
-  const recipientId = selectedConversation.id;
-
-  if (!recipientId) {
-    console.error("Recipient IG user ID not found. Cannot send message.");
-    return;
-  }
-
   try {
+    // Step 1: Fetch messages from the conversation
+    const messagesRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`
+    );
+    const messagesData = await messagesRes.json();
+    console.log("Fetched message data:", messagesData);
+
+    // Step 2: Extract recipientId from the messages
+    let recipientId = null;
+    if (messagesData.data && messagesData.data.length > 0) {
+      for (const msg of messagesData.data) {
+        if (
+          msg.from &&
+          msg.from.id &&
+          msg.from.id !== selectedPage.instagram_business_account.id
+        ) {
+          recipientId = msg.from.id;
+          break;
+        }
+      }
+    }
+
+    if (!recipientId) {
+      console.error("Recipient IG user ID not found. Cannot send message.");
+      return;
+    }
+
     console.log("Sending IG message to recipientId:", recipientId);
 
+    // Step 3: Send message
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${pageId}/messages`,
       {
@@ -230,7 +251,7 @@ const sendMessage = async () => {
     if (data.message_id) {
       console.log("IG Message sent successfully:", data);
       setNewMessage("");
-      fetchMessages(selectedConversation);
+      fetchMessages(selectedConversation); // Refresh messages
     } else {
       console.error("Error sending IG message:", data);
     }
@@ -238,6 +259,7 @@ const sendMessage = async () => {
     console.error("Error sending IG message:", err);
   }
 };
+
 
 
 
