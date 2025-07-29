@@ -242,7 +242,7 @@ if (messagesData.data && messagesData.data.length > 0) {
 
     // Step 3: Send message
 const res = await fetch(
-  `https://graph.facebook.com/v18.0/${selectedPage.instagram_business_account.id}/messages?access_token=${accessToken}`,
+ `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=id,message,from,to,created_time&access_token=${accessToken}`,
   {
     method: "POST",
     headers: { "Content-Type": "application/json" },
