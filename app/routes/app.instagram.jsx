@@ -196,42 +196,34 @@ const sendMessage = async () => {
 
   const pageId = selectedPage.id;
   const accessToken = pageAccessTokens[pageId];
-  const businessId = selectedPage.instagram_business_account?.id;
 
   if (!accessToken) {
     console.error("Access token not found for this Page ID:", pageId);
     return;
   }
 
-  if (!businessId) {
-    console.error("Instagram business account ID not found for selected page.");
-    return;
-  }
-
   try {
     // Step 1: Fetch messages from the conversation
-// Step 1: Fetch messages from the conversation with 'from' field
-const messagesRes = await fetch(
-  `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=id,message,from,to,created_time&access_token=${accessToken}`
-);
-const messagesData = await messagesRes.json();
-console.log("Fetched message data:", messagesData);
+    const messagesRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`
+    );
+    const messagesData = await messagesRes.json();
+    console.log("Fetched message data:", messagesData);
 
-// Step 2: Extract recipient IG user ID
-let recipientId = null;
-
-if (messagesData.data && messagesData.data.length > 0) {
-  for (const msg of messagesData.data) {
-    console.log("Full message object:", msg);
-    const senderId = msg?.from?.id || msg?.sender?.id;
-    if (senderId && senderId !== businessId) {
-      recipientId = senderId;
-      break;
+    // Step 2: Extract recipientId from the messages
+    let recipientId = null;
+    if (messagesData.data && messagesData.data.length > 0) {
+      for (const msg of messagesData.data) {
+        if (
+          msg.from &&
+          msg.from.id &&
+          msg.from.id !== selectedPage.instagram_business_account.id
+        ) {
+          recipientId = msg.from.id;
+          break;
+        }
+      }
     }
-  }
-}
-
-
 
     if (!recipientId) {
       console.error("Recipient IG user ID not found. Cannot send message.");
@@ -241,20 +233,20 @@ if (messagesData.data && messagesData.data.length > 0) {
     console.log("Sending IG message to recipientId:", recipientId);
 
     // Step 3: Send message
-const res = await fetch(
- `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=id,message,from,to,created_time&access_token=${accessToken}`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_type: "RESPONSE",
-      recipient: { id: recipientId },
-      message: { text: newMessage }
-    })
-  }
-);
-const data = await res.json();
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${pageId}/messages`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messaging_type: "RESPONSE",
+          recipient: { id: recipientId },
+          message: { text: newMessage },
+        }),
+      }
+    );
 
+    const data = await res.json();
 
     if (data.message_id) {
       console.log("IG Message sent successfully:", data);
