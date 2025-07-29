@@ -203,34 +203,24 @@ const sendMessage = async () => {
     return;
   }
 
+  let recipientId = null;
+  const participants = selectedConversation.participants;
+
+  if (participants && participants.length > 0) {
+    const recipient = participants.find(p => p.id !== igBusinessId);
+    if (recipient) {
+      recipientId = recipient.id;
+    }
+  }
+
+  if (!recipientId) {
+    console.error("Recipient IG user ID not found. Cannot send message.");
+    return;
+  }
+
+  console.log("Sending IG message to recipientId:", recipientId);
+
   try {
-    const messagesRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`
-    );
-    const messagesData = await messagesRes.json();
-    console.log("Fetched message data:", messagesData);
-
-    let recipientId = null;
-    if (messagesData.data && messagesData.data.length > 0) {
-      for (const msg of messagesData.data) {
-        if (
-          msg.from &&
-          msg.from.id &&
-          msg.from.id !== igBusinessId
-        ) {
-          recipientId = msg.from.id;
-          break;
-        }
-      }
-    }
-
-    if (!recipientId) {
-      console.error("Recipient IG user ID not found. Cannot send message.");
-      return;
-    }
-
-    console.log("Sending IG message to recipientId:", recipientId);
-
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${igBusinessId}/messages?access_token=${accessToken}`,
       {
@@ -257,6 +247,7 @@ const sendMessage = async () => {
     console.error("Error sending IG message:", err);
   }
 };
+
 
 
 
