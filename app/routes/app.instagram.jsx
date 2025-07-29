@@ -217,21 +217,21 @@ const sendMessage = async () => {
     console.log("Fetched message data:", messagesData);
 
     // Step 2: Extract recipient IG user ID
-    let recipientId = null;
+let recipientId = null;
 
-    if (messagesData.data && messagesData.data.length > 0) {
-      for (const msg of messagesData.data) {
-        console.log("Checking message from:", msg.from);
-        if (
-          msg.from &&
-          msg.from.id &&
-          msg.from.id !== businessId
-        ) {
-          recipientId = msg.from.id;
-          break;
-        }
-      }
+if (messagesData.data && messagesData.data.length > 0) {
+  for (const msg of messagesData.data) {
+    console.log("Full message object:", msg); // 🔍 Add this
+
+    const senderId = msg?.from?.id || msg?.sender?.id; // Try both
+
+    if (senderId && senderId !== businessId) {
+      recipientId = senderId;
+      break;
     }
+  }
+}
+
 
     if (!recipientId) {
       console.error("Recipient IG user ID not found. Cannot send message.");
