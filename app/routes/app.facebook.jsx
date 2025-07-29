@@ -109,40 +109,73 @@ export default function FacebookPagesConversations() {
       .catch((err) => console.error("Error fetching messages:", err));
   };
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
+const sendMessage = async (message, page, accessToken) => {
+  try {
+    const threadId = message.id;
+    let recipientId;
 
-    if (!recipientId) {
-      console.error("Recipient ID not found. Cannot send message.");
-      return;
+    // Platform-specific logic
+    if (page.platform === 'instagram') {
+      // ✅ Instagram does NOT support the participants edge.
+      // So we use the `from.id` as recipient ID.
+      recipientId = message.from.id;
+    } else {
+      // ✅ Facebook supports the participants edge.
+      const participantsRes = await fetch(
+        `https://graph.facebook.com/v18.0/${threadId}/participants?access_token=${accessToken}`
+      );
+
+      const participantsData = await participantsRes.json();
+
+      if (participantsData.error) {
+        console.error("Failed to fetch participants:", participantsData.error);
+        return;
+      }
+
+      recipientId = participantsData?.data?.[0]?.id;
+
+      if (!recipientId) {
+        console.error("Recipient ID not found from participants");
+        return;
+      }
     }
 
-    const accessToken = pageAccessTokens[selectedPage.id];
+    // Now construct the message body depending on platform
+    const body =
+      page.platform === 'instagram'
+        ? {
+            messaging_type: 'RESPONSE',
+            recipient: { id: recipientId },
+            message: { text: 'Your message content here' },
+          }
+        : {
+            recipient: { id: recipientId },
+            message: { text: 'Your message content here' },
+          };
 
-    const body = {
-      messaging_type: "RESPONSE",
-      recipient: { id: recipientId },
-      message: { text: newMessage },
-      access_token: accessToken,
-    };
+    // Send the message
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
-    fetch(`https://graph.facebook.com/v18.0/me/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.message_id) {
-          console.log("Message sent:", data);
-          setNewMessage("");
-          fetchMessages(selectedConversation);
-        } else {
-          console.error("Error sending message:", data);
-        }
-      })
-      .catch((err) => console.error("Network error sending message:", err));
-  };
+    const result = await res.json();
+    console.log('Message sent response:', result);
+
+    if (result.error) {
+      console.error('Error sending message:', result.error);
+    }
+  } catch (err) {
+    console.error('Unexpected error:', err);
+  }
+};
+
 
   useEffect(() => {
     const interval = setInterval(() => {
