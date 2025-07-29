@@ -151,33 +151,40 @@ const fetchConversations = async (page) => {
 
 
 
-const fetchMessages = async (conversationId) => {
-  const pageId = selectedPage.id;
-  const accessToken = pageAccessTokens[pageId];
-
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${conversationId}?fields=messages{message,from,to},participants&access_token=${accessToken}`
-  );
-  const data = await res.json();
-
-  const participants = data.participants?.data;
-
-  if (participants && participants.length > 1) {
-    // Assuming the first participant is the page and the second is the user
-    const recipient = participants.find(
-      (p) => !p.id.includes(pageId) // not the page itself
-    );
-
-    if (recipient) {
-      setRecipientId(recipient.id); // <-- Save this recipientId in state
-    } else {
-      console.error("Recipient not found in participants.");
+  const fetchMessages = (conversation) => {
+    if (!selectedPage) {
+      console.error("No page selected");
+      return;
     }
-  }
 
-  setMessages(data.messages?.data || []);
-};
+    const pageId = selectedPage.id;
+    const accessToken = pageAccessTokens[pageId];
 
+    if (!accessToken) {
+      console.error("Access token not found for this Page ID:", pageId);
+      return;
+    }
+
+    console.log("Fetching messages for conversationId:", conversation.id);
+
+    setSelectedConversation(conversation);
+
+    fetch(
+      `https://graph.facebook.com/v18.0/${conversation.id}/messages?fields=message,from{id,name,username},created_time&access_token=${accessToken}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Fetched message data:", data.data);
+        if (data.data) {
+          setMessages(data.data.reverse());
+          setNewMessages((prev) => ({ ...prev, [conversation.id]: false }));
+        } else {
+          console.error("No messages found or error in API response", data);
+          setMessages([]);
+        }
+      })
+      .catch((err) => console.error("Error fetching IG messages:", err));
+  };
 
 const sendMessage = async () => {
   if (!newMessage.trim()) return;
@@ -188,7 +195,6 @@ const sendMessage = async () => {
   }
 
   const pageId = selectedPage.id;
-  const igBusinessId = selectedPage.instagram_business_account.id;
   const accessToken = pageAccessTokens[pageId];
 
   if (!accessToken) {
@@ -196,26 +202,39 @@ const sendMessage = async () => {
     return;
   }
 
-  let recipientId = null;
-  const participants = selectedConversation.participants;
-
-  if (participants && participants.length > 0) {
-    const recipient = participants.find(p => p.id !== igBusinessId);
-    if (recipient) {
-      recipientId = recipient.id;
-    }
-  }
-
-  if (!recipientId) {
-    console.error("Recipient IG user ID not found. Cannot send message.");
-    return;
-  }
-
-  console.log("Sending IG message to recipientId:", recipientId);
-
   try {
+    // Step 1: Fetch messages from the conversation
+    const messagesRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`
+    );
+    const messagesData = await messagesRes.json();
+    console.log("Fetched message data:", messagesData);
+
+    // Step 2: Extract recipientId from the messages
+    let recipientId = null;
+    if (messagesData.data && messagesData.data.length > 0) {
+      for (const msg of messagesData.data) {
+        if (
+          msg.from &&
+          msg.from.id &&
+          msg.from.id !== selectedPage.instagram_business_account.id
+        ) {
+          recipientId = msg.from.id;
+          break;
+        }
+      }
+    }
+
+    if (!recipientId) {
+      console.error("Recipient IG user ID not found. Cannot send message.");
+      return;
+    }
+
+    console.log("Sending IG message to recipientId:", recipientId);
+
+    // Step 3: Send message
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${igBusinessId}/messages?access_token=${accessToken}`,
+      `https://graph.facebook.com/v18.0/${pageId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -232,7 +251,7 @@ const sendMessage = async () => {
     if (data.message_id) {
       console.log("IG Message sent successfully:", data);
       setNewMessage("");
-      fetchMessages(selectedConversation);
+      fetchMessages(selectedConversation); // Refresh messages
     } else {
       console.error("Error sending IG message:", data);
     }
@@ -240,10 +259,6 @@ const sendMessage = async () => {
     console.error("Error sending IG message:", err);
   }
 };
-
-
-
-
 
 
   return (
