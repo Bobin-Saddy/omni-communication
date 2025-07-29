@@ -202,33 +202,16 @@ const sendMessage = async () => {
     return;
   }
 
+  const recipientId = selectedConversation.id;
+
+  if (!recipientId) {
+    console.error("Recipient IG user ID not found. Cannot send message.");
+    return;
+  }
+
   try {
-    // 🔍 Fetch conversation participants to get recipient IG user ID
-    const participantsRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
-    );
-    const participantsData = await participantsRes.json();
-
-    console.log("Fetched participants data:", participantsData);
-
-    let recipientId = null;
-
-    if (participantsData.data && participantsData.data.length > 0) {
-      // Find participant that is NOT the page itself (i.e. the IG user)
-      const recipient = participantsData.data.find(p => p.id !== selectedPage.instagram_business_account.id);
-      if (recipient) {
-        recipientId = recipient.id;
-      }
-    }
-
-    if (!recipientId) {
-      console.error("Recipient IG user ID not found. Cannot send message.");
-      return;
-    }
-
     console.log("Sending IG message to recipientId:", recipientId);
 
-    // ✅ Send message using the Facebook Page ID endpoint
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${pageId}/messages`,
       {
@@ -241,6 +224,7 @@ const sendMessage = async () => {
         }),
       }
     );
+
     const data = await res.json();
 
     if (data.message_id) {
