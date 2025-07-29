@@ -196,9 +196,15 @@ const sendMessage = async () => {
 
   const pageId = selectedPage.id;
   const accessToken = pageAccessTokens[pageId];
+  const businessId = selectedPage.instagram_business_account?.id;
 
   if (!accessToken) {
     console.error("Access token not found for this Page ID:", pageId);
+    return;
+  }
+
+  if (!businessId) {
+    console.error("Instagram business account ID not found for selected page.");
     return;
   }
 
@@ -210,14 +216,16 @@ const sendMessage = async () => {
     const messagesData = await messagesRes.json();
     console.log("Fetched message data:", messagesData);
 
-    // Step 2: Extract recipientId from the messages
+    // Step 2: Extract recipient IG user ID
     let recipientId = null;
+
     if (messagesData.data && messagesData.data.length > 0) {
       for (const msg of messagesData.data) {
+        console.log("Checking message from:", msg.from);
         if (
           msg.from &&
           msg.from.id &&
-          msg.from.id !== selectedPage.instagram_business_account.id
+          msg.from.id !== businessId
         ) {
           recipientId = msg.from.id;
           break;
@@ -259,6 +267,7 @@ const sendMessage = async () => {
     console.error("Error sending IG message:", err);
   }
 };
+
 
 
 
