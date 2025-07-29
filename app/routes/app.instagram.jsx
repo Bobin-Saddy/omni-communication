@@ -202,69 +202,58 @@ const sendMessage = async () => {
     return;
   }
 
-  const isInstagram = selectedConversation.platform === 'instagram';
-  let recipientId = null;
-
   try {
-    if (isInstagram) {
-      // Fetch Instagram conversation details (users field contains participant)
-      const convoRes = await fetch(
-        `https://graph.facebook.com/v18.0/${selectedConversation.id}?fields=participants&access_token=${accessToken}`
-      );
-      const convoData = await convoRes.json();
+    // 🔍 Fetch conversation participants to get recipient IG user ID
+    const participantsRes = await fetch(
+      `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
+    );
+    const participantsData = await participantsRes.json();
 
-      if (convoData?.participants?.data?.length > 0) {
-        const user = convoData.participants.data.find(p => p.id !== pageId);
-        recipientId = user?.id;
-      }
-    } else {
-      // Facebook participants
-      const participantsRes = await fetch(
-        `https://graph.facebook.com/v18.0/${selectedConversation.id}/participants?access_token=${accessToken}`
-      );
-      const participantsData = await participantsRes.json();
+    console.log("Fetched participants data:", participantsData);
 
-      if (participantsData?.data?.length > 0) {
-        const recipient = participantsData.data.find(p => p.id !== pageId);
-        recipientId = recipient?.id;
+    let recipientId = null;
+
+    if (participantsData.data && participantsData.data.length > 0) {
+      // Find participant that is NOT the page itself (i.e. the IG user)
+      const recipient = participantsData.data.find(p => p.id !== selectedPage.instagram_business_account.id);
+      if (recipient) {
+        recipientId = recipient.id;
       }
     }
 
     if (!recipientId) {
-      console.error("Recipient ID not found.");
+      console.error("Recipient IG user ID not found. Cannot send message.");
       return;
     }
 
-    const payload = {
-      messaging_type: "RESPONSE",
-      recipient: { id: recipientId },
-      message: { text: newMessage },
-    };
+    console.log("Sending IG message to recipientId:", recipientId);
 
+    // ✅ Send message using the Facebook Page ID endpoint
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/me/messages?access_token=${accessToken}`,
+      `https://graph.facebook.com/v18.0/${pageId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          messaging_type: "RESPONSE",
+          recipient: { id: recipientId },
+          message: { text: newMessage },
+        }),
       }
     );
+    const data = await res.json();
 
-    const result = await res.json();
-
-    if (result.message_id) {
-      console.log("Message sent successfully");
+    if (data.message_id) {
+      console.log("IG Message sent successfully:", data);
       setNewMessage("");
-      fetchMessages(selectedConversation); // Refresh conversation
+      fetchMessages(selectedConversation);
     } else {
-      console.error("Send error:", result);
+      console.error("Error sending IG message:", data);
     }
   } catch (err) {
-    console.error("Send message error:", err);
+    console.error("Error sending IG message:", err);
   }
 };
-
-
 
 
 
