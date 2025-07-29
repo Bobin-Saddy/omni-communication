@@ -210,27 +210,27 @@ const sendMessage = async () => {
 
   try {
     // Step 1: Fetch messages from the conversation
-    const messagesRes = await fetch(
-      `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?access_token=${accessToken}`
-    );
-    const messagesData = await messagesRes.json();
-    console.log("Fetched message data:", messagesData);
+// Step 1: Fetch messages from the conversation with 'from' field
+const messagesRes = await fetch(
+  `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=id,message,from,to,created_time&access_token=${accessToken}`
+);
+const messagesData = await messagesRes.json();
+console.log("Fetched message data:", messagesData);
 
-    // Step 2: Extract recipient IG user ID
+// Step 2: Extract recipient IG user ID
 let recipientId = null;
 
 if (messagesData.data && messagesData.data.length > 0) {
   for (const msg of messagesData.data) {
-    console.log("Full message object:", msg); // 🔍 Add this
-
-    const senderId = msg?.from?.id || msg?.sender?.id; // Try both
-
+    console.log("Full message object:", msg);
+    const senderId = msg?.from?.id || msg?.sender?.id;
     if (senderId && senderId !== businessId) {
       recipientId = senderId;
       break;
     }
   }
 }
+
 
 
     if (!recipientId) {
