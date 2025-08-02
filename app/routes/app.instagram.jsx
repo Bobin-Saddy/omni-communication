@@ -196,62 +196,51 @@ const sendMessage = async () => {
 
   const pageId = selectedPage.id;
   const accessToken = pageAccessTokens[pageId];
+  const instagramBusinessAccountId = selectedPage.instagram_business_account?.id;
 
-  if (!accessToken) {
-    console.error("Access token not found for this Page ID:", pageId);
+  if (!accessToken || !instagramBusinessAccountId) {
+    console.error("Access token or Instagram account ID not found");
     return;
   }
 
   try {
-    // Step 1: Fetch messages with 'from' field
-    console.log("Fetching messages with from field");
+    // Step 1: Fetch messages to find the user's Instagram username
     const messagesRes = await fetch(
       `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from,message&access_token=${accessToken}`
     );
     const messagesData = await messagesRes.json();
-    console.log("Fetched message data with 'from':", messagesData);
 
-    // Step 2: Extract recipientId
-    let recipientId = null;
+    let recipientUsername = null;
+
     if (Array.isArray(messagesData.data)) {
       for (const msg of messagesData.data) {
         if (
           msg.from &&
-          msg.from.id &&
-          msg.from.id !== selectedPage.instagram_business_account?.id
+          msg.from.username &&
+          msg.from.id !== instagramBusinessAccountId
         ) {
-          recipientId = msg.from.id;
+          recipientUsername = msg.from.username;
           break;
         }
       }
     }
 
-    // Optional fallback from participants
-    if (!recipientId && selectedConversation.participants?.data?.length > 0) {
-      for (const participant of selectedConversation.participants.data) {
-        if (participant.id !== selectedPage.instagram_business_account?.id) {
-          recipientId = participant.id;
-          break;
-        }
-      }
-    }
-
-    if (!recipientId) {
-      console.error("Recipient IG user ID not found. Cannot send message.");
+    if (!recipientUsername) {
+      console.error("Recipient IG username not found. Cannot send message.");
       return;
     }
 
-    console.log("Sending IG message to recipientId:", recipientId);
+    console.log("Sending IG message to username:", recipientUsername);
 
-    // Step 3: Send the message
+    // Step 2: Send message to recipient by username
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${pageId}/messages`,
+      `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/messages`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messaging_type: "RESPONSE",
-          recipient: { id: recipientId },
+          messaging_product: "instagram",
+          recipient: { username: recipientUsername },
           message: { text: newMessage },
         }),
       }
@@ -259,7 +248,7 @@ const sendMessage = async () => {
 
     const data = await res.json();
 
-    if (data.message_id) {
+    if (res.ok) {
       console.log("IG Message sent successfully:", data);
       setNewMessage("");
       fetchMessages(selectedConversation); // Refresh messages
@@ -270,6 +259,7 @@ const sendMessage = async () => {
     console.error("Error sending IG message:", err);
   }
 };
+
 
 
 
