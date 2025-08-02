@@ -186,38 +186,48 @@ const fetchConversations = async (page) => {
       .catch((err) => console.error("Error fetching IG messages:", err));
   };
 
-function sendInstagramMessage(recipientId, messageText, pageAccessToken) {
+async function sendMessage(messageText, recipientId) {
   if (!recipientId) {
     console.error("Recipient IG user ID not found. Cannot send message.");
     return;
   }
 
-  fetch(`https://graph.facebook.com/v18.0/${pageId}/messages?access_token=${pageAccessToken}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const accessToken = pageAccessTokens[selectedPage.id];
+  if (!accessToken) {
+    console.error("Access token not found for selected page.");
+    return;
+  }
+
+  const url = `https://graph.facebook.com/v18.0/${selectedPage.id}/messages`;
+  const payload = {
+    recipient: {
+      id: recipientId, // ✅ IG user ID must go here
     },
-    body: JSON.stringify({
-      messaging_type: 'RESPONSE',
-      recipient: {
-        id: recipientId  // ✅ NOT username
+    messaging_type: "MESSAGE_TAG",
+    tag: "ACCOUNT_UPDATE",
+    message: {
+      text: messageText,
+    },
+  };
+
+  try {
+    const response = await fetch(url + `?access_token=${accessToken}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-      message: {
-        text: messageText
-      }
-    }),
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.error) {
-        console.error("Error sending IG message:", data.error);
-      } else {
-        console.log("Message sent successfully:", data);
-      }
-    })
-    .catch(err => {
-      console.error("Fetch error:", err);
+      body: JSON.stringify(payload),
     });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Error sending IG message:", data);
+    } else {
+      console.log("Message sent successfully:", data);
+    }
+  } catch (error) {
+    console.error("Fetch error while sending message:", error);
+  }
 }
 
 
@@ -342,7 +352,7 @@ function sendInstagramMessage(recipientId, messageText, pageAccessToken) {
                   fontSize: "14px",
                 }}
               />
-              <Button onClick={sendInstagramMessage} primary>
+              <Button onClick={sendMessage} primary>
                 Send
               </Button>
             </div>
