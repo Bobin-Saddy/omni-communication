@@ -210,16 +210,26 @@ const sendMessage = async () => {
     const messagesData = await messagesRes.json();
     console.log("Fetched message data:", messagesData);
 
-    // Step 2: Extract recipientId from the messages
+    // Step 2: Try to extract recipientId from the messages
     let recipientId = null;
-    if (messagesData.data && messagesData.data.length > 0) {
+    if (Array.isArray(messagesData.data)) {
       for (const msg of messagesData.data) {
         if (
           msg.from &&
           msg.from.id &&
-          msg.from.id !== selectedPage.instagram_business_account.id
+          msg.from.id !== selectedPage.instagram_business_account?.id
         ) {
           recipientId = msg.from.id;
+          break;
+        }
+      }
+    }
+
+    // Step 2b: Fallback - try to get recipientId from participants (if available)
+    if (!recipientId && selectedConversation.participants?.data?.length > 0) {
+      for (const participant of selectedConversation.participants.data) {
+        if (participant.id !== selectedPage.instagram_business_account?.id) {
+          recipientId = participant.id;
           break;
         }
       }
@@ -232,7 +242,7 @@ const sendMessage = async () => {
 
     console.log("Sending IG message to recipientId:", recipientId);
 
-    // Step 3: Send message
+    // Step 3: Send the message
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${pageId}/messages`,
       {

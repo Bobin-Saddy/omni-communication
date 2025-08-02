@@ -1,0 +1,281 @@
+   
+   
+   #fb-chat-box {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 300px;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      z-index: 1000;
+      flex-direction: column;
+      padding: 10px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    #fb-chat-box.show {
+      display: flex;
+    }
+    .fb-message.sent {
+      text-align: right;
+      background: #e0f7fa;
+      margin: 5px;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    .fb-message.received {
+      text-align: left;
+      background: #fce4ec;
+      margin: 5px;
+      padding: 5px;
+      border-radius: 5px;
+    }
+    #fb-input-container {
+      display: flex;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    #fb-input-container input {
+      flex: 1;
+    } 
+ 
+ 
+ 
+ 
+ 
+ 
+ #fb-chat-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #fb-chat-button {
+    background: linear-gradient(45deg, #1877f2, #0052cc);
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.4s ease;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  #fb-chat-button:hover {
+    transform: scale(1.08);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  }
+
+#fb-chat-box {
+  width: 360px;
+  max-height: 520px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(50px);
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  position: relative;
+}
+#fb-chat-box.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+    margin: 31px 0 0 0;
+    margin-left: 52px;
+}
+
+
+  @keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  #fb-header {
+    background: linear-gradient(45deg, #1877f2, #0052cc);
+    color: #fff;
+    padding: 12px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+  }
+
+  #fb-header h4 {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    text-align: center;
+    color: white;
+    font-weight:600;
+  }
+
+  #fb-back-button {
+    cursor: pointer;
+    margin-right: 10px;
+    font-size: 16px;
+    /* font-weight: 600; */
+}
+/* 
+h4#fb-header-title {
+    margin: 0 80px 0 0;
+} */
+
+  #fb-login-button {
+    background: #1877f2;
+    color: #fff;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    width: calc(100% - 40px);
+    margin: 20px;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: background 0.3s ease;
+  }
+
+  #fb-login-button:hover {
+    background: #145dbf;
+  }
+  #ig-login-button {
+    background: #1877f2;
+    color: #fff;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    width: calc(100% - 40px);
+    margin: 20px;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: background 0.3s ease;
+  }
+
+  #ig-login-button:hover {
+    background: #145dbf;
+  }
+  #fb-pages-container,
+  #fb-conversations-container {
+    padding: 10px;
+    overflow-y: auto;
+    max-height: 400px;
+    animation: fadeIn 0.4s ease forwards;
+  }
+
+#fb-messages-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* changed from flex-end */
+  height: 400px;
+  padding: 10px;
+  background: #f9f9f9;
+  overflow-y: auto; /* ensure scroll works */
+}
+
+
+  #fb-pages-container button,
+  #fb-conversations-container button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    background: #f0f2f5;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+
+  #fb-pages-container button:hover,
+  #fb-conversations-container button:hover {
+    background: #e4e6eb;
+    transform: translateX(5px);
+  }
+
+  .fb-message {
+    max-width: 75%;
+    margin: 4px 0;
+    padding: 10px 14px;
+    border-radius: 20px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    position: relative;
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  .fb-message.sent {
+    align-self: flex-end;
+    background: #1877f2;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .fb-message.received {
+    align-self: flex-start;
+    background: #e4e6eb;
+    color: #000;
+    border-bottom-left-radius: 4px;
+  }
+
+  .fb-message small {
+    display: block;
+    font-size: 10px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  #fb-input-container {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+    background: #fff;
+  }
+
+  #fb-input-container input[type="text"] {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    outline: none;
+    font-size: 14px;
+  }
+
+  #fb-input-container button.send-btn {
+    background: #1877f2;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 14px;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  #fb-input-container button.send-btn:hover {
+    background: #145dbf;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px);}
+    to { opacity: 1; transform: translateY(0);}
+  }
