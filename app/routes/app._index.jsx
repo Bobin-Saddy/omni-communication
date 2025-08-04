@@ -143,11 +143,9 @@ export default function SocialChatDashboard() {
     setSelectedConversation(null);
     setMessages([]);
 
-    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?$${
-      page.type === "instagram" ? "platform=instagram&" : ""
-    }fields=participants&access_token=${token}`;
-
-    const res = await fetch(url);
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,message_count&access_token=${token}`
+    );
     const data = await res.json();
 
     if (!Array.isArray(data?.data)) {
@@ -202,7 +200,7 @@ export default function SocialChatDashboard() {
 
       if (!sender) return alert("Recipient not found");
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}` , {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -236,9 +234,13 @@ export default function SocialChatDashboard() {
     <Page title="📱 Social Chat Dashboard">
       <Card sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>Connect Facebook</Button>
+          <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>
+            Connect Facebook
+          </Button>
           <div style={{ marginTop: 10 }}>
-            <Button onClick={handleInstagramLogin} disabled={igConnected}>Connect Instagram</Button>
+            <Button onClick={handleInstagramLogin} disabled={igConnected}>
+              Connect Instagram
+            </Button>
           </div>
         </div>
 
@@ -267,7 +269,9 @@ export default function SocialChatDashboard() {
                     backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
                   }}
                 >
-                  <Text>{page.name} ({page.type})</Text>
+                  <Text>
+                    {page.name} ({page.type})
+                  </Text>
                 </div>
               ))}
             </div>
@@ -276,14 +280,15 @@ export default function SocialChatDashboard() {
               <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
                 <Text variant="headingMd">Conversations</Text>
               </div>
-              {conversations.length === 0 && (
-                <div style={{ padding: 12 }}>No conversations available.</div>
-              )}
+              {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
               {conversations.map((conv) => {
                 const name =
                   selectedPage?.type === "instagram"
                     ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : conv.participants?.data?.filter((p) => p.name !== selectedPage.name).map((p) => p.name).join(", ");
+                    : conv.participants?.data
+                        ?.filter((p) => p.name !== selectedPage.name)
+                        .map((p) => p.name)
+                        .join(", ");
                 return (
                   <div
                     key={conv.id}
