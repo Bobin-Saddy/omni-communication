@@ -39,7 +39,11 @@ export default function SocialChatDashboard() {
   const handleFacebookLogin = () => {
     window.FB.login(
       (res) => {
-        if (res.authResponse) fetchPages(res.authResponse.accessToken, "facebook");
+        if (res.authResponse) {
+          fetchFacebookPages(res.authResponse.accessToken);
+        } else {
+          alert("Facebook login failed.");
+        }
       },
       {
         scope:
@@ -48,98 +52,57 @@ export default function SocialChatDashboard() {
     );
   };
 
-  const handleInstagramLogin = () => {
-    window.FB.login(
-      (res) => {
-        if (res.authResponse) fetchPages(res.authResponse.accessToken, "instagram");
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+  const fetchFacebookPages = async (accessToken) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
+      );
+      const data = await res.json();
+      console.log("Pages API response:", data);
+
+      if (!data?.data?.length) {
+        alert("No pages found. Make sure you have admin access on at least one page.");
+        return;
       }
-    );
-  };
 
-  const fetchPages = async (token, platform) => {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=${
-        platform === "instagram" ? "instagram_business_account" : ""
-      },access_token,name,id&access_token=${token}`
-    );
-    const data = await res.json();
+      const tokens = {};
+      const enrichedPages = data.data.map((page) => {
+        tokens[page.id] = page.access_token;
+        return { ...page, type: "facebook" };
+      });
 
-    if (!data?.data?.length) return alert("No pages found.");
-
-    const tokens = {};
-    const filteredPages = data.data.filter((p) =>
-      platform === "instagram" ? p.instagram_business_account : true
-    );
-
-    filteredPages.forEach((page) => {
-      tokens[page.id] = page.access_token;
-    });
-
-    setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-
-    const enrichedPages = filteredPages.map((p) => ({
-      ...p,
-      type: platform,
-    }));
-
-    if (platform === "facebook") {
+      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
       setFbPages(enrichedPages);
       setFbConnected(true);
-    } else {
-      setIgPages(enrichedPages);
-      setIgConnected(true);
-    }
 
-    if (enrichedPages.length > 0) {
-      fetchConversations(enrichedPages[0], tokens[enrichedPages[0].id]);
+      if (enrichedPages.length > 0) {
+        fetchConversations(enrichedPages[0], tokens[enrichedPages[0].id]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch Facebook pages:", err);
     }
   };
 
   const fetchConversations = async (page, token) => {
-    setSelectedPage(page);
-    setSelectedConversation(null);
-    setMessages([]);
+    try {
+      setSelectedPage(page);
+      setSelectedConversation(null);
+      setMessages([]);
 
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}/conversations?${
-        page.type === "instagram" ? "platform=instagram&" : ""
-      }fields=participants&access_token=${token}`
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error("Error fetching conversations:", await res.text());
-      return;
-    }
-
-    if (page.type === "instagram") {
-      const enriched = await Promise.all(
-        (data.data || []).map(async (conv) => {
-          const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${token}`
-          );
-          const msgData = await msgRes.json();
-          const msg = msgData?.data?.[0];
-          return {
-            ...conv,
-            userName: msg?.from?.name || msg?.from?.username || "User",
-            businessName: page.name,
-          };
-        })
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`
       );
-      setConversations(enriched);
-    } else {
+      const data = await res.json();
+      console.log("Fetched conversations:", data);
+
       setConversations(data.data || []);
+    } catch (err) {
+      console.error("Failed to fetch conversations:", err);
     }
   };
 
   const fetchMessages = async (conv) => {
     if (!selectedPage) return;
-    setSelectedConversation(conv);
     const token = pageAccessTokens[selectedPage.id];
 
     const res = await fetch(
@@ -147,47 +110,27 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
     setMessages(data?.data?.reverse() || []);
+    setSelectedConversation(conv);
   };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
     const token = pageAccessTokens[selectedPage.id];
 
-    if (selectedPage.type === "instagram") {
-      const msgRes = await fetch(
-        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
-      );
-      const msgData = await msgRes.json();
-      const sender = msgData.data.find(
-        (m) => m.from?.id !== selectedPage.instagram_business_account?.id
-      );
-      if (!sender) return alert("Recipient not found");
+    const participants = selectedConversation.participants.data;
+    const recipient = participants.find((p) => p.name !== selectedPage.name);
+    if (!recipient) return alert("Recipient not found");
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "instagram",
-          recipient: { id: sender.from.id },
-          message: { text: newMessage },
-        }),
-      });
-    } else {
-      const participants = selectedConversation.participants.data;
-      const recipient = participants.find((p) => p.name !== selectedPage.name);
-      if (!recipient) return alert("Recipient not found");
-
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: recipient.id },
-          message: { text: newMessage },
-          messaging_type: "MESSAGE_TAG",
-          tag: "ACCOUNT_UPDATE",
-        }),
-      });
-    }
+    await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: recipient.id },
+        message: { text: newMessage },
+        messaging_type: "MESSAGE_TAG",
+        tag: "ACCOUNT_UPDATE",
+      }),
+    });
 
     setNewMessage("");
     fetchMessages(selectedConversation);
@@ -196,18 +139,15 @@ export default function SocialChatDashboard() {
   return (
     <Page title="📱 Social Chat Dashboard">
       <Card sectioned>
-        {!fbConnected && !igConnected && (
+        {!fbConnected && (
           <div style={{ textAlign: "center", marginBottom: 20 }}>
             <Button onClick={handleFacebookLogin} primary>
               Connect Facebook
             </Button>
-            <div style={{ marginTop: 10 }}>
-              <Button onClick={handleInstagramLogin}>Connect Instagram</Button>
-            </div>
           </div>
         )}
 
-        {(fbConnected || igConnected) && (
+        {fbConnected && (
           <div
             style={{
               display: "flex",
@@ -218,12 +158,12 @@ export default function SocialChatDashboard() {
               width: "100%",
             }}
           >
-            {/* Pages List */}
+            {/* Pages */}
             <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
               <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
                 <Text variant="headingMd">Pages</Text>
               </div>
-              {[...fbPages, ...igPages].map((page) => (
+              {fbPages.map((page) => (
                 <div
                   key={page.id}
                   onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
@@ -233,7 +173,7 @@ export default function SocialChatDashboard() {
                     backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
                   }}
                 >
-                  <Text>{page.name} ({page.type})</Text>
+                  <Text>{page.name}</Text>
                 </div>
               ))}
             </div>
@@ -247,13 +187,10 @@ export default function SocialChatDashboard() {
                 <div style={{ padding: 12 }}>No conversations available.</div>
               )}
               {conversations.map((conv) => {
-                const name =
-                  selectedPage?.type === "instagram"
-                    ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : conv.participants.data
-                        .filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ");
+                const name = conv.participants.data
+                  .filter((p) => p.name !== selectedPage.name)
+                  .map((p) => p.name)
+                  .join(", ");
                 return (
                   <div
                     key={conv.id}
