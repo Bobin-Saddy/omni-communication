@@ -116,11 +116,12 @@ export default function SocialChatDashboard() {
     setMessages(data.data?.reverse() || []);
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
-    const page = selectedPage;
-    const token = pageAccessTokens[page.id];
+ const sendMessage = async () => {
+  if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
+  const page = selectedPage;
+  const token = pageAccessTokens[page.id];
 
+  try {
     if (page.platform === "instagram") {
       const resp = await fetch(
         `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
@@ -130,6 +131,7 @@ export default function SocialChatDashboard() {
         (m) => m.from?.id !== page.instagram_business_account?.id
       );
       if (!sender) return alert("Could not find recipient");
+
       await fetch(
         `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
         {
@@ -147,6 +149,7 @@ export default function SocialChatDashboard() {
         (p) => p.name !== selectedPage.name
       );
       if (!participant) return alert("Recipient missing");
+
       await fetch(
         `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
         {
@@ -162,9 +165,20 @@ export default function SocialChatDashboard() {
       );
     }
 
+    // ✅ Append new message instead of refetching
+    const newMsg = {
+      id: `msg_${Date.now()}`,
+      from: { name: selectedPage.name },
+      message: newMessage,
+      created_time: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, newMsg]);
     setNewMessage("");
-    fetchMessages(selectedConversation);
-  };
+  } catch (err) {
+    console.error("Error sending message:", err);
+  }
+};
 
   const allPages = [...fbPages, ...igPages];
 
