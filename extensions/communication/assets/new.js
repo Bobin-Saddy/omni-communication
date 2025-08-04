@@ -253,112 +253,112 @@ function fetchIGConversations(igId, page) {
 
 
 
-  function fetchMessages(conversation) {
-    selectedConversation = conversation;
-    const accessToken = pageAccessTokens[selectedPage.id];
-    recipientId = conversation.participants?.data?.find(p => p.name !== selectedPage.name)?.id || null;
-    const seenMessageIds = new Set();
-    messagesContainer.innerHTML = "";
+function fetchMessages(conversation) {
+  selectedConversation = conversation;
+  const accessToken = pageAccessTokens[selectedPage.id];
+  messagesContainer.innerHTML = "";
+  recipientId = null;
 
-    const inputContainer = document.createElement("div");
-    inputContainer.id = "fb-input-container";
-    const input = document.createElement("input");
-    input.placeholder = "Type a message...";
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") sendMessage(input.value, input);
-    });
-    const sendBtn = document.createElement("button");
-    sendBtn.textContent = "Send";
-    sendBtn.onclick = () => sendMessage(input.value, input);
-    inputContainer.appendChild(input);
-    inputContainer.appendChild(sendBtn);
-    messagesContainer.appendChild(inputContainer);
-
-const pollMessages = () => {
-  const url = `https://graph.facebook.com/v18.0/${conversation.id}/messages?fields=id,message,text,from,created_time,attachments,sticker&access_token=${accessToken}`;
-
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      if (!data || !data.data) {
-        console.warn("No messages found");
-        return;
-      }
-
-      data.data.reverse().forEach(msg => {
-        if (seenMessageIds.has(msg.id)) return;
-        seenMessageIds.add(msg.id);
-
-        const senderName = msg.from?.username || msg.from?.name || "Unknown IG User";
-        const createdAt = new Date(msg.created_time).toLocaleString();
-let messageText = "";
-
-// ✅ 1. Plain message or text
-if (msg.message?.trim()) {
-  messageText = msg.message;
-} else if (msg.text?.trim()) {
-  messageText = msg.text;
-}
-
-// ✅ 2. Sticker support
-else if (msg.sticker?.url) {
-  messageText = `<img src="${msg.sticker.url}" alt="sticker" style="max-width: 100px;" />`;
-}
-
-// ✅ 3. Attachments (images, videos, files)
-else if (msg.attachments?.data?.length > 0) {
-  const attachment = msg.attachments.data[0];
-  const url = attachment.image_data?.url || attachment.payload?.url || "";
-
-  if (attachment.mime_type?.startsWith("image")) {
-    messageText = `<img src="${url}" style="max-width: 200px;" />`;
-  } else if (attachment.mime_type?.startsWith("video")) {
-    messageText = `<video controls style="max-width: 200px;"><source src="${url}" type="${attachment.mime_type}"></video>`;
-  } else if (url) {
-    messageText = `<a href="${url}" target="_blank">[Open Attachment]</a>`;
-  } else {
-    messageText = `[Attachment: ${attachment.mime_type}]`;
+  // Try to get recipientId from participants
+  if (conversation.participants?.data?.length > 1) {
+    const otherParticipant = conversation.participants.data.find(p => p.id !== selectedPage.id);
+    recipientId = otherParticipant?.id || null;
   }
-}
 
-// ✅ 4. Emoji-only or empty message fallback
-else if (!msg.message && !msg.text && !msg.attachments && !msg.sticker) {
-  messageText = "[Unsupported or Empty Message]";
-  console.warn("⚠️ Unrecognized message format:", msg);
-  console.log('Check-sticker------------>',msg.sticker);
-}
+  const inputContainer = document.createElement("div");
+  inputContainer.id = "fb-input-container";
+  const input = document.createElement("input");
+  input.placeholder = "Type a message...";
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage(input.value, input);
+  });
+  const sendBtn = document.createElement("button");
+  sendBtn.textContent = "Send";
+  sendBtn.onclick = () => sendMessage(input.value, input);
+  inputContainer.appendChild(input);
+  inputContainer.appendChild(sendBtn);
+  messagesContainer.appendChild(inputContainer);
 
+  const seenMessageIds = new Set();
 
-        const div = document.createElement("div");
-        div.className = `fb-message ${senderName === selectedPage.name ? 'sent' : 'received'}`;
-        div.innerHTML = `
-          <strong>${senderName}</strong><br>
-          ${messageText}<br>
-          <small>${createdAt}</small>
-        `;
-        messagesContainer.insertBefore(div, inputContainer);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  const pollMessages = () => {
+    const url = `https://graph.facebook.com/v18.0/${conversation.id}/messages?fields=id,message,text,from,created_time,attachments,sticker&access_token=${accessToken}`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (!data || !data.data) {
+          console.warn("No messages found");
+          return;
+        }
+
+        // Fallback recipientId logic using first message
+        if (!recipientId && data.data.length > 0) {
+          const firstMsg = data.data.find(m => m.from?.id !== selectedPage.id);
+          if (firstMsg?.from?.id) {
+            recipientId = firstMsg.from.id;
+            console.log("Recipient ID (fallback):", recipientId);
+          }
+        }
+
+        data.data.reverse().forEach(msg => {
+          if (seenMessageIds.has(msg.id)) return;
+          seenMessageIds.add(msg.id);
+
+          const senderName = msg.from?.username || msg.from?.name || "Unknown IG User";
+          const createdAt = new Date(msg.created_time).toLocaleString();
+          let messageText = "";
+
+          if (msg.message?.trim()) {
+            messageText = msg.message;
+          } else if (msg.text?.trim()) {
+            messageText = msg.text;
+          } else if (msg.sticker?.url) {
+            messageText = `<img src="${msg.sticker.url}" alt="sticker" style="max-width: 100px;" />`;
+          } else if (msg.attachments?.data?.length > 0) {
+            const attachment = msg.attachments.data[0];
+            const url = attachment.image_data?.url || attachment.payload?.url || "";
+
+            if (attachment.mime_type?.startsWith("image")) {
+              messageText = `<img src="${url}" style="max-width: 200px;" />`;
+            } else if (attachment.mime_type?.startsWith("video")) {
+              messageText = `<video controls style="max-width: 200px;"><source src="${url}" type="${attachment.mime_type}"></video>`;
+            } else if (url) {
+              messageText = `<a href="${url}" target="_blank">[Open Attachment]</a>`;
+            } else {
+              messageText = `[Attachment: ${attachment.mime_type}]`;
+            }
+          } else {
+            messageText = "[Unsupported or Empty Message]";
+            console.warn("⚠️ Unrecognized message format:", msg);
+          }
+
+          const div = document.createElement("div");
+          div.className = `fb-message ${senderName === selectedPage.name ? 'sent' : 'received'}`;
+          div.innerHTML = `
+            <strong>${senderName}</strong><br>
+            ${messageText}<br>
+            <small>${createdAt}</small>
+          `;
+          messagesContainer.insertBefore(div, inputContainer);
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        });
+      })
+      .catch(err => {
+        console.error("Error fetching messages:", err);
       });
-    })
-    .catch(err => {
-      console.error("Error fetching messages:", err);
-    });
-};
+  };
 
+  pollMessages();
+  if (window.fbMessagePoll) clearInterval(window.fbMessagePoll);
+  window.fbMessagePoll = setInterval(pollMessages, 3000);
 
+  conversationsContainer.style.display = "none";
+  messagesContainer.style.display = "flex";
+  fbHeaderTitle.textContent = recipientId || "Chat";
+  currentView = "messages";
+}
 
-
-
-
-
-    pollMessages();
-    if (window.fbMessagePoll) clearInterval(window.fbMessagePoll);
-    window.fbMessagePoll = setInterval(pollMessages, 3000);
-    conversationsContainer.style.display = "none";
-    messagesContainer.style.display = "flex";
-    fbHeaderTitle.textContent = recipientId || "Chat";
-    currentView = "messages";
-  }
 
 function sendMessage(text, inputEl) {
   if (!text.trim() || !recipientId) return;
@@ -366,44 +366,43 @@ function sendMessage(text, inputEl) {
   inputEl.disabled = true;
 
   if (!selectedPage) {
-    console.error("No selected page selected.");
+    console.error("No selected page.");
     return;
   }
 
   const accessToken = pageAccessTokens[selectedPage.id];
-  const instagramBusinessId = selectedPage?.instagram_business_account?.id;
 
-  const url = isInstagram
-    ? `https://graph.facebook.com/v23.0/${instagramBusinessId}/messages`
-    : `https://graph.facebook.com/v23.0/me/messages`;
-
-  if (isInstagram && !instagramBusinessId) {
-    console.error("Missing Instagram Business Account ID");
-    return;
-  }
+  const url = `https://graph.facebook.com/v18.0/me/messages`; // ✅ Use this for both IG and FB
 
   const body = {
     recipient: { id: recipientId },
     message: { text: text },
     messaging_type: "MESSAGE_TAG",
-    tag: "ACCOUNT_UPDATE",
+    tag: "ACCOUNT_UPDATE", // ✅ Required tag for IG messaging
   };
 
-  fetch(url + `?access_token=${accessToken}`, {
+  fetch(`${url}?access_token=${accessToken}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   })
     .then((res) => res.json())
     .then((data) => {
-      if (data.message_id) inputEl.value = "";
-      else console.error("Message not sent:", data);
+      if (data.message_id) {
+        inputEl.value = "";
+        console.log("Message sent ✅");
+      } else {
+        console.error("Message not sent:", data);
+      }
     })
-    .catch(console.error)
+    .catch((err) => {
+      console.error("Message send error:", err);
+    })
     .finally(() => {
       inputEl.disabled = false;
       inputEl.focus();
     });
 }
+
 
 });
