@@ -23,7 +23,9 @@ export default function SocialChatDashboard() {
         xfbml: true,
         version: "v18.0",
       });
+      console.log("FB SDK initialized");
     };
+
     (function (d, s, id) {
       if (d.getElementById(id)) return;
       const js = d.createElement(s);
@@ -65,6 +67,9 @@ export default function SocialChatDashboard() {
       },access_token,name,id&access_token=${token}`
     );
     const data = await res.json();
+
+    if (!data?.data?.length) return alert("No pages found.");
+
     const tokens = {};
     const filteredPages = data.data.filter((p) =>
       platform === "instagram" ? p.instagram_business_account : true
@@ -76,19 +81,25 @@ export default function SocialChatDashboard() {
 
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
 
+    const enrichedPages = filteredPages.map((p) => ({
+      ...p,
+      type: platform,
+    }));
+
     if (platform === "facebook") {
-      setFbPages(filteredPages.map((p) => ({ ...p, type: "facebook" })));
+      setFbPages(enrichedPages);
       setFbConnected(true);
-      fetchConversations({ ...filteredPages[0], type: "facebook" });
     } else {
-      setIgPages(filteredPages.map((p) => ({ ...p, type: "instagram" })));
+      setIgPages(enrichedPages);
       setIgConnected(true);
-      fetchConversations({ ...filteredPages[0], type: "instagram" });
+    }
+
+    if (enrichedPages.length > 0) {
+      fetchConversations(enrichedPages[0], tokens[enrichedPages[0].id]);
     }
   };
 
-  const fetchConversations = async (page) => {
-    const token = pageAccessTokens[page.id];
+  const fetchConversations = async (page, token) => {
     setSelectedPage(page);
     setSelectedConversation(null);
     setMessages([]);
@@ -99,6 +110,11 @@ export default function SocialChatDashboard() {
       }fields=participants&access_token=${token}`
     );
     const data = await res.json();
+
+    if (!res.ok) {
+      console.error("Error fetching conversations:", await res.text());
+      return;
+    }
 
     if (page.type === "instagram") {
       const enriched = await Promise.all(
@@ -125,6 +141,7 @@ export default function SocialChatDashboard() {
     if (!selectedPage) return;
     setSelectedConversation(conv);
     const token = pageAccessTokens[selectedPage.id];
+
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
     );
@@ -144,7 +161,6 @@ export default function SocialChatDashboard() {
       const sender = msgData.data.find(
         (m) => m.from?.id !== selectedPage.instagram_business_account?.id
       );
-
       if (!sender) return alert("Recipient not found");
 
       await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
@@ -210,7 +226,7 @@ export default function SocialChatDashboard() {
               {[...fbPages, ...igPages].map((page) => (
                 <div
                   key={page.id}
-                  onClick={() => fetchConversations(page)}
+                  onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
                   style={{
                     padding: 12,
                     cursor: "pointer",
