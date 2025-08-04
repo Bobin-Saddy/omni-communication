@@ -61,7 +61,10 @@ export default function SocialChatDashboard() {
     );
 
   const fetchPages = async (token, platform) => {
-    const url = `https://graph.facebook.com/me/accounts?fields=instagram_business_account{id},id,name,access_token&access_token=${token}`;
+    const url =
+      platform === "instagram"
+        ? `https://graph.facebook.com/me/accounts?fields=instagram_business_account,id,name,access_token&access_token=${token}`
+        : `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`;
     const res = await fetch(url);
     const data = await res.json();
     const items = data.data || [];
@@ -69,19 +72,11 @@ export default function SocialChatDashboard() {
     const tokens = {};
     const pages = items
       .filter((p) =>
-        platform === "instagram"
-          ? p.instagram_business_account?.id
-          : !p.instagram_business_account
+        platform === "instagram" ? p.instagram_business_account : true
       )
       .map((p) => {
-        const instaid = p.instagram_business_account?.id;
-        const page = {
-          ...p,
-          platform,
-          instagramId: instaid,
-        };
-        tokens[platform === "instagram" ? instaid : p.id] = p.access_token;
-        return page;
+        tokens[p.id] = p.access_token;
+        return { ...p, platform };
       });
 
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
@@ -100,11 +95,10 @@ export default function SocialChatDashboard() {
     setSelectedPage(page);
     setSelectedConversation(null);
     setMessages([]);
-    const id = page.platform === "instagram" ? page.instagramId : page.id;
-    const token = pageAccessTokens[id];
-
+    const token = pageAccessTokens[page.id];
+    const query = page.platform === "instagram" ? "&platform=instagram" : "";
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${id}/conversations?fields=participants&access_token=${token}`
+      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants${query}&access_token=${token}`
     );
     const data = await res.json();
     setConversations(data.data || []);
@@ -113,9 +107,7 @@ export default function SocialChatDashboard() {
   const fetchMessages = async (conv) => {
     setSelectedConversation(conv);
     const page = selectedPage;
-    const id = page.platform === "instagram" ? page.instagramId : page.id;
-    const token = pageAccessTokens[id];
-
+    const token = pageAccessTokens[page.id];
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
     );
@@ -126,8 +118,7 @@ export default function SocialChatDashboard() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
     const page = selectedPage;
-    const id = page.platform === "instagram" ? page.instagramId : page.id;
-    const token = pageAccessTokens[id];
+    const token = pageAccessTokens[page.id];
 
     try {
       if (page.platform === "instagram") {
@@ -187,21 +178,6 @@ export default function SocialChatDashboard() {
     }
   };
 
-  const getMessageStyle = (m) => {
-    const isSentByPage = m.from?.name === selectedPage?.name;
-    if (selectedPage.platform === "instagram") {
-      return {
-        backgroundColor: isSentByPage ? "#ffe0f0" : "#ede7f6",
-        textAlign: isSentByPage ? "right" : "left",
-      };
-    } else {
-      return {
-        backgroundColor: isSentByPage ? "#d1e7dd" : "#f1f1f1",
-        textAlign: isSentByPage ? "right" : "left",
-      };
-    }
-  };
-
   const allPages = [...fbPages, ...igPages];
 
   return (
@@ -252,8 +228,9 @@ export default function SocialChatDashboard() {
                     borderBottom: "1px solid #eee",
                   }}
                 >
-                  <Text>{pg.name}</Text>
-                  <div style={{ fontSize: 12, color: "#2196f3" }}>Connected</div>
+                  <Text>
+                    {pg.name} ({pg.platform === "instagram" ? "IG" : "FB"})
+                  </Text>
                 </div>
               ))}
             </div>
@@ -271,10 +248,13 @@ export default function SocialChatDashboard() {
                 Conversations
               </Text>
               {conversations.map((c) => {
-                const names = c.participants?.data
-                  ?.filter((p) => p.name !== selectedPage.name)
-                  .map((p) => p.name)
-                  .join(", ");
+                let label = "";
+                if (selectedPage.platform === "instagram") label = `${c.id}`;
+                else
+                  label = c.participants.data
+                    .filter((p) => p.name !== selectedPage.name)
+                    .map((p) => p.name)
+                    .join(", ");
                 return (
                   <div
                     key={c.id}
@@ -289,7 +269,7 @@ export default function SocialChatDashboard() {
                       borderBottom: "1px solid #f2f2f2",
                     }}
                   >
-                    <Text>{names || "Unnamed Conversation"}</Text>
+                    <Text>{label}</Text>
                   </div>
                 );
               })}
@@ -318,53 +298,51 @@ export default function SocialChatDashboard() {
                   background: "#fff",
                 }}
               >
-                {messages.map((m) => {
-                  const style = getMessageStyle(m);
-                  return (
+                {messages.map((m) => (
+                  <div
+                    key={m.id}
+                    style={{
+                      textAlign:
+                        m.from?.name === selectedPage.name ? "right" : "left",
+                      marginBottom: 12,
+                    }}
+                  >
                     <div
-                      key={m.id}
                       style={{
-                        textAlign: style.textAlign,
-                        marginBottom: 12,
+                        display: "inline-block",
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        maxWidth: "75%",
+                        backgroundColor:
+                          m.from?.name === selectedPage?.name
+                            ? "#d1e7dd"
+                            : "#f1f1f1",
+                        border: "1px solid #ccc",
+                        fontSize: 14,
                       }}
                     >
-                      <div
-                        style={{
-                          display: "inline-block",
-                          padding: "10px 14px",
-                          borderRadius: 10,
-                          maxWidth: "75%",
-                          backgroundColor: style.backgroundColor,
-                          border: "1px solid #ccc",
-                          fontSize: 14,
-                        }}
-                      >
-                        <div style={{ fontWeight: "bold", marginBottom: 4 }}>
-                          {m.from?.name}
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color:
-                                selectedPage?.platform === "instagram"
-                                  ? "#c13584"
-                                  : "#1877f2",
-                            }}
-                          >
-                            {" "}
-                            ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
-                          </span>
-                        </div>
-                        <div>{m.message}</div>
-                        <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
-                          {new Date(m.created_time).toLocaleString()}
-                        </div>
+                      <div style={{ fontWeight: "bold", marginBottom: 4 }}>
+                        {m.from?.name}{" "}
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color:
+                              selectedPage?.platform === "instagram"
+                                ? "#c13584"
+                                : "#1877f2",
+                          }}
+                        >
+                          ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
+                        </span>
+                      </div>
+                      <div>{m.message}</div>
+                      <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
+                        {new Date(m.created_time).toLocaleString()}
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
-
-              {/* Input */}
               <div
                 style={{
                   display: "flex",
