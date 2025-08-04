@@ -1,4 +1,3 @@
-// Import statements
 import React, { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
 
@@ -12,7 +11,7 @@ export default function SocialChatDashboard() {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -62,10 +61,7 @@ export default function SocialChatDashboard() {
     );
 
   const fetchPages = async (token, platform) => {
-    const url =
-      platform === "instagram"
-        ? `https://graph.facebook.com/me/accounts?fields=instagram_business_account,id,name,access_token&access_token=${token}`
-        : `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`;
+    const url = `https://graph.facebook.com/me/accounts?fields=instagram_business_account{id},id,name,access_token&access_token=${token}`;
     const res = await fetch(url);
     const data = await res.json();
     const items = data.data || [];
@@ -73,11 +69,19 @@ export default function SocialChatDashboard() {
     const tokens = {};
     const pages = items
       .filter((p) =>
-        platform === "instagram" ? p.instagram_business_account : true
+        platform === "instagram"
+          ? p.instagram_business_account?.id
+          : !p.instagram_business_account
       )
       .map((p) => {
-        tokens[p.id] = p.access_token;
-        return { ...p, platform };
+        const instaid = p.instagram_business_account?.id;
+        const page = {
+          ...p,
+          platform,
+          instagramId: instaid,
+        };
+        tokens[platform === "instagram" ? instaid : p.id] = p.access_token;
+        return page;
       });
 
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
@@ -96,9 +100,11 @@ export default function SocialChatDashboard() {
     setSelectedPage(page);
     setSelectedConversation(null);
     setMessages([]);
-    const token = pageAccessTokens[page.id];
+    const id = page.platform === "instagram" ? page.instagramId : page.id;
+    const token = pageAccessTokens[id];
+
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`
+      `https://graph.facebook.com/v18.0/${id}/conversations?fields=participants&access_token=${token}`
     );
     const data = await res.json();
     setConversations(data.data || []);
@@ -107,7 +113,9 @@ export default function SocialChatDashboard() {
   const fetchMessages = async (conv) => {
     setSelectedConversation(conv);
     const page = selectedPage;
-    const token = pageAccessTokens[page.id];
+    const id = page.platform === "instagram" ? page.instagramId : page.id;
+    const token = pageAccessTokens[id];
+
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
     );
@@ -118,7 +126,8 @@ export default function SocialChatDashboard() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
     const page = selectedPage;
-    const token = pageAccessTokens[page.id];
+    const id = page.platform === "instagram" ? page.instagramId : page.id;
+    const token = pageAccessTokens[id];
 
     try {
       if (page.platform === "instagram") {
