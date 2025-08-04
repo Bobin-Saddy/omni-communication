@@ -198,9 +198,10 @@ export default function SocialChatDashboard() {
               display: "flex",
               height: 650,
               width: "100%",
-              border: "1px solid #ccc",
+              border: "1px solid #dfe3e8",
               borderRadius: 8,
               overflow: "hidden",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
             {/* Pages */}
@@ -209,6 +210,7 @@ export default function SocialChatDashboard() {
                 width: "20%",
                 borderRight: "1px solid #eee",
                 overflowY: "auto",
+                background: "#fafafa",
               }}
             >
               <Text variant="headingMd" style={{ padding: 12 }}>
@@ -219,10 +221,11 @@ export default function SocialChatDashboard() {
                   key={pg.id}
                   onClick={() => fetchConversations(pg)}
                   style={{
-                    padding: 12,
+                    padding: "12px 16px",
                     cursor: "pointer",
                     backgroundColor:
-                      selectedPage?.id === pg.id ? "#e3f2fd" : "white",
+                      selectedPage?.id === pg.id ? "#ebf5ff" : "transparent",
+                    borderBottom: "1px solid #eee",
                   }}
                 >
                   <Text>
@@ -238,6 +241,7 @@ export default function SocialChatDashboard() {
                 width: "28%",
                 borderRight: "1px solid #eee",
                 overflowY: "auto",
+                background: "#fff",
               }}
             >
               <Text variant="headingMd" style={{ padding: 12 }}>
@@ -245,8 +249,7 @@ export default function SocialChatDashboard() {
               </Text>
               {conversations.map((c) => {
                 let label = "";
-                if (selectedPage.platform === "instagram")
-                  label = `${c.id}`;
+                if (selectedPage.platform === "instagram") label = `${c.id}`;
                 else
                   label = c.participants.data
                     .filter((p) => p.name !== selectedPage.name)
@@ -257,10 +260,13 @@ export default function SocialChatDashboard() {
                     key={c.id}
                     onClick={() => fetchMessages(c)}
                     style={{
-                      padding: 12,
+                      padding: "12px 16px",
                       cursor: "pointer",
                       backgroundColor:
-                        selectedConversation?.id === c.id ? "#e7f1ff" : "white",
+                        selectedConversation?.id === c.id
+                          ? "#f0f8ff"
+                          : "transparent",
+                      borderBottom: "1px solid #f2f2f2",
                     }}
                   >
                     <Text>{label}</Text>
@@ -275,6 +281,7 @@ export default function SocialChatDashboard() {
                 flex: 1,
                 display: "flex",
                 flexDirection: "column",
+                background: "#f9f9f9",
               }}
             >
               <Text
@@ -287,8 +294,8 @@ export default function SocialChatDashboard() {
                 style={{
                   flex: 1,
                   overflowY: "auto",
-                  padding: 12,
-                  background: "#f9f9f9",
+                  padding: "16px 20px",
+                  background: "#fff",
                 }}
               >
                 {messages.map((m) => (
@@ -297,23 +304,24 @@ export default function SocialChatDashboard() {
                     style={{
                       textAlign:
                         m.from?.name === selectedPage.name ? "right" : "left",
-                      marginBottom: 10,
+                      marginBottom: 12,
                     }}
                   >
                     <div
                       style={{
                         display: "inline-block",
-                        padding: 10,
-                        borderRadius: 8,
-                        maxWidth: "80%",
+                        padding: "10px 14px",
+                        borderRadius: 10,
+                        maxWidth: "75%",
                         backgroundColor:
                           m.from?.name === selectedPage?.name
                             ? "#d1e7dd"
-                            : "white",
+                            : "#f1f1f1",
                         border: "1px solid #ccc",
+                        fontSize: 14,
                       }}
                     >
-                      <strong>
+                      <div style={{ fontWeight: "bold", marginBottom: 4 }}>
                         {m.from?.name}{" "}
                         <span
                           style={{
@@ -326,28 +334,34 @@ export default function SocialChatDashboard() {
                         >
                           ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
                         </span>
-                      </strong>
+                      </div>
                       <div>{m.message}</div>
-                      <small>
+                      <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
                         {new Date(m.created_time).toLocaleString()}
-                      </small>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
               <div
-                style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}
+                style={{
+                  display: "flex",
+                  padding: "12px 16px",
+                  borderTop: "1px solid #ddd",
+                  background: "#f6f6f6",
+                }}
               >
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
+                  placeholder="Type your message..."
                   style={{
                     flex: 1,
                     padding: 10,
-                    borderRadius: 5,
+                    borderRadius: 6,
                     border: "1px solid #ccc",
+                    fontSize: 14,
                   }}
                 />
                 <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
