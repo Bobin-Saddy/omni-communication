@@ -6,12 +6,17 @@ export default function SocialChatDashboard() {
   const [igPages, setIgPages] = useState([]);
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
-  const [selectedPage, setSelectedPage] = useState(null);
+  const [selectedFbPage, setSelectedFbPage] = useState(null);
+  const [selectedIgPage, setSelectedIgPage] = useState(null);
   const [pageAccessTokens, setPageAccessTokens] = useState({});
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
+  const [fbConversations, setFbConversations] = useState([]);
+  const [igConversations, setIgConversations] = useState([]);
+  const [selectedFbConversation, setSelectedFbConversation] = useState(null);
+  const [selectedIgConversation, setSelectedIgConversation] = useState(null);
+  const [fbMessages, setFbMessages] = useState([]);
+  const [igMessages, setIgMessages] = useState([]);
+  const [fbNewMessage, setFbNewMessage] = useState("");
+  const [igNewMessage, setIgNewMessage] = useState("");
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -61,10 +66,7 @@ export default function SocialChatDashboard() {
     );
 
   const fetchPages = async (token, platform) => {
-    const url =
-      platform === "instagram"
-        ? `https://graph.facebook.com/me/accounts?fields=instagram_business_account,id,name,access_token&access_token=${token}`
-        : `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`;
+    const url = `https://graph.facebook.com/me/accounts?fields=instagram_business_account,id,name,access_token&access_token=${token}`;
     const res = await fetch(url);
     const data = await res.json();
     const items = data.data || [];
@@ -75,60 +77,87 @@ export default function SocialChatDashboard() {
         platform === "instagram" ? p.instagram_business_account : true
       )
       .map((p) => {
-        tokens[p.id] = p.access_token;
-        return { ...p, platform };
+        const pageId =
+          platform === "instagram"
+            ? p.instagram_business_account?.id
+            : p.id;
+        tokens[pageId] = p.access_token;
+        return {
+          id: pageId,
+          name: p.name,
+          pageId: p.id,
+          platform,
+        };
       });
 
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+
     if (platform === "facebook") {
       setFbPages(pages);
       setFbConnected(true);
-      fetchConversations(pages[0]);
+      fetchConversations(pages[0], "facebook");
     } else {
       setIgPages(pages);
       setIgConnected(true);
-      fetchConversations(pages[0]);
+      fetchConversations(pages[0], "instagram");
     }
   };
 
-  const fetchConversations = async (page) => {
-    setSelectedPage(page);
-    setSelectedConversation(null);
-    setMessages([]);
+  const fetchConversations = async (page, platform) => {
     const token = pageAccessTokens[page.id];
-    const query = page.platform === "instagram" ? "&platform=instagram" : "";
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants${query}&access_token=${token}`
+      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`
     );
     const data = await res.json();
-    setConversations(data.data || []);
+    const convs = data.data || [];
+
+    if (platform === "facebook") {
+      setSelectedFbPage(page);
+      setFbConversations(convs);
+      setFbMessages([]);
+      setSelectedFbConversation(null);
+    } else {
+      setSelectedIgPage(page);
+      setIgConversations(convs);
+      setIgMessages([]);
+      setSelectedIgConversation(null);
+    }
   };
 
-  const fetchMessages = async (conv) => {
-    setSelectedConversation(conv);
-    const page = selectedPage;
+  const fetchMessages = async (conv, platform) => {
+    const page = platform === "facebook" ? selectedFbPage : selectedIgPage;
     const token = pageAccessTokens[page.id];
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
     );
     const data = await res.json();
-    setMessages(data.data?.reverse() || []);
+    const msgs = data.data?.reverse() || [];
+
+    if (platform === "facebook") {
+      setSelectedFbConversation(conv);
+      setFbMessages(msgs);
+    } else {
+      setSelectedIgConversation(conv);
+      setIgMessages(msgs);
+    }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
-    const page = selectedPage;
+  const sendMessage = async (platform) => {
+    const page = platform === "facebook" ? selectedFbPage : selectedIgPage;
+    const conv =
+      platform === "facebook" ? selectedFbConversation : selectedIgConversation;
+    const message = platform === "facebook" ? fbNewMessage : igNewMessage;
     const token = pageAccessTokens[page.id];
 
+    if (!message.trim()) return;
+
     try {
-      if (page.platform === "instagram") {
+      if (platform === "instagram") {
         const resp = await fetch(
-          `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
+          `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from&access_token=${token}`
         );
         const d = await resp.json();
-        const sender = d.data?.find(
-          (m) => m.from?.id !== page.instagram_business_account?.id
-        );
+        const sender = d.data?.find((m) => m.from?.id !== page.id);
         if (!sender) return alert("Could not find recipient");
 
         await fetch(
@@ -139,13 +168,13 @@ export default function SocialChatDashboard() {
             body: JSON.stringify({
               messaging_product: "instagram",
               recipient: { id: sender.from.id },
-              message: { text: newMessage },
+              message: { text: message },
             }),
           }
         );
       } else {
-        const participant = selectedConversation.participants.data.find(
-          (p) => p.name !== selectedPage.name
+        const participant = conv.participants.data.find(
+          (p) => p.name !== page.name
         );
         if (!participant) return alert("Recipient missing");
 
@@ -156,7 +185,7 @@ export default function SocialChatDashboard() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               recipient: { id: participant.id },
-              message: { text: newMessage },
+              message: { text: message },
               messaging_type: "MESSAGE_TAG",
               tag: "ACCOUNT_UPDATE",
             }),
@@ -166,19 +195,139 @@ export default function SocialChatDashboard() {
 
       const newMsg = {
         id: `msg_${Date.now()}`,
-        from: { name: selectedPage.name },
-        message: newMessage,
+        from: { name: page.name },
+        message: message,
         created_time: new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, newMsg]);
-      setNewMessage("");
+      if (platform === "facebook") {
+        setFbMessages((prev) => [...prev, newMsg]);
+        setFbNewMessage("");
+      } else {
+        setIgMessages((prev) => [...prev, newMsg]);
+        setIgNewMessage("");
+      }
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error("Send error:", err);
     }
   };
 
-  const allPages = [...fbPages, ...igPages];
+  const renderChatUI = (platform) => {
+    const isFB = platform === "facebook";
+    const page = isFB ? selectedFbPage : selectedIgPage;
+    const conversations = isFB ? fbConversations : igConversations;
+    const selectedConversation = isFB
+      ? selectedFbConversation
+      : selectedIgConversation;
+    const messages = isFB ? fbMessages : igMessages;
+    const newMessage = isFB ? fbNewMessage : igNewMessage;
+    const setNewMessage = isFB ? setFbNewMessage : setIgNewMessage;
+
+    return (
+      <Card sectioned title={`${platform.toUpperCase()} Chat`}>
+        <div style={{ display: "flex", height: 600, overflow: "hidden" }}>
+          {/* Conversations */}
+          <div style={{ width: "30%", borderRight: "1px solid #eee" }}>
+            <Text variant="headingMd" style={{ padding: 10 }}>
+              Conversations
+            </Text>
+            <div style={{ overflowY: "auto", height: 550 }}>
+              {conversations.map((c) => {
+                const label = c.participants.data
+                  .filter((p) => p.name !== page.name)
+                  .map((p) => p.name)
+                  .join(", ");
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => fetchMessages(c, platform)}
+                    style={{
+                      padding: 10,
+                      backgroundColor:
+                        selectedConversation?.id === c.id ? "#e3f2fd" : "#fff",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    <Text>{label || "Unknown"}</Text>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <Text
+              variant="headingMd"
+              style={{
+                padding: 10,
+                borderBottom: "1px solid #ccc",
+                background: "#fafafa",
+              }}
+            >
+              Chat
+            </Text>
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: 12,
+                background: "#fff",
+              }}
+            >
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  style={{
+                    textAlign: m.from?.name === page.name ? "right" : "left",
+                    marginBottom: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "inline-block",
+                      padding: 10,
+                      borderRadius: 8,
+                      backgroundColor:
+                        m.from?.name === page.name
+                          ? isFB
+                            ? "#d1e7dd"
+                            : "#ffe0f0"
+                          : isFB
+                          ? "#f1f1f1"
+                          : "#ede7f6",
+                      border: "1px solid #ccc",
+                    }}
+                  >
+                    <strong>{m.from?.name}</strong>
+                    <div>{m.message}</div>
+                    <small>{new Date(m.created_time).toLocaleString()}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", padding: 10, borderTop: "1px solid #ccc" }}>
+              <input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: 10,
+                  borderRadius: 6,
+                  border: "1px solid #ccc",
+                }}
+                placeholder="Type a message..."
+              />
+              <Button onClick={() => sendMessage(platform)} primary style={{ marginLeft: 10 }}>
+                Send
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <Page title="Social Chat Dashboard">
@@ -191,186 +340,8 @@ export default function SocialChatDashboard() {
             {igConnected ? "Instagram Connected" : "Connect Instagram"}
           </Button>
         </div>
-
-        {(fbConnected || igConnected) && (
-          <div
-            style={{
-              display: "flex",
-              height: 650,
-              width: "100%",
-              border: "1px solid #dfe3e8",
-              borderRadius: 8,
-              overflow: "hidden",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-            }}
-          >
-            {/* Pages */}
-            <div
-              style={{
-                width: "20%",
-                borderRight: "1px solid #eee",
-                overflowY: "auto",
-                background: "#fafafa",
-              }}
-            >
-              <Text variant="headingMd" style={{ padding: 12 }}>
-                Pages
-              </Text>
-              {allPages.map((pg) => (
-                <div
-                  key={pg.id}
-                  onClick={() => fetchConversations(pg)}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedPage?.id === pg.id ? "#ebf5ff" : "transparent",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  <Text>
-                    {pg.name} ({pg.platform === "instagram" ? "IG" : "FB"})
-                  </Text>
-                </div>
-              ))}
-            </div>
-
-            {/* Conversations */}
-            <div
-              style={{
-                width: "28%",
-                borderRight: "1px solid #eee",
-                overflowY: "auto",
-                background: "#fff",
-              }}
-            >
-              <Text variant="headingMd" style={{ padding: 12 }}>
-                Conversations
-              </Text>
-              {conversations.map((c) => {
-                let label = "";
-                if (selectedPage.platform === "instagram") label = `${c.id}`;
-                else
-                  label = c.participants.data
-                    .filter((p) => p.name !== selectedPage.name)
-                    .map((p) => p.name)
-                    .join(", ");
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => fetchMessages(c)}
-                    style={{
-                      padding: "12px 16px",
-                      cursor: "pointer",
-                      backgroundColor:
-                        selectedConversation?.id === c.id
-                          ? "#f0f8ff"
-                          : "transparent",
-                      borderBottom: "1px solid #f2f2f2",
-                    }}
-                  >
-                    <Text>{label}</Text>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Chat */}
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                background: "#f9f9f9",
-              }}
-            >
-              <Text
-                variant="headingMd"
-                style={{ padding: 12, borderBottom: "1px solid #ddd" }}
-              >
-                Chat
-              </Text>
-              <div
-                style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  padding: "16px 20px",
-                  background: "#fff",
-                }}
-              >
-                {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    style={{
-                      textAlign:
-                        m.from?.name === selectedPage.name ? "right" : "left",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "inline-block",
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        maxWidth: "75%",
-                        backgroundColor:
-                          m.from?.name === selectedPage?.name
-                            ? "#d1e7dd"
-                            : "#f1f1f1",
-                        border: "1px solid #ccc",
-                        fontSize: 14,
-                      }}
-                    >
-                      <div style={{ fontWeight: "bold", marginBottom: 4 }}>
-                        {m.from?.name}{" "}
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color:
-                              selectedPage?.platform === "instagram"
-                                ? "#c13584"
-                                : "#1877f2",
-                          }}
-                        >
-                          ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
-                        </span>
-                      </div>
-                      <div>{m.message}</div>
-                      <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
-                        {new Date(m.created_time).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  padding: "12px 16px",
-                  borderTop: "1px solid #ddd",
-                  background: "#f6f6f6",
-                }}
-              >
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  style={{
-                    flex: 1,
-                    padding: 10,
-                    borderRadius: 6,
-                    border: "1px solid #ccc",
-                    fontSize: 14,
-                  }}
-                />
-                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
-                  Send
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        {fbConnected && selectedFbPage && renderChatUI("facebook")}
+        {igConnected && selectedIgPage && renderChatUI("instagram")}
       </Card>
     </Page>
   );
