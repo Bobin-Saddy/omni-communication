@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Page, Card, Button, Text, Badge, Icon } from "@shopify/polaris";
-import { ChatMajor, FacebookMinor, InstagramMinor } from "@shopify/polaris-icons";
+import { ChatMajor, SocialFacebookMajor, SocialInstagramMajor } from "@shopify/polaris-icons";
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
@@ -185,12 +185,12 @@ export default function SocialChatDashboard() {
     <Page title="Social Chat Dashboard">
       <Card sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Button onClick={handleFacebookLogin} icon={FacebookMinor}>
+          <Button onClick={handleFacebookLogin} icon={SocialFacebookMajor}>
             {fbConnected ? "Facebook Connected" : "Connect Facebook"}
           </Button>
           <Button
             onClick={handleInstagramLogin}
-            icon={InstagramMinor}
+            icon={SocialInstagramMajor}
             style={{ marginLeft: 10 }}
           >
             {igConnected ? "Instagram Connected" : "Connect Instagram"}
@@ -209,7 +209,6 @@ export default function SocialChatDashboard() {
               overflow: "hidden",
             }}
           >
-            {/* Pages List */}
             <div style={{ width: "20%", borderRight: "1px solid #eee", overflowY: "auto" }}>
               <Text variant="headingMd" as="h3" style={{ padding: 12 }}>Pages</Text>
               {allPages.map((pg) => (
@@ -233,7 +232,6 @@ export default function SocialChatDashboard() {
               ))}
             </div>
 
-            {/* Conversations List */}
             <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
               <Text variant="headingMd" as="h3" style={{ padding: 12 }}>Conversations</Text>
               {conversations.map((c) => {
@@ -261,7 +259,6 @@ export default function SocialChatDashboard() {
               })}
             </div>
 
-            {/* Chat Section */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               <div style={{
                 padding: 12,
