@@ -145,37 +145,17 @@ export default function SocialChatDashboard() {
   };
 
   const fetchConversations = async (page) => {
-    const token = pageAccessTokens[page.id];
     setSelectedPage(page);
     setSelectedConversation(null);
     setMessages([]);
-
+    const token = pageAccessTokens[page.id];
+    const query =
+      page.platform === "instagram" ? "&platform=instagram" : "";
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}/conversations?${
-        page.type === "instagram" ? "platform=instagram&" : ""
-      }fields=participants&access_token=${token}`
+      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants${query}&access_token=${token}`
     );
     const data = await res.json();
-
-    if (page.type === "instagram") {
-      const enriched = await Promise.all(
-        (data.data || []).map(async (conv) => {
-          const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${token}`
-          );
-          const msgData = await msgRes.json();
-          const msg = msgData?.data?.[0];
-          return {
-            ...conv,
-            userName: msg?.from?.name || msg?.from?.username || "User",
-            businessName: page.name,
-          };
-        })
-      );
-      setConversations(enriched);
-    } else {
-      setConversations(data.data || []);
-    }
+    setConversations(data.data || []);
   };
 
   const fetchMessages = async (conv) => {
