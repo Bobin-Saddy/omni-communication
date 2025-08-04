@@ -1,3 +1,4 @@
+// Import statements
 import React, { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
 
@@ -11,7 +12,7 @@ export default function SocialChatDashboard() {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
+  const [newMessage, setNewMessage] = useState([]);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -96,9 +97,8 @@ export default function SocialChatDashboard() {
     setSelectedConversation(null);
     setMessages([]);
     const token = pageAccessTokens[page.id];
-    const query = page.platform === "instagram" ? "&platform=instagram" : "";
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants${query}&access_token=${token}`
+      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`
     );
     const data = await res.json();
     setConversations(data.data || []);
@@ -219,7 +219,7 @@ export default function SocialChatDashboard() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            {/* Pages List */}
+            {/* Pages */}
             <div
               style={{
                 width: "20%",
@@ -243,14 +243,13 @@ export default function SocialChatDashboard() {
                     borderBottom: "1px solid #eee",
                   }}
                 >
-                  <Text>
-                    {pg.name} ({pg.platform === "instagram" ? "IG" : "FB"})
-                  </Text>
+                  <Text>{pg.name}</Text>
+                  <div style={{ fontSize: 12, color: "#2196f3" }}>Connected</div>
                 </div>
               ))}
             </div>
 
-            {/* Conversations List */}
+            {/* Conversations */}
             <div
               style={{
                 width: "28%",
@@ -263,13 +262,10 @@ export default function SocialChatDashboard() {
                 Conversations
               </Text>
               {conversations.map((c) => {
-                let label = "";
-                if (selectedPage.platform === "instagram") label = `${c.id}`;
-                else
-                  label = c.participants.data
-                    .filter((p) => p.name !== selectedPage.name)
-                    .map((p) => p.name)
-                    .join(", ");
+                const names = c.participants?.data
+                  ?.filter((p) => p.name !== selectedPage.name)
+                  .map((p) => p.name)
+                  .join(", ");
                 return (
                   <div
                     key={c.id}
@@ -284,13 +280,13 @@ export default function SocialChatDashboard() {
                       borderBottom: "1px solid #f2f2f2",
                     }}
                   >
-                    <Text>{label}</Text>
+                    <Text>{names || "Unnamed Conversation"}</Text>
                   </div>
                 );
               })}
             </div>
 
-            {/* Chat Panel */}
+            {/* Chat */}
             <div
               style={{
                 flex: 1,
@@ -335,7 +331,7 @@ export default function SocialChatDashboard() {
                         }}
                       >
                         <div style={{ fontWeight: "bold", marginBottom: 4 }}>
-                          {m.from?.name}{" "}
+                          {m.from?.name}
                           <span
                             style={{
                               fontSize: 11,
@@ -345,6 +341,7 @@ export default function SocialChatDashboard() {
                                   : "#1877f2",
                             }}
                           >
+                            {" "}
                             ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
                           </span>
                         </div>
@@ -357,6 +354,8 @@ export default function SocialChatDashboard() {
                   );
                 })}
               </div>
+
+              {/* Input */}
               <div
                 style={{
                   display: "flex",
