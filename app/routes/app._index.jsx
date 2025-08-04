@@ -71,7 +71,7 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
-    if (!data?.data?.length) {
+    if (!Array.isArray(data?.data) || data.data.length === 0) {
       alert("No Facebook pages found.");
       return;
     }
@@ -97,6 +97,11 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
+    if (!Array.isArray(data?.data)) {
+      alert("Instagram account response is invalid.");
+      return;
+    }
+
     const igPages = data.data.filter((p) => p.instagram_business_account);
     if (igPages.length === 0) {
       alert("No Instagram business accounts found.");
@@ -121,16 +126,22 @@ export default function SocialChatDashboard() {
     setSelectedConversation(null);
     setMessages([]);
 
-    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?$${
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?${
       page.type === "instagram" ? "platform=instagram&" : ""
     }fields=participants&access_token=${token}`;
 
     const res = await fetch(url);
     const data = await res.json();
 
+    if (!Array.isArray(data?.data)) {
+      alert("No conversations found.");
+      setConversations([]);
+      return;
+    }
+
     if (page.type === "instagram") {
       const enriched = await Promise.all(
-        (data.data || []).map(async (conv) => {
+        data.data.map(async (conv) => {
           const msgRes = await fetch(
             `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${token}`
           );
@@ -145,7 +156,7 @@ export default function SocialChatDashboard() {
       );
       setConversations(enriched);
     } else {
-      setConversations(data.data || []);
+      setConversations(data.data);
     }
   };
 
@@ -170,7 +181,7 @@ export default function SocialChatDashboard() {
         `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
       );
       const msgData = await msgRes.json();
-      const sender = msgData.data.find(
+      const sender = msgData?.data?.find(
         (m) => m.from?.id !== selectedPage.igId
       );
 
@@ -186,7 +197,7 @@ export default function SocialChatDashboard() {
         }),
       });
     } else {
-      const participants = selectedConversation.participants.data;
+      const participants = selectedConversation.participants?.data || [];
       const recipient = participants.find((p) => p.name !== selectedPage.name);
       if (!recipient) return alert("Recipient not found");
 
@@ -259,8 +270,8 @@ export default function SocialChatDashboard() {
                 const name =
                   selectedPage?.type === "instagram"
                     ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : conv.participants.data
-                        .filter((p) => p.name !== selectedPage.name)
+                    : conv.participants?.data
+                        ?.filter((p) => p.name !== selectedPage.name)
                         .map((p) => p.name)
                         .join(", ");
                 return (
