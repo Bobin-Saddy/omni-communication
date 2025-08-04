@@ -41,11 +41,12 @@ export default function SocialChatDashboard() {
         if (res.authResponse) {
           fetchFacebookPages(res.authResponse.accessToken);
           setSelectedPage(null);
+          setConversations([]);
+          setMessages([]);
         }
       },
       {
-        scope:
-          "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
+        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
       }
     );
   };
@@ -56,6 +57,8 @@ export default function SocialChatDashboard() {
         if (res.authResponse) {
           fetchInstagramPages(res.authResponse.accessToken);
           setSelectedPage(null);
+          setConversations([]);
+          setMessages([]);
         }
       },
       {
@@ -85,10 +88,8 @@ export default function SocialChatDashboard() {
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
     setFbPages(pages);
     setFbConnected(true);
-
-    if (pages.length > 0) {
-      fetchConversations(pages[0], tokens[pages[0].id]);
-    }
+    setSelectedPage(pages[0]);
+    fetchConversations(pages[0], tokens[pages[0].id]);
   };
 
   const fetchInstagramPages = async (accessToken) => {
@@ -117,7 +118,7 @@ export default function SocialChatDashboard() {
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
     setIgPages(enriched);
     setIgConnected(true);
-
+    setSelectedPage(enriched[0]);
     fetchConversations(enriched[0], tokens[enriched[0].id]);
   };
 
@@ -126,7 +127,7 @@ export default function SocialChatDashboard() {
     setSelectedConversation(null);
     setMessages([]);
 
-    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?${
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?$${
       page.type === "instagram" ? "platform=instagram&" : ""
     }fields=participants&access_token=${token}`;
 
@@ -181,9 +182,7 @@ export default function SocialChatDashboard() {
         `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
       );
       const msgData = await msgRes.json();
-      const sender = msgData?.data?.find(
-        (m) => m.from?.id !== selectedPage.igId
-      );
+      const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
 
       if (!sender) return alert("Recipient not found");
 
@@ -221,12 +220,10 @@ export default function SocialChatDashboard() {
     <Page title="📱 Social Chat Dashboard">
       <Card sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          {!fbConnected && <Button onClick={handleFacebookLogin} primary>Connect Facebook</Button>}
-          {!igConnected && (
-            <div style={{ marginTop: 10 }}>
-              <Button onClick={handleInstagramLogin}>Connect Instagram</Button>
-            </div>
-          )}
+          <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>Connect Facebook</Button>
+          <div style={{ marginTop: 10 }}>
+            <Button onClick={handleInstagramLogin} disabled={igConnected}>Connect Instagram</Button>
+          </div>
         </div>
 
         {selectedPage && (
@@ -270,10 +267,7 @@ export default function SocialChatDashboard() {
                 const name =
                   selectedPage?.type === "instagram"
                     ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : conv.participants?.data
-                        ?.filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ");
+                    : conv.participants?.data?.filter((p) => p.name !== selectedPage.name).map((p) => p.name).join(", ");
                 return (
                   <div
                     key={conv.id}
