@@ -35,14 +35,32 @@ export default function SocialChatDashboard() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
+  const resetFbData = () => {
+    setFbPages([]);
+    setFbConnected(false);
+    if (selectedPage?.type === "facebook") {
+      setSelectedPage(null);
+      setConversations([]);
+      setMessages([]);
+    }
+  };
+
+  const resetIgData = () => {
+    setIgPages([]);
+    setIgConnected(false);
+    if (selectedPage?.type === "instagram") {
+      setSelectedPage(null);
+      setConversations([]);
+      setMessages([]);
+    }
+  };
+
   const handleFacebookLogin = () => {
     window.FB.login(
       (res) => {
         if (res.authResponse) {
+          resetIgData();
           fetchFacebookPages(res.authResponse.accessToken);
-          setSelectedPage(null);
-          setConversations([]);
-          setMessages([]);
         }
       },
       {
@@ -55,10 +73,8 @@ export default function SocialChatDashboard() {
     window.FB.login(
       (res) => {
         if (res.authResponse) {
+          resetFbData();
           fetchInstagramPages(res.authResponse.accessToken);
-          setSelectedPage(null);
-          setConversations([]);
-          setMessages([]);
         }
       },
       {
