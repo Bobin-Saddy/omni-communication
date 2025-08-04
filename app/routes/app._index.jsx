@@ -108,7 +108,7 @@ export default function SocialChatDashboard() {
     fetchConversations(pages[0], tokens[pages[0].id]);
   };
 
-  const fetchInstagramPages = async (accessToken) => {
+   const fetchInstagramPages = async (accessToken) => {
     const res = await fetch(
       `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
     );
@@ -127,7 +127,7 @@ export default function SocialChatDashboard() {
 
     const tokens = {};
     const enriched = igPages.map((page) => {
-      tokens[page.instagram_business_account.id] = page.access_token;
+      tokens[page.id] = page.access_token;
       return {
         ...page,
         type: "instagram",
@@ -139,47 +139,12 @@ export default function SocialChatDashboard() {
     setIgPages(enriched);
     setIgConnected(true);
     setSelectedPage(enriched[0]);
-    fetchInstagramConversations(enriched[0], tokens[enriched[0].igId]);
-  };
 
-  const fetchInstagramConversations = async (page, token) => {
-    setSelectedPage(page);
-    setSelectedConversation(null);
-    setMessages([]);
-
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=participants,message_count&access_token=${token}`
-    );
-    const data = await res.json();
-
-    if (!Array.isArray(data?.data)) {
-      alert("No Instagram conversations found.");
-      setConversations([]);
-      return;
-    }
-
-    const enriched = await Promise.all(
-      data.data.map(async (conv) => {
-        const msgRes = await fetch(
-          `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${token}`
-        );
-        const msgData = await msgRes.json();
-        const msg = msgData?.data?.[0];
-        return {
-          ...conv,
-          userName: msg?.from?.name || msg?.from?.username || "User",
-          businessName: page.name,
-        };
-      })
-    );
-    setConversations(enriched);
+-   fetchConversations(enriched[0], tokens[enriched[0].id]);  // IG: Remove this call
++   setConversations([]); // IG does not support direct conversation fetch here
   };
 
   const fetchConversations = async (page, token) => {
-    if (page.type === "instagram") {
-      return fetchInstagramConversations(page, token);
-    }
-
     setSelectedPage(page);
     setSelectedConversation(null);
     setMessages([]);
@@ -195,11 +160,38 @@ export default function SocialChatDashboard() {
       return;
     }
 
-    setConversations(data.data);
+    if (page.type === "instagram") {
+      const enriched = await Promise.all(
+        data.data.map(async (conv) => {
+          const msgRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${token}`
+          );
+          const msgData = await msgRes.json();
+          const msg = msgData?.data?.[0];
+          return {
+            ...conv,
+            userName: msg?.from?.name || msg?.from?.username || "User",
+            businessName: page.name,
+          };
+        })
+      );
+      setConversations(enriched);
+    } else {
+      setConversations(data.data);
+    }
   };
 
+  const fetchMessages = async (conv) => {
+    if (!selectedPage) return;
+    const token = pageAccessTokens[selectedPage.id];
 
-
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
+    );
+    const data = await res.json();
+    setMessages(data?.data?.reverse() || []);
+    setSelectedConversation(conv);
+  };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
