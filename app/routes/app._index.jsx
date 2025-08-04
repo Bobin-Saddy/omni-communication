@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text, Badge, Layout } from "@shopify/polaris";
+import { Page, Card, Button, Text, Badge, Layout, Spinner } from "@shopify/polaris";
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
   const [fbConnected, setFbConnected] = useState(false);
+  const [igConnected, setIgConnected] = useState(false);
   const [selectedPage, setSelectedPage] = useState(null);
   const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [conversations, setConversations] = useState([]);
@@ -88,8 +89,6 @@ export default function SocialChatDashboard() {
           const newMsgs = {};
           data.data.forEach((conv) => (newMsgs[conv.id] = false));
           setNewMessages(newMsgs);
-        } else {
-          console.warn("No conversations found", data);
         }
       })
       .catch((err) => console.error("Error fetching conversations", err));
@@ -143,183 +142,133 @@ export default function SocialChatDashboard() {
         if (data.message_id) {
           setNewMessage("");
           fetchMessages(selectedConversation);
-        } else {
-          console.warn("Message send failed", data);
         }
       })
       .catch((err) => console.error("Send message error", err));
   };
 
   return (
-    <Page title="📱 Facebook Chat">
+    <Page title="📱 Social Chat Dashboard">
       <Card sectioned>
         {!fbConnected && (
-          <div style={{ textAlign: "center", marginBottom: "30px" }}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
             <Button onClick={handleFacebookLogin} primary>
               Connect Facebook
             </Button>
+            <div style={{ marginTop: 10 }}>
+              <Button disabled>Connect Instagram (Coming Soon)</Button>
+            </div>
           </div>
         )}
 
-        <div
-          style={{
-            display: "flex",
-            height: "600px",
-            border: "1px solid #ccc",
-            borderRadius: 8,
-            overflow: "hidden",
-          }}
-        >
-          {/* Left Column: Pages */}
+        {fbConnected && (
           <div
             style={{
-              width: "25%",
-              borderRight: "1px solid #eee",
-              overflowY: "auto",
-              background: "#fafafa",
+              display: "flex",
+              height: "600px",
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              overflow: "hidden",
             }}
           >
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-              <Text variant="headingMd">Pages</Text>
-            </div>
-            {fbPages.map((page) => (
-              <div
-                key={page.id}
-                onClick={() => fetchConversations(page)}
-                style={{
-                  padding: "12px 16px",
-                  borderBottom: "1px solid #eee",
-                  backgroundColor:
-                    selectedPage?.id === page.id ? "#e3f2fd" : "transparent",
-                  cursor: "pointer",
-                }}
-              >
-                <Text variant="bodyMd">{page.name}</Text>
+            {/* Pages List */}
+            <div style={{ width: "25%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+                <Text variant="headingMd">Pages</Text>
               </div>
-            ))}
-          </div>
-
-          {/* Middle Column: Conversations */}
-          <div
-            style={{
-              width: "30%",
-              borderRight: "1px solid #eee",
-              overflowY: "auto",
-              background: "#fdfdfd",
-            }}
-          >
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-              <Text variant="headingMd">Conversations</Text>
-            </div>
-            {conversations.map((conv) => {
-              const participantNames = conv.participants.data
-                .filter((p) => p.name !== selectedPage?.name)
-                .map((p) => p.name)
-                .join(", ");
-              return (
+              {fbPages.map((page) => (
                 <div
-                  key={conv.id}
-                  onClick={() => fetchMessages(conv)}
+                  key={page.id}
+                  onClick={() => fetchConversations(page)}
                   style={{
-                    padding: "12px 16px",
-                    borderBottom: "1px solid #eee",
-                    backgroundColor:
-                      selectedConversation?.id === conv.id
-                        ? "#e7f1ff"
-                        : "transparent",
+                    padding: 12,
                     cursor: "pointer",
+                    backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
                   }}
                 >
-                  <Text variant="bodyMd">
-                    <strong>{participantNames}</strong>
-                  </Text>
-                  {newMessages[conv.id] && (
-                    <Badge status="critical">New</Badge>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Right Column: Messages */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            <div
-              style={{
-                padding: 12,
-                borderBottom: "1px solid #ddd",
-                background: "#fff",
-              }}
-            >
-              <Text variant="headingMd">Chat</Text>
-            </div>
-            <div
-              style={{
-                flex: 1,
-                padding: 15,
-                overflowY: "auto",
-                background: "#f5f5f5",
-              }}
-            >
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  style={{
-                    textAlign:
-                      msg.from?.name === selectedPage?.name
-                        ? "right"
-                        : "left",
-                    marginBottom: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "inline-block",
-                      padding: "10px 15px",
-                      borderRadius: 10,
-                      backgroundColor:
-                        msg.from?.name === selectedPage?.name
-                          ? "#d1e7dd"
-                          : "#fff",
-                      border: "1px solid #ccc",
-                    }}
-                  >
-                    <strong>{msg.from?.name}</strong>
-                    <div>{msg.message}</div>
-                    <small style={{ fontSize: 12 }}>
-                      {new Date(msg.created_time).toLocaleString()}
-                    </small>
-                  </div>
+                  <Text>{page.name}</Text>
                 </div>
               ))}
             </div>
 
-            {/* Message Input */}
-            <div
-              style={{
-                display: "flex",
-                padding: 12,
-                borderTop: "1px solid #ddd",
-                background: "#fff",
-              }}
-            >
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message"
-                style={{
-                  flex: 1,
-                  padding: 10,
-                  border: "1px solid #ccc",
-                  borderRadius: 5,
-                }}
-              />
-              <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
-                Send
-              </Button>
+            {/* Conversations */}
+            <div style={{ width: "30%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+                <Text variant="headingMd">Conversations</Text>
+              </div>
+              {conversations.length === 0 && (
+                <div style={{ padding: 12 }}>No conversations available.</div>
+              )}
+              {conversations.map((conv) => {
+                const participantNames = conv.participants.data
+                  .filter((p) => p.name !== selectedPage?.name)
+                  .map((p) => p.name)
+                  .join(", ");
+                return (
+                  <div
+                    key={conv.id}
+                    onClick={() => fetchMessages(conv)}
+                    style={{
+                      padding: 12,
+                      cursor: "pointer",
+                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
+                    }}
+                  >
+                    <Text>{participantNames}</Text>
+                    {newMessages[conv.id] && <Badge status="critical">New</Badge>}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+                <Text variant="headingMd">Chat</Text>
+              </div>
+              <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      textAlign: msg.from?.name === selectedPage?.name ? "right" : "left",
+                      marginBottom: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "inline-block",
+                        padding: 10,
+                        borderRadius: 8,
+                        backgroundColor:
+                          msg.from?.name === selectedPage?.name ? "#d1e7dd" : "white",
+                        border: "1px solid #ccc",
+                      }}
+                    >
+                      <strong>{msg.from?.name}</strong>
+                      <div>{msg.message}</div>
+                      <small>{new Date(msg.created_time).toLocaleString()}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Input */}
+              <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message"
+                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+                />
+                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
+                  Send
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </Card>
     </Page>
   );
