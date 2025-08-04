@@ -1,41 +1,38 @@
-import { useEffect } from "react";
-import { Page, Card, Button } from "@shopify/polaris";
-import {
-  initFacebookSDK,
-  handleFacebookLogin,
-  handleInstagramLogin,
-} from "./app.fbcode";
+import { useState } from "react";
+import { Page, Card, Button, Text, Tabs } from "@shopify/polaris";
+import FacebookPagesConversations from "./app.facebook";
+import InstagramChatProcessor from "./app.instagram";
 
-export default function SocialConnectButtons() {
-  useEffect(() => {
-    initFacebookSDK();
-  }, []);
+export default function UnifiedChatManager() {
+  const [selectedTab, setSelectedTab] = useState(0);
 
-  const onFacebookLogin = () => {
-    handleFacebookLogin((accessToken) => {
-      console.log("Facebook access token:", accessToken);
-      // Optional: Call your fetchPages logic here
-    });
-  };
-
-  const onInstagramLogin = () => {
-    handleInstagramLogin((accessToken) => {
-      console.log("Instagram access token:", accessToken);
-      // Optional: Call your fetchInstagramPages logic here
-    });
-  };
+  const tabs = [
+    {
+      id: "facebook",
+      content: "Facebook Chat",
+      accessibilityLabel: "Facebook Chat Tab",
+      panelID: "facebook-content",
+    },
+    {
+      id: "instagram",
+      content: "Instagram Chat",
+      accessibilityLabel: "Instagram Chat Tab",
+      panelID: "instagram-content",
+    },
+  ];
 
   return (
-    <Page title="🔗 Connect Social Media">
-      <Card sectioned>
-        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: "20px", padding: "50px 0" }}>
-          <Button onClick={onFacebookLogin} primary size="large">
-            Connect with Facebook
-          </Button>
-          <Button onClick={onInstagramLogin} primary size="large">
-            Connect with Instagram
-          </Button>
-        </div>
+    <Page title="💬 Unified Chat Manager">
+      <Card>
+        <Tabs tabs={tabs} selected={selectedTab} onSelect={setSelectedTab}>
+          <Card.Section>
+            {selectedTab === 0 ? (
+              <FacebookPagesConversations />
+            ) : (
+              <InstagramChatProcessor />
+            )}
+          </Card.Section>
+        </Tabs>
       </Card>
     </Page>
   );
