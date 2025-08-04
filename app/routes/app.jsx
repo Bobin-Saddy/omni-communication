@@ -1,10 +1,17 @@
-import { Outlet, useLoaderData } from "@remix-run/react";
+import {
+  Outlet,
+  useLoaderData,
+  useRouteError,
+  useNavigation,
+} from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import { Spinner } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { PersistentLink } from "./components/PersistentLink";
+import { Suspense } from "react";
 
 // Include Polaris styles
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
@@ -27,24 +34,43 @@ export const loader = async ({ request }) => {
 // ✅ Main app shell
 export default function App() {
   const { apiKey, shop } = useLoaderData();
+  const navigation = useNavigation();
+  const isLoading = navigation.state === "loading";
+
+  if (!apiKey || !shop) {
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        <Spinner accessibilityLabel="Initializing..." size="large" />
+      </div>
+    );
+  }
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey} shopOrigin={shop}>
       <NavMenu>
-        <PersistentLink to="/app/pricing">Plan</PersistentLink>
-        <PersistentLink to="/app/facebook">Facebook</PersistentLink>
-        <PersistentLink to="/app/instagram">Instagram</PersistentLink>
+           <PersistentLink to="/app/pricing">Plan</PersistentLink>
+           <PersistentLink to="/app/facebook">Facebook</PersistentLink>
+             <PersistentLink to="/app/instagram">Instagram</PersistentLink>
       </NavMenu>
-      <Outlet />
+
+      {isLoading ? (
+        <div style={{ padding: "2rem", textAlign: "center" }}>
+          <Spinner accessibilityLabel="Loading" size="large" />
+        </div>
+      ) : (
+        <Suspense fallback={<Spinner accessibilityLabel="Loading..." size="large" />}>
+          <Outlet />
+        </Suspense>
+      )}
     </AppProvider>
   );
 }
 
-// ✅ Error boundary shows fallback content
+// ✅ Error boundary shows loader instead of error message
 export function ErrorBoundary() {
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
-      Something went wrong. Please try again.
+      <Spinner accessibilityLabel="Loading..." size="large" />
     </div>
   );
 }
