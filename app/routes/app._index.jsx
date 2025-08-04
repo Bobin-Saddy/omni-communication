@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Page, Card, Button, Text, Badge, Icon } from "@shopify/polaris";
-import { ChatMajor, SocialFacebookMajor, SocialInstagramMajor } from "@shopify/polaris-icons";
+import { Page, Card, Button, Text } from "@shopify/polaris";
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
@@ -185,14 +184,10 @@ export default function SocialChatDashboard() {
     <Page title="Social Chat Dashboard">
       <Card sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Button onClick={handleFacebookLogin} icon={SocialFacebookMajor}>
+          <Button onClick={handleFacebookLogin} primary>
             {fbConnected ? "Facebook Connected" : "Connect Facebook"}
           </Button>
-          <Button
-            onClick={handleInstagramLogin}
-            icon={SocialInstagramMajor}
-            style={{ marginLeft: 10 }}
-          >
+          <Button onClick={handleInstagramLogin} style={{ marginLeft: 10 }}>
             {igConnected ? "Instagram Connected" : "Connect Instagram"}
           </Button>
         </div>
@@ -201,16 +196,24 @@ export default function SocialChatDashboard() {
           <div
             style={{
               display: "flex",
-              height: 750,
+              height: 650,
               width: "100%",
               border: "1px solid #ccc",
-              borderRadius: 12,
-              boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+              borderRadius: 8,
               overflow: "hidden",
             }}
           >
-            <div style={{ width: "20%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <Text variant="headingMd" as="h3" style={{ padding: 12 }}>Pages</Text>
+            {/* Pages */}
+            <div
+              style={{
+                width: "20%",
+                borderRight: "1px solid #eee",
+                overflowY: "auto",
+              }}
+            >
+              <Text variant="headingMd" style={{ padding: 12 }}>
+                Pages
+              </Text>
               {allPages.map((pg) => (
                 <div
                   key={pg.id}
@@ -218,22 +221,28 @@ export default function SocialChatDashboard() {
                   style={{
                     padding: 12,
                     cursor: "pointer",
-                    backgroundColor: selectedPage?.id === pg.id ? "#e3f2fd" : "white",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                    backgroundColor:
+                      selectedPage?.id === pg.id ? "#e3f2fd" : "white",
                   }}
                 >
-                  <Text>{pg.name}</Text>
-                  <Badge status={pg.platform === "instagram" ? "attention" : "info"}>
-                    {pg.platform === "instagram" ? "IG" : "FB"}
-                  </Badge>
+                  <Text>
+                    {pg.name} ({pg.platform === "instagram" ? "IG" : "FB"})
+                  </Text>
                 </div>
               ))}
             </div>
 
-            <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <Text variant="headingMd" as="h3" style={{ padding: 12 }}>Conversations</Text>
+            {/* Conversations */}
+            <div
+              style={{
+                width: "28%",
+                borderRight: "1px solid #eee",
+                overflowY: "auto",
+              }}
+            >
+              <Text variant="headingMd" style={{ padding: 12 }}>
+                Conversations
+              </Text>
               {conversations.map((c) => {
                 let label = "";
                 if (selectedPage.platform === "instagram")
@@ -250,7 +259,8 @@ export default function SocialChatDashboard() {
                     style={{
                       padding: 12,
                       cursor: "pointer",
-                      backgroundColor: selectedConversation?.id === c.id ? "#e7f1ff" : "white",
+                      backgroundColor:
+                        selectedConversation?.id === c.id ? "#e7f1ff" : "white",
                     }}
                   >
                     <Text>{label}</Text>
@@ -259,23 +269,34 @@ export default function SocialChatDashboard() {
               })}
             </div>
 
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{
-                padding: 12,
-                borderBottom: "1px solid #ddd",
+            {/* Chat */}
+            <div
+              style={{
+                flex: 1,
                 display: "flex",
-                alignItems: "center",
-                gap: 8
-              }}>
-                <Icon source={ChatMajor} color="base" />
-                <Text variant="headingMd">Chat</Text>
-              </div>
-              <div style={{ flex: 1, overflowY: "auto", padding: 12, background: "#f9f9f9" }}>
+                flexDirection: "column",
+              }}
+            >
+              <Text
+                variant="headingMd"
+                style={{ padding: 12, borderBottom: "1px solid #ddd" }}
+              >
+                Chat
+              </Text>
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  padding: 12,
+                  background: "#f9f9f9",
+                }}
+              >
                 {messages.map((m) => (
                   <div
                     key={m.id}
                     style={{
-                      textAlign: m.from?.name === selectedPage.name ? "right" : "left",
+                      textAlign:
+                        m.from?.name === selectedPage.name ? "right" : "left",
                       marginBottom: 10,
                     }}
                   >
@@ -286,18 +307,37 @@ export default function SocialChatDashboard() {
                         borderRadius: 8,
                         maxWidth: "80%",
                         backgroundColor:
-                          m.from?.name === selectedPage?.name ? "#d1e7dd" : "white",
+                          m.from?.name === selectedPage?.name
+                            ? "#d1e7dd"
+                            : "white",
                         border: "1px solid #ccc",
                       }}
                     >
-                      <strong>{m.from?.name}</strong>
+                      <strong>
+                        {m.from?.name}{" "}
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color:
+                              selectedPage?.platform === "instagram"
+                                ? "#c13584"
+                                : "#1877f2",
+                          }}
+                        >
+                          ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
+                        </span>
+                      </strong>
                       <div>{m.message}</div>
-                      <small>{new Date(m.created_time).toLocaleString()}</small>
+                      <small>
+                        {new Date(m.created_time).toLocaleString()}
+                      </small>
                     </div>
                   </div>
                 ))}
               </div>
-              <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
+              <div
+                style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}
+              >
                 <input
                   type="text"
                   value={newMessage}
