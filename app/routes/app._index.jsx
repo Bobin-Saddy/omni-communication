@@ -4,8 +4,7 @@ import { Page, Card, Button, Text } from "@shopify/polaris";
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
-  const [fbConnected, setFbConnected] = useState(false);
-  const [igConnected, setIgConnected] = useState(false);
+  const [activePlatform, setActivePlatform] = useState(null);
   const [selectedPage, setSelectedPage] = useState(null);
   const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [conversations, setConversations] = useState([]);
@@ -69,24 +68,18 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
-    if (!data?.data?.length) {
-      alert("No Facebook pages found.");
-      return;
-    }
+    if (!data?.data?.length) return alert("No Facebook pages found");
 
     const tokens = {};
-    const pages = data.data.map((page) => {
+    const enriched = data.data.map((page) => {
       tokens[page.id] = page.access_token;
       return { ...page, type: "facebook" };
     });
 
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-    setFbPages(pages);
-    setFbConnected(true);
-
-    if (pages.length > 0) {
-      fetchConversations(pages[0], tokens[pages[0].id]);
-    }
+    setFbPages(enriched);
+    setActivePlatform("facebook");
+    fetchConversations(enriched[0], tokens[enriched[0].id]);
   };
 
   const fetchInstagramPages = async (accessToken) => {
@@ -96,10 +89,7 @@ export default function SocialChatDashboard() {
     const data = await res.json();
 
     const igPages = data.data.filter((p) => p.instagram_business_account);
-    if (igPages.length === 0) {
-      alert("No Instagram business accounts found.");
-      return;
-    }
+    if (igPages.length === 0) return alert("No Instagram business accounts found");
 
     const tokens = {};
     const enriched = igPages.map((page) => {
@@ -109,8 +99,7 @@ export default function SocialChatDashboard() {
 
     setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
     setIgPages(enriched);
-    setIgConnected(true);
-
+    setActivePlatform("instagram");
     fetchConversations(enriched[0], tokens[enriched[0].id]);
   };
 
@@ -119,7 +108,7 @@ export default function SocialChatDashboard() {
     setSelectedConversation(null);
     setMessages([]);
 
-    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?${
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?$${
       page.type === "instagram" ? "platform=instagram&" : ""
     }fields=participants&access_token=${token}`;
 
@@ -136,7 +125,7 @@ export default function SocialChatDashboard() {
           const msg = msgData?.data?.[0];
           return {
             ...conv,
-            userName: msg?.from?.name || msg?.from?.username || "User",
+            userName: msg?.from?.username || msg?.from?.name || "User",
             businessName: page.name,
           };
         })
@@ -205,35 +194,28 @@ export default function SocialChatDashboard() {
   };
 
   return (
-    <Page title="📱 Social Chat Dashboard">
+    <Page title="Social Chat Dashboard">
       <Card sectioned>
-        {!fbConnected && !igConnected && (
+        {!activePlatform && (
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <Button onClick={handleInstagramLogin} primary>
+              Connect Instagram
+            </Button>
+          </div>
+        )}
+
+        {activePlatform === "instagram" && (
           <div style={{ textAlign: "center", marginBottom: 20 }}>
             <Button onClick={handleFacebookLogin} primary>
               Connect Facebook
             </Button>
-            <div style={{ marginTop: 10 }}>
-              <Button onClick={handleInstagramLogin}>Connect Instagram</Button>
-            </div>
           </div>
         )}
 
-        {(fbConnected || igConnected) && (
-          <div
-            style={{
-              display: "flex",
-              height: "650px",
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              overflow: "hidden",
-              width: "100%",
-            }}
-          >
-            {/* Pages List */}
-            <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Pages</Text>
-              </div>
+        {activePlatform && (
+          <div style={{ display: "flex", height: "650px", border: "1px solid #ccc", borderRadius: 8 }}>
+            <div style={{ width: "25%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+              <Text variant="headingMd" as="h2" style={{ padding: 10 }}>Pages</Text>
               {[...fbPages, ...igPages].map((page) => (
                 <div
                   key={page.id}
@@ -249,22 +231,13 @@ export default function SocialChatDashboard() {
               ))}
             </div>
 
-            {/* Conversations */}
-            <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Conversations</Text>
-              </div>
-              {conversations.length === 0 && (
-                <div style={{ padding: 12 }}>No conversations available.</div>
-              )}
+            <div style={{ width: "30%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+              <Text variant="headingMd" as="h2" style={{ padding: 10 }}>Conversations</Text>
               {conversations.map((conv) => {
                 const name =
                   selectedPage?.type === "instagram"
-                    ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : conv.participants.data
-                        .filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ");
+                    ? `${conv.businessName} ↔ ${conv.userName}`
+                    : conv.participants.data.filter((p) => p.name !== selectedPage.name).map((p) => p.name).join(", ");
                 return (
                   <div
                     key={conv.id}
@@ -281,11 +254,8 @@ export default function SocialChatDashboard() {
               })}
             </div>
 
-            {/* Chat */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Chat</Text>
-              </div>
+              <Text variant="headingMd" as="h2" style={{ padding: 10 }}>Chat</Text>
               <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
                 {messages.map((msg) => (
                   <div
@@ -300,8 +270,7 @@ export default function SocialChatDashboard() {
                         display: "inline-block",
                         padding: 10,
                         borderRadius: 8,
-                        backgroundColor:
-                          msg.from?.name === selectedPage?.name ? "#d1e7dd" : "white",
+                        backgroundColor: msg.from?.name === selectedPage?.name ? "#d1e7dd" : "white",
                         border: "1px solid #ccc",
                         maxWidth: "80%",
                       }}
