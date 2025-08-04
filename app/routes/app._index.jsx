@@ -16,23 +16,31 @@ export default function SocialChatDashboard() {
   const [newMessages, setNewMessages] = useState({});
   const FACEBOOK_APP_ID = "544704651303656";
 
-  useEffect(() => {
-    window.fbAsyncInit = function () {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: true,
-        version: "v18.0",
-      });
-    };
-    (function (d, s, id) {
-      if (d.getElementById(id)) return;
-      const js = d.createElement(s);
-      js.id = id;
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      d.getElementsByTagName(s)[0].parentNode.insertBefore(js, s);
-    })(document, "script", "facebook-jssdk");
-  }, []);
+useEffect(() => {
+  window.fbAsyncInit = function () {
+    window.FB.init({
+      appId: FACEBOOK_APP_ID,
+      cookie: true,
+      xfbml: true,
+      version: "v18.0",
+    });
+  };
+
+  (function (d, s, id) {
+    if (d.getElementById(id)) return;
+
+    const js = d.createElement(s);
+    js.id = id;
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+
+    const firstScript = d.getElementsByTagName(s)[0];
+    if (firstScript && firstScript.parentNode) {
+      firstScript.parentNode.insertBefore(js, firstScript);
+    } else {
+      d.head.appendChild(js);
+    }
+  })(document, "script", "facebook-jssdk");
+}, []);
 
   const handleFacebookLogin = () => {
     window.FB.login(
