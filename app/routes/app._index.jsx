@@ -144,25 +144,22 @@ export default function SocialChatDashboard() {
 +   setConversations([]); // IG does not support direct conversation fetch here
   };
 
-  const fetchConversations = async (page, token) => {
+  const fetchConversations = async (page) => {
+    const token = pageAccessTokens[page.id];
     setSelectedPage(page);
     setSelectedConversation(null);
     setMessages([]);
 
     const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,message_count&access_token=${token}`
+      `https://graph.facebook.com/v18.0/${page.id}/conversations?${
+        page.type === "instagram" ? "platform=instagram&" : ""
+      }fields=participants&access_token=${token}`
     );
     const data = await res.json();
 
-    if (!Array.isArray(data?.data)) {
-      alert("No conversations found.");
-      setConversations([]);
-      return;
-    }
-
     if (page.type === "instagram") {
       const enriched = await Promise.all(
-        data.data.map(async (conv) => {
+        (data.data || []).map(async (conv) => {
           const msgRes = await fetch(
             `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${token}`
           );
@@ -177,7 +174,7 @@ export default function SocialChatDashboard() {
       );
       setConversations(enriched);
     } else {
-      setConversations(data.data);
+      setConversations(data.data || []);
     }
   };
 
