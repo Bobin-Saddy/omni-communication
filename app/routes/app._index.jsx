@@ -178,6 +178,21 @@ export default function SocialChatDashboard() {
     }
   };
 
+  const getMessageStyle = (m) => {
+    const isSentByPage = m.from?.name === selectedPage?.name;
+    if (selectedPage.platform === "instagram") {
+      return {
+        backgroundColor: isSentByPage ? "#ffe0f0" : "#ede7f6",
+        textAlign: isSentByPage ? "right" : "left",
+      };
+    } else {
+      return {
+        backgroundColor: isSentByPage ? "#d1e7dd" : "#f1f1f1",
+        textAlign: isSentByPage ? "right" : "left",
+      };
+    }
+  };
+
   const allPages = [...fbPages, ...igPages];
 
   return (
@@ -204,7 +219,7 @@ export default function SocialChatDashboard() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            {/* Pages */}
+            {/* Pages List */}
             <div
               style={{
                 width: "20%",
@@ -235,7 +250,7 @@ export default function SocialChatDashboard() {
               ))}
             </div>
 
-            {/* Conversations */}
+            {/* Conversations List */}
             <div
               style={{
                 width: "28%",
@@ -275,7 +290,7 @@ export default function SocialChatDashboard() {
               })}
             </div>
 
-            {/* Chat */}
+            {/* Chat Panel */}
             <div
               style={{
                 flex: 1,
@@ -298,50 +313,49 @@ export default function SocialChatDashboard() {
                   background: "#fff",
                 }}
               >
-                {messages.map((m) => (
-                  <div
-                    key={m.id}
-                    style={{
-                      textAlign:
-                        m.from?.name === selectedPage.name ? "right" : "left",
-                      marginBottom: 12,
-                    }}
-                  >
+                {messages.map((m) => {
+                  const style = getMessageStyle(m);
+                  return (
                     <div
+                      key={m.id}
                       style={{
-                        display: "inline-block",
-                        padding: "10px 14px",
-                        borderRadius: 10,
-                        maxWidth: "75%",
-                        backgroundColor:
-                          m.from?.name === selectedPage?.name
-                            ? "#d1e7dd"
-                            : "#f1f1f1",
-                        border: "1px solid #ccc",
-                        fontSize: 14,
+                        textAlign: style.textAlign,
+                        marginBottom: 12,
                       }}
                     >
-                      <div style={{ fontWeight: "bold", marginBottom: 4 }}>
-                        {m.from?.name}{" "}
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color:
-                              selectedPage?.platform === "instagram"
-                                ? "#c13584"
-                                : "#1877f2",
-                          }}
-                        >
-                          ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
-                        </span>
-                      </div>
-                      <div>{m.message}</div>
-                      <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
-                        {new Date(m.created_time).toLocaleString()}
+                      <div
+                        style={{
+                          display: "inline-block",
+                          padding: "10px 14px",
+                          borderRadius: 10,
+                          maxWidth: "75%",
+                          backgroundColor: style.backgroundColor,
+                          border: "1px solid #ccc",
+                          fontSize: 14,
+                        }}
+                      >
+                        <div style={{ fontWeight: "bold", marginBottom: 4 }}>
+                          {m.from?.name}{" "}
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color:
+                                selectedPage?.platform === "instagram"
+                                  ? "#c13584"
+                                  : "#1877f2",
+                            }}
+                          >
+                            ({selectedPage?.platform === "instagram" ? "IG" : "FB"})
+                          </span>
+                        </div>
+                        <div>{m.message}</div>
+                        <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
+                          {new Date(m.created_time).toLocaleString()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div
                 style={{
