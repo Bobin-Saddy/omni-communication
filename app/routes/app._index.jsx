@@ -155,92 +155,93 @@ useEffect(() => {
           </div>
         )}
 
-        <Layout>
-          <Layout.Section oneThird>
-            <Text variant="headingMd" as="h3" style={{ marginBottom: 12 }}>Connected Pages</Text>
+<Layout>
+  <Layout.Section>
+    <div style={{ display: "flex", height: "600px", border: "1px solid #ccc", borderRadius: 8, overflow: "hidden" }}>
+      {/* Left Sidebar */}
+      <div style={{ width: "30%", borderRight: "1px solid #eee", overflowY: "auto", background: "#fafafa" }}>
+        <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+          <Text variant="headingMd">Conversations</Text>
+        </div>
+        {conversations.map((conv) => {
+          const participantNames = conv.participants.data
+            .filter((p) => p.name !== selectedPage?.name)
+            .map((p) => p.name)
+            .join(", ");
+          return (
+            <div
+              key={conv.id}
+              onClick={() => fetchMessages(conv)}
+              style={{
+                padding: "12px 16px",
+                borderBottom: "1px solid #eee",
+                backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "transparent",
+                cursor: "pointer",
+              }}
+            >
+              <Text variant="bodyMd"><strong>{participantNames}</strong></Text>
+              {newMessages[conv.id] && <Badge status="critical">New</Badge>}
+            </div>
+          );
+        })}
+      </div>
 
-            {[...fbPages, ...igPages].map((page) => (
-              <Card key={page.id} sectioned>
-                <Text>{page.name}</Text>
-                <Button onClick={() => fetchConversations(page)} size="slim" style={{ marginTop: 10 }}>
-                  Show Conversations
-                </Button>
-              </Card>
-            ))}
+      {/* Right Chat Window */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#fff" }}>
+          <Text variant="headingMd">Chat</Text>
+        </div>
+        <div style={{ flex: 1, padding: 15, overflowY: "auto", background: "#f5f5f5" }}>
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              style={{
+                textAlign: msg.from?.name === selectedPage.name ? "right" : "left",
+                marginBottom: 12,
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: "10px 15px",
+                  borderRadius: 10,
+                  backgroundColor: msg.from?.name === selectedPage.name ? "#d1e7dd" : "#fff",
+                  border: "1px solid #ccc",
+                }}
+              >
+                <strong>{msg.from?.name}</strong>
+                <div>{msg.message}</div>
+                <small style={{ fontSize: 12 }}>
+                  {new Date(msg.created_time).toLocaleString()}
+                </small>
+              </div>
+            </div>
+          ))}
+        </div>
 
-            {selectedPage && conversations.length > 0 && (
-              <>
-                <Text variant="headingMd" as="h3" style={{ marginTop: 20 }}>Conversations</Text>
-                {conversations.map((conv) => (
-                  <Card key={conv.id} sectioned>
-                    <Text>Participants: {conv.participants.data.map((p) => p.name).join(", ")}</Text>
-                    {newMessages[conv.id] && <Badge status="critical">New</Badge>}
-                    <Button onClick={() => fetchMessages(conv)} size="slim" style={{ marginTop: 10 }}>
-                      View Chat
-                    </Button>
-                  </Card>
-                ))}
-              </>
-            )}
-          </Layout.Section>
+        {/* Input Section */}
+        <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd", background: "#fff" }}>
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type a message"
+            style={{
+              flex: 1,
+              padding: 10,
+              border: "1px solid #ccc",
+              borderRadius: 5,
+            }}
+          />
+          <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
+            Send
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Layout.Section>
+</Layout>
 
-          <Layout.Section>
-            {selectedConversation && (
-              <>
-                <Text variant="headingMd" as="h3">Chat</Text>
-                <div style={{
-                  maxHeight: 400,
-                  overflowY: "auto",
-                  padding: 15,
-                  marginBottom: 20,
-                  background: "#f9fafb",
-                  border: "1px solid #ddd",
-                  borderRadius: 8,
-                }}>
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      style={{
-                        marginBottom: 10,
-                        textAlign: msg.from?.name === selectedPage.name ? "right" : "left",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "inline-block",
-                          padding: "10px 15px",
-                          borderRadius: 10,
-                          backgroundColor: msg.from?.name === selectedPage.name ? "#d1e7dd" : "#fff",
-                          border: "1px solid #ccc",
-                        }}
-                      >
-                        <strong>{msg.from?.name}</strong>
-                        <div>{msg.message}</div>
-                        <small style={{ fontSize: 12 }}>{new Date(msg.created_time).toLocaleString()}</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type message"
-                    style={{
-                      flex: 1,
-                      padding: 10,
-                      border: "1px solid #ccc",
-                      borderRadius: 5,
-                    }}
-                  />
-                  <Button onClick={sendMessage} primary>Send</Button>
-                </div>
-              </>
-            )}
-          </Layout.Section>
-        </Layout>
       </Card>
     </Page>
   );
