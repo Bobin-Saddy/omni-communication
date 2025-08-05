@@ -19,7 +19,7 @@ export default function SocialChatDashboard() {
   const [waPhoneNumber, setWaPhoneNumber] = useState("");
   const [waMessage, setWaMessage] = useState("");
 
-  const FACEBOOK_APP_ID = "YOUR_FACEBOOK_APP_ID";
+  const FACEBOOK_APP_ID = "544704651303656";
   const WHATSAPP_TOKEN = "YOUR_WHATSAPP_TOKEN";
   const WHATSAPP_PHONE_ID = "YOUR_PHONE_NUMBER_ID";
 
