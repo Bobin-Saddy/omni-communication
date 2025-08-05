@@ -13,6 +13,12 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
+  // 🆕 WhatsApp specific states
+  const [waPhoneNumber, setWaPhoneNumber] = useState(""); // recipient
+  const [waMessage, setWaMessage] = useState("");
+  const WHATSAPP_TOKEN = "YOUR_WHATSAPP_TOKEN"; // Replace this with your permanent token
+  const WHATSAPP_PHONE_ID = "YOUR_PHONE_NUMBER_ID"; // Found in your Meta WhatsApp business app
+
   const FACEBOOK_APP_ID = "544704651303656";
 
   useEffect(() => {
@@ -108,7 +114,7 @@ export default function SocialChatDashboard() {
     fetchConversations(pages[0], tokens[pages[0].id]);
   };
 
-   const fetchInstagramPages = async (accessToken) => {
+  const fetchInstagramPages = async (accessToken) => {
     const res = await fetch(
       `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
     );
@@ -139,9 +145,7 @@ export default function SocialChatDashboard() {
     setIgPages(enriched);
     setIgConnected(true);
     setSelectedPage(enriched[0]);
-
--   fetchConversations(enriched[0], tokens[enriched[0].id]);  // IG: Remove this call
-+   setConversations([]); // IG does not support direct conversation fetch here
+    setConversations([]);
   };
 
   const fetchConversations = async (page) => {
@@ -157,83 +161,79 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
-if (page.type === "instagram") {
-  const enriched = await Promise.all(
-    (data.data || []).map(async (conv) => {
-      const msgRes = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+    if (page.type === "instagram") {
+      const enriched = await Promise.all(
+        (data.data || []).map(async (conv) => {
+          const msgRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+          );
+          const msgData = await msgRes.json();
+          const messages = msgData?.data || [];
+
+          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+          let userName = "Instagram User";
+          if (otherMsg) {
+            userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+          }
+
+          return {
+            ...conv,
+            userName,
+            businessName: page.name,
+          };
+        })
       );
-      const msgData = await msgRes.json();
-      const messages = msgData?.data || [];
-
-      // Find first message not sent by your IG account
-      const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-      let userName = "Instagram User";
-      if (otherMsg) {
-        userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-      }
-
-      return {
-        ...conv,
-        userName,
-        businessName: page.name,
-      };
-    })
-  );
-  setConversations(enriched);
-}
- else {
+      setConversations(enriched);
+    } else {
       setConversations(data.data || []);
     }
   };
 
-const fetchMessages = async (conv) => {
-  if (!selectedPage) return;
-  const token = pageAccessTokens[selectedPage.id];
+  const fetchMessages = async (conv) => {
+    if (!selectedPage) return;
+    const token = pageAccessTokens[selectedPage.id];
 
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-  );
-  const data = await res.json();
-  const rawMessages = data?.data?.reverse() || [];
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
+    );
+    const data = await res.json();
+    const rawMessages = data?.data?.reverse() || [];
 
-const enrichedMessages = rawMessages.map((msg) => {
-  let displayName = "User";
+    const enrichedMessages = rawMessages.map((msg) => {
+      let displayName = "User";
 
-  if (selectedPage.type === "instagram") {
-    if (msg.from?.id === selectedPage.igId) {
-      displayName = selectedPage.name;
-    } else {
-      displayName =
-        conv.userName ||
-        msg.from?.name ||
-        msg.from?.username ||
-        `Instagram User #${msg.from?.id?.slice(-4)}`;
-    }
-  } else {
-    if (msg.from?.name === selectedPage.name) {
-      displayName = selectedPage.name;
-    } else {
-      displayName = msg.from?.name || "User";
-    }
-  }
+      if (selectedPage.type === "instagram") {
+        if (msg.from?.id === selectedPage.igId) {
+          displayName = selectedPage.name;
+        } else {
+          displayName =
+            conv.userName ||
+            msg.from?.name ||
+            msg.from?.username ||
+            `Instagram User #${msg.from?.id?.slice(-4)}`;
+        }
+      } else {
+        if (msg.from?.name === selectedPage.name) {
+          displayName = selectedPage.name;
+        } else {
+          displayName = msg.from?.name || "User";
+        }
+      }
 
-  // Handle timestamp fallback or conversion
-  const createdTime = msg.created_time
-    ? new Date(msg.created_time).toLocaleString()
-    : "Time unavailable";
+      const createdTime = msg.created_time
+        ? new Date(msg.created_time).toLocaleString()
+        : "Time unavailable";
 
-  return {
-    ...msg,
-    displayName,
-    formattedTime: createdTime,
+      return {
+        ...msg,
+        displayName,
+        formattedTime: createdTime,
+      };
+    });
+
+    setMessages(enrichedMessages);
+    setSelectedConversation(conv);
   };
-});
-
-
-  setMessages(enrichedMessages);
-  setSelectedConversation(conv);
-};
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
@@ -245,10 +245,9 @@ const enrichedMessages = rawMessages.map((msg) => {
       );
       const msgData = await msgRes.json();
       const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-
       if (!sender) return alert("Recipient not found");
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}` , {
+      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -278,6 +277,34 @@ const enrichedMessages = rawMessages.map((msg) => {
     fetchMessages(selectedConversation);
   };
 
+  // 🆕 Send WhatsApp message manually
+  const sendWhatsAppMessage = async () => {
+    if (!waPhoneNumber || !waMessage) return alert("Enter number and message");
+
+    const res = await fetch(`https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_ID}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: waPhoneNumber,
+        type: "text",
+        text: { body: waMessage },
+      }),
+    });
+
+    const data = await res.json();
+    if (data?.messages) {
+      alert("Message sent successfully");
+      setWaMessage("");
+    } else {
+      alert("Failed to send message");
+      console.error(data);
+    }
+  };
+  
   return (
     <Page title="📱 Social Chat Dashboard">
       <Card sectioned>
@@ -290,7 +317,30 @@ const enrichedMessages = rawMessages.map((msg) => {
               Connect Instagram
             </Button>
           </div>
+              {/* 🆕 WhatsApp UI */}
+     <div style={{ marginTop: 20, borderTop: "1px solid #ccc", paddingTop: 20 }}>
+            <Text variant="headingMd">Send WhatsApp Message</Text>
+            <div style={{ marginTop: 10 }}>
+              <input
+                type="text"
+                placeholder="Phone number with country code"
+                value={waPhoneNumber}
+                onChange={(e) => setWaPhoneNumber(e.target.value)}
+                style={{ padding: 8, marginRight: 10, width: 200 }}
+              />
+              <input
+                type="text"
+                placeholder="Your message"
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+                style={{ padding: 8, marginRight: 10, width: 300 }}
+              />
+              <Button onClick={sendWhatsAppMessage}>Send WhatsApp</Button>
+            </div>
+          </div>
         </div>
+
+        
 
         {selectedPage && (
           <div
