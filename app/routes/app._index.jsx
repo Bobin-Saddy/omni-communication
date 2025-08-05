@@ -290,14 +290,12 @@ const fetchMessages = async (conv) => {
         {selectedPage && (
           <div
             style={{
-            display: "flex",
-    height: "700px",
-    border: "1px solid #ddd",
-    borderRadius: 12,
-    overflow: "hidden",
-    width: "100%",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-    backgroundColor: "#fff",
+              display: "flex",
+              height: "650px",
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              overflow: "hidden",
+              width: "100%",
             }}
           >
             <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
@@ -308,13 +306,11 @@ const fetchMessages = async (conv) => {
                 <div
                   key={page.id}
                   onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
-            style={{
-  padding: 14,
-  cursor: "pointer",
-  backgroundColor: selectedPage?.id === page.id ? "#333" : "transparent",
-  borderBottom: "1px solid #444",
-}}
-
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
+                  }}
                 >
                   <Text>
                     {page.name} ({page.type})
@@ -340,15 +336,11 @@ const fetchMessages = async (conv) => {
                   <div
                     key={conv.id}
                     onClick={() => fetchMessages(conv)}
-                style={{
-  padding: 14,
-  cursor: "pointer",
-  borderBottom: "1px solid #eee",
-  backgroundColor: selectedConversation?.id === conv.id ? "#e3f2fd" : "#fff",
-  transition: "background-color 0.3s",
-  fontSize: 14,
-}}
-
+                    style={{
+                      padding: 12,
+                      cursor: "pointer",
+                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
+                    }}
                   >
                     <Text>{name}</Text>
                   </div>
@@ -367,16 +359,12 @@ const fetchMessages = async (conv) => {
     : (msg.from?.name === selectedPage?.name);
 
   const bubbleStyle = {
- display: "inline-block",
-  padding: "14px 18px",
-  borderRadius: 20,
-  backgroundColor: isMe ? "#4caf50" : "#2c2c2c",
-  border: isMe ? "1px solid #81c784" : "1px solid #444",
-  maxWidth: "75%",
-  fontSize: "16px",
-  color: "#fff",
-  wordBreak: "break-word",
-  boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+    display: "inline-block",
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+    border: "1px solid #ccc",
+    maxWidth: "80%",
   };
 
   return (
@@ -398,35 +386,16 @@ const fetchMessages = async (conv) => {
 
               </div>
               <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-<input
-  type="text"
-  value={newMessage}
-  onChange={(e) => setNewMessage(e.target.value)}
-  placeholder="Type your message..."
-style={{
-  width: "22%",
-  borderRight: "1px solid #444",
-  overflowY: "auto",
-  backgroundColor: "#2a2a2a",
-  fontSize: "16px",
-  color: "#fff",
-}}
-
-/>
-<Button
-  onClick={sendMessage}
-  primary
-  style={{
-    marginLeft: 12,
-    borderRadius: 25,
-    padding: "10px 20px",
-    fontSize: "16px",
-  }}
->
-  Send
-</Button>
-
-
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message"
+                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+                />
+                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
+                  Send
+                </Button>
               </div>
             </div>
           </div>
@@ -434,6 +403,4 @@ style={{
       </Card>
     </Page>
   );
-  
 }
-
