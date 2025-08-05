@@ -197,34 +197,39 @@ const fetchMessages = async (conv) => {
   const data = await res.json();
   const rawMessages = data?.data?.reverse() || [];
 
-  const enrichedMessages = rawMessages.map((msg) => {
-    let displayName = "User";
+const enrichedMessages = rawMessages.map((msg) => {
+  let displayName = "User";
 
-    if (selectedPage.type === "instagram") {
-      if (msg.from?.id === selectedPage.igId) {
-        displayName = selectedPage.name;
-      } else {
-        // For incoming messages
-        displayName =
-          conv.userName ||
-          msg.from?.name ||
-          msg.from?.username ||
-          `Instagram User #${msg.from?.id?.slice(-4)}`;
-      }
+  if (selectedPage.type === "instagram") {
+    if (msg.from?.id === selectedPage.igId) {
+      displayName = selectedPage.name;
     } else {
-      // Facebook
-      if (msg.from?.name === selectedPage.name) {
-        displayName = selectedPage.name;
-      } else {
-        displayName = msg.from?.name || "User";
-      }
+      displayName =
+        conv.userName ||
+        msg.from?.name ||
+        msg.from?.username ||
+        `Instagram User #${msg.from?.id?.slice(-4)}`;
     }
+  } else {
+    if (msg.from?.name === selectedPage.name) {
+      displayName = selectedPage.name;
+    } else {
+      displayName = msg.from?.name || "User";
+    }
+  }
 
-    return {
-      ...msg,
-      displayName,
-    };
-  });
+  // Handle timestamp fallback or conversion
+  const createdTime = msg.created_time
+    ? new Date(msg.created_time).toLocaleString()
+    : "Time unavailable";
+
+  return {
+    ...msg,
+    displayName,
+    formattedTime: createdTime,
+  };
+});
+
 
   setMessages(enrichedMessages);
   setSelectedConversation(conv);
