@@ -209,19 +209,40 @@ const WHATSAPP_RECIPIENT_NUMBER = "919463955268";
     if (!selectedPage) return;
     const token = pageAccessTokens[selectedPage.id];
 
-    if (selectedPage.type === "whatsapp") {
-      setSelectedConversation(conv);
-      setMessages([
-        {
-          id: "1",
-          displayName: "WhatsApp User",
-          message: "Hello from WhatsApp!",
-          created_time: new Date().toISOString(),
-          from: { id: "user" },
-        },
-      ]);
+if (selectedPage.type === "whatsapp") {
+  setSelectedConversation(conv);
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`
+    );
+    const data = await res.json();
+
+    if (!data?.data) {
+      console.warn("No messages returned from WhatsApp API", data);
+      setMessages([]);
       return;
     }
+
+    const formatted = data.data
+      .filter((msg) => msg.type === "text")
+      .map((msg) => ({
+        id: msg.id,
+        displayName: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "WhatsApp User" : "You",
+        message: msg.text?.body || "",
+        created_time: msg.timestamp ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
+        from: { id: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "user" : "me" },
+      }));
+
+    setMessages(formatted.reverse()); // optional: reverse to show latest at bottom
+  } catch (error) {
+    console.error("Failed to fetch WhatsApp messages", error);
+    setMessages([]);
+  }
+
+  return;
+}
+
 
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
