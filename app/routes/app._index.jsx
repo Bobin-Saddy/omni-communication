@@ -308,11 +308,13 @@ const fetchMessages = async (conv) => {
                 <div
                   key={page.id}
                   onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                  }}
+            style={{
+  padding: 14,
+  cursor: "pointer",
+  backgroundColor: selectedPage?.id === page.id ? "#333" : "transparent",
+  borderBottom: "1px solid #444",
+}}
+
                 >
                   <Text>
                     {page.name} ({page.type})
@@ -365,16 +367,16 @@ const fetchMessages = async (conv) => {
     : (msg.from?.name === selectedPage?.name);
 
   const bubbleStyle = {
-     display: "inline-block",
-  padding: "12px 16px",
+ display: "inline-block",
+  padding: "14px 18px",
   borderRadius: 20,
-  backgroundColor: isMe ? "#d1e7dd" : "#e9ecef",
-  border: isMe ? "1px solid #bcd0c7" : "1px solid #ccc",
+  backgroundColor: isMe ? "#4caf50" : "#2c2c2c",
+  border: isMe ? "1px solid #81c784" : "1px solid #444",
   maxWidth: "75%",
-  fontSize: 14,
-  color: "#333",
+  fontSize: "16px",
+  color: "#fff",
   wordBreak: "break-word",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
   };
 
   return (
@@ -400,20 +402,30 @@ const fetchMessages = async (conv) => {
   type="text"
   value={newMessage}
   onChange={(e) => setNewMessage(e.target.value)}
-  placeholder="Type your message here..."
-  style={{
-    flex: 1,
-    padding: "12px 16px",
-    borderRadius: 25,
-    border: "1px solid #ccc",
-    fontSize: 14,
-    outline: "none",
-    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
-  }}
+  placeholder="Type your message..."
+style={{
+  width: "22%",
+  borderRight: "1px solid #444",
+  overflowY: "auto",
+  backgroundColor: "#2a2a2a",
+  fontSize: "16px",
+  color: "#fff",
+}}
+
 />
-<Button onClick={sendMessage} primary style={{ marginLeft: 12, borderRadius: 25 }}>
+<Button
+  onClick={sendMessage}
+  primary
+  style={{
+    marginLeft: 12,
+    borderRadius: 25,
+    padding: "10px 20px",
+    fontSize: "16px",
+  }}
+>
   Send
 </Button>
+
 
               </div>
             </div>
