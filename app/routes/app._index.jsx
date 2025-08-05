@@ -147,7 +147,7 @@ export default function SocialChatDashboard() {
     setIgPages(enriched);
     setIgConnected(true);
     setSelectedPage(enriched[0]);
-    setConversations([]);
+    fetchConversations(enriched[0]);
   };
 
   const fetchConversations = async (page) => {
@@ -333,9 +333,57 @@ export default function SocialChatDashboard() {
           </div>
         </div>
 
+        {/* Facebook/Instagram UI */}
+        {selectedPage && (
+          <div style={{ display: "flex", border: "1px solid #ccc", borderRadius: 8, height: 650 }}>
+            <div style={{ width: "30%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+              <Text variant="headingMd" style={{ padding: 12 }}>
+                {selectedPage.type === "instagram" ? "Instagram" : "Facebook"} Conversations
+              </Text>
+              {conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  onClick={() => fetchMessages(conv)}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
+                  }}
+                >
+                  <Text>{conv.userName || conv.id}</Text>
+                </div>
+              ))}
+            </div>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <Text variant="headingMd" style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+                Chat
+              </Text>
+              <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+                {messages.map((msg) => (
+                  <div key={msg.id} style={{ marginBottom: 10 }}>
+                    <strong>{msg.displayName}</strong>
+                    <div>{msg.message}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", padding: 12 }}>
+                <input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message"
+                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+                />
+                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
+                  Send
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* WhatsApp UI */}
         {waConnected && (
-          <div style={{ display: "flex", border: "1px solid #ccc", borderRadius: 8, height: 650 }}>
+          <div style={{ display: "flex", border: "1px solid #ccc", borderRadius: 8, height: 650, marginTop: 20 }}>
             <div style={{ width: "30%", borderRight: "1px solid #eee", overflowY: "auto" }}>
               <Text variant="headingMd" style={{ padding: 12 }}>
                 WhatsApp Conversations
