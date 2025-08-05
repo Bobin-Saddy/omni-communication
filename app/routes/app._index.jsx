@@ -287,120 +287,187 @@ const fetchMessages = async (conv) => {
           </div>
         </div>
 
-        {selectedPage && (
+{selectedPage && (
+  <div className="chat-container">
+    <div className="chat-sidebar">
+      <div className="chat-heading">Pages</div>
+      {[...fbPages, ...igPages].map((page) => (
+        <div
+          key={page.id}
+          onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
+          className={`page-item ${selectedPage?.id === page.id ? "selected" : ""}`}
+        >
+          <Text>{page.name} ({page.type})</Text>
+        </div>
+      ))}
+    </div>
+
+    <div className="chat-subsection">
+      <div className="chat-heading">Conversations</div>
+      {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
+      {conversations.map((conv) => {
+        const name =
+          selectedPage?.type === "instagram"
+            ? `${conv.businessName} ↔️ ${conv.userName}`
+            : conv.participants?.data
+                ?.filter((p) => p.name !== selectedPage.name)
+                .map((p) => p.name)
+                .join(", ");
+        return (
           <div
-            style={{
-              display: "flex",
-              height: "650px",
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              overflow: "hidden",
-              width: "100%",
-            }}
+            key={conv.id}
+            onClick={() => fetchMessages(conv)}
+            className={`conversation-item ${selectedConversation?.id === conv.id ? "selected" : ""}`}
           >
-            <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Pages</Text>
+            <Text>{name}</Text>
+          </div>
+        );
+      })}
+    </div>
+
+    <div className="chat-main">
+      <div className="chat-heading">Chat</div>
+      <div className="chat-messages">
+        {messages.map((msg) => {
+          const isMe = selectedPage?.type === "instagram"
+            ? msg.from?.id === selectedPage.igId
+            : msg.from?.name === selectedPage?.name;
+          return (
+            <div
+              key={msg.id}
+              className={isMe ? "message-me" : "message-other"}
+              style={{ marginBottom: 10 }}
+            >
+              <div className="message-bubble">
+                <strong>{msg.displayName}</strong>
+                <div>{msg.message}</div>
+                <small>{new Date(msg.created_time).toLocaleString()}</small>
               </div>
-              {[...fbPages, ...igPages].map((page) => (
-                <div
-                  key={page.id}
-                  onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                  }}
-                >
-                  <Text>
-                    {page.name} ({page.type})
-                  </Text>
-                </div>
-              ))}
             </div>
-
-            <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Conversations</Text>
-              </div>
-              {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
-              {conversations.map((conv) => {
-                const name =
-                  selectedPage?.type === "instagram"
-                    ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : conv.participants?.data
-                        ?.filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ");
-                return (
-                  <div
-                    key={conv.id}
-                    onClick={() => fetchMessages(conv)}
-                    style={{
-                      padding: 12,
-                      cursor: "pointer",
-                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                    }}
-                  >
-                    <Text>{name}</Text>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Chat</Text>
-              </div>
-              <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-{messages.map((msg) => {
-  const isMe = selectedPage?.type === "instagram"
-    ? (msg.from?.id === selectedPage.igId)
-    : (msg.from?.name === selectedPage?.name);
-
-  const bubbleStyle = {
-    display: "inline-block",
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-    border: "1px solid #ccc",
-    maxWidth: "80%",
-  };
-
-  return (
-    <div
-      key={msg.id}
-      style={{
-        textAlign: isMe ? "right" : "left",
-        marginBottom: 10,
-      }}
-    >
-      <div style={bubbleStyle}>
-        <strong>{msg.displayName}</strong>
-        <div>{msg.message}</div>
-        <small>{new Date(msg.created_time).toLocaleString()}</small>
+          );
+        })}
+      </div>
+      <div className="chat-input">
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type a message"
+        />
+        <Button onClick={sendMessage} primary>
+          Send
+        </Button>
       </div>
     </div>
-  );
-})}
+  </div>
+)}
 
-              </div>
-              <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message"
-                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                />
-                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
-                  Send
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </Card>
     </Page>
   );
+  
 }
+
+<style>
+    {`
+      .chat-container {
+        display: flex;
+        height: 650px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        overflow: hidden;
+        width: 100%;
+        margin-top: 20px;
+      }
+
+      .chat-sidebar {
+        width: 22%;
+        border-right: 1px solid #eee;
+        overflow-y: auto;
+        background: #fafafa;
+      }
+
+      .chat-subsection {
+        width: 28%;
+        border-right: 1px solid #eee;
+        overflow-y: auto;
+        background: #ffffff;
+      }
+
+      .chat-heading {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+        background-color: #f4f6f8;
+        font-weight: bold;
+      }
+
+      .page-item,
+      .conversation-item {
+        padding: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+
+      .page-item:hover,
+      .conversation-item:hover {
+        background-color: #f1f1f1;
+      }
+
+      .page-item.selected {
+        background-color: #e3f2fd;
+      }
+
+      .conversation-item.selected {
+        background-color: #e7f1ff;
+      }
+
+      .chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #f9f9f9;
+      }
+
+      .chat-messages {
+        flex: 1;
+        padding: 12px;
+        overflow-y: auto;
+      }
+
+      .message-bubble {
+        display: inline-block;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        max-width: 80%;
+      }
+
+      .message-me {
+        background-color: #d1e7dd;
+        text-align: right;
+      }
+
+      .message-other {
+        background-color: #f0f0f0;
+        text-align: left;
+      }
+
+      .chat-input {
+        display: flex;
+        padding: 12px;
+        border-top: 1px solid #ddd;
+        background: white;
+      }
+
+      .chat-input input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+
+      .chat-input button {
+        margin-left: 10px;
+      }
+    `}
+  </style>
