@@ -345,13 +345,14 @@ if (page.type === "instagram") {
       }}
     >
       <div style={bubbleStyle}>
-        <strong>{msg.from?.name || "User"}</strong>
+        <strong>{msg.displayName}</strong>
         <div>{msg.message}</div>
         <small>{new Date(msg.created_time).toLocaleString()}</small>
       </div>
     </div>
   );
 })}
+
               </div>
               <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
                 <input
