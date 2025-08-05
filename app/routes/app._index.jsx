@@ -187,17 +187,48 @@ if (page.type === "instagram") {
     }
   };
 
-  const fetchMessages = async (conv) => {
-    if (!selectedPage) return;
-    const token = pageAccessTokens[selectedPage.id];
+const fetchMessages = async (conv) => {
+  if (!selectedPage) return;
+  const token = pageAccessTokens[selectedPage.id];
 
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-    );
-    const data = await res.json();
-    setMessages(data?.data?.reverse() || []);
-    setSelectedConversation(conv);
-  };
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
+  );
+  const data = await res.json();
+  const rawMessages = data?.data?.reverse() || [];
+
+  const enrichedMessages = rawMessages.map((msg) => {
+    let displayName = "User";
+
+    if (selectedPage.type === "instagram") {
+      if (msg.from?.id === selectedPage.igId) {
+        displayName = selectedPage.name;
+      } else {
+        // For incoming messages
+        displayName =
+          conv.userName ||
+          msg.from?.name ||
+          msg.from?.username ||
+          `Instagram User #${msg.from?.id?.slice(-4)}`;
+      }
+    } else {
+      // Facebook
+      if (msg.from?.name === selectedPage.name) {
+        displayName = selectedPage.name;
+      } else {
+        displayName = msg.from?.name || "User";
+      }
+    }
+
+    return {
+      ...msg,
+      displayName,
+    };
+  });
+
+  setMessages(enrichedMessages);
+  setSelectedConversation(conv);
+};
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
