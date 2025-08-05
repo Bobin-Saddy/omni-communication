@@ -157,23 +157,32 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
-    if (page.type === "instagram") {
-      const enriched = await Promise.all(
-        (data.data || []).map(async (conv) => {
-          const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${token}`
-          );
-          const msgData = await msgRes.json();
-          const msg = msgData?.data?.[0];
-          return {
-            ...conv,
-            userName: msg?.from?.name || msg?.from?.username || "User",
-            businessName: page.name,
-          };
-        })
+if (page.type === "instagram") {
+  const enriched = await Promise.all(
+    (data.data || []).map(async (conv) => {
+      const msgRes = await fetch(
+        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
       );
-      setConversations(enriched);
-    } else {
+      const msgData = await msgRes.json();
+      const messages = msgData?.data || [];
+
+      // Find first message not sent by your IG account
+      const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+      let userName = "Instagram User";
+      if (otherMsg) {
+        userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+      }
+
+      return {
+        ...conv,
+        userName,
+        businessName: page.name,
+      };
+    })
+  );
+  setConversations(enriched);
+}
+ else {
       setConversations(data.data || []);
     }
   };
