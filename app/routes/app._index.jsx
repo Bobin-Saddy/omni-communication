@@ -1,3 +1,4 @@
+// File: SocialChatDashboard.jsx
 import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
 
@@ -13,13 +14,12 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
-  // 🆕 WhatsApp specific states
-  const [waPhoneNumber, setWaPhoneNumber] = useState(""); // recipient
+  const [waPhoneNumber, setWaPhoneNumber] = useState("");
   const [waMessage, setWaMessage] = useState("");
-  const WHATSAPP_TOKEN = "YOUR_WHATSAPP_TOKEN"; // Replace this with your permanent token
-  const WHATSAPP_PHONE_ID = "YOUR_PHONE_NUMBER_ID"; // Found in your Meta WhatsApp business app
 
-  const FACEBOOK_APP_ID = "544704651303656";
+  const FACEBOOK_APP_ID = "YOUR_FACEBOOK_APP_ID";
+  const WHATSAPP_TOKEN = "YOUR_WHATSAPP_TOKEN";
+  const WHATSAPP_PHONE_ID = "YOUR_PHONE_NUMBER_ID";
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -111,7 +111,7 @@ export default function SocialChatDashboard() {
     setFbPages(pages);
     setFbConnected(true);
     setSelectedPage(pages[0]);
-    fetchConversations(pages[0], tokens[pages[0].id]);
+    await fetchConversations(pages[0]);
   };
 
   const fetchInstagramPages = async (accessToken) => {
@@ -145,7 +145,7 @@ export default function SocialChatDashboard() {
     setIgPages(enriched);
     setIgConnected(true);
     setSelectedPage(enriched[0]);
-    setConversations([]);
+    await fetchConversations(enriched[0]);
   };
 
   const fetchConversations = async (page) => {
@@ -277,7 +277,6 @@ export default function SocialChatDashboard() {
     fetchMessages(selectedConversation);
   };
 
-  // 🆕 Send WhatsApp message manually
   const sendWhatsAppMessage = async () => {
     if (!waPhoneNumber || !waMessage) return alert("Enter number and message");
 
@@ -304,7 +303,7 @@ export default function SocialChatDashboard() {
       console.error(data);
     }
   };
-  
+
   return (
     <Page title="📱 Social Chat Dashboard">
       <Card sectioned>
@@ -317,8 +316,8 @@ export default function SocialChatDashboard() {
               Connect Instagram
             </Button>
           </div>
-              {/* 🆕 WhatsApp UI */}
-     <div style={{ marginTop: 20, borderTop: "1px solid #ccc", paddingTop: 20 }}>
+
+          <div style={{ marginTop: 20, borderTop: "1px solid #ccc", paddingTop: 20 }}>
             <Text variant="headingMd">Send WhatsApp Message</Text>
             <div style={{ marginTop: 10 }}>
               <input
@@ -339,120 +338,47 @@ export default function SocialChatDashboard() {
             </div>
           </div>
         </div>
+      </Card>
 
-        
-
+      {/* Chat Section */}
+      <Card sectioned>
         {selectedPage && (
-          <div
-            style={{
-              display: "flex",
-              height: "650px",
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              overflow: "hidden",
-              width: "100%",
-            }}
-          >
-            <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Pages</Text>
-              </div>
-              {[...fbPages, ...igPages].map((page) => (
-                <div
-                  key={page.id}
-                  onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                  }}
-                >
-                  <Text>
-                    {page.name} ({page.type})
-                  </Text>
+          <div>
+            <h3>Conversations ({selectedPage.name})</h3>
+            <ul>
+              {conversations.map((conv) => (
+                <li key={conv.id}>
+                  <Button onClick={() => fetchMessages(conv)}>
+                    {conv.userName || conv.id}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {selectedConversation && (
+          <div style={{ marginTop: 20 }}>
+            <h3>Messages</h3>
+            <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 10 }}>
+              {messages.map((msg) => (
+                <div key={msg.id}>
+                  <strong>{msg.displayName}</strong>: {msg.message?.text || msg.message}
+                  <div style={{ fontSize: 12, color: "#888" }}>{msg.formattedTime}</div>
+                  <hr />
                 </div>
               ))}
             </div>
-
-            <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Conversations</Text>
-              </div>
-              {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
-              {conversations.map((conv) => {
-                const name =
-                  selectedPage?.type === "instagram"
-                    ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : conv.participants?.data
-                        ?.filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ");
-                return (
-                  <div
-                    key={conv.id}
-                    onClick={() => fetchMessages(conv)}
-                    style={{
-                      padding: 12,
-                      cursor: "pointer",
-                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                    }}
-                  >
-                    <Text>{name}</Text>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Chat</Text>
-              </div>
-              <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-{messages.map((msg) => {
-  const isMe = selectedPage?.type === "instagram"
-    ? (msg.from?.id === selectedPage.igId)
-    : (msg.from?.name === selectedPage?.name);
-
-  const bubbleStyle = {
-    display: "inline-block",
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-    border: "1px solid #ccc",
-    maxWidth: "80%",
-  };
-
-  return (
-    <div
-      key={msg.id}
-      style={{
-        textAlign: isMe ? "right" : "left",
-        marginBottom: 10,
-      }}
-    >
-      <div style={bubbleStyle}>
-        <strong>{msg.displayName}</strong>
-        <div>{msg.message}</div>
-        <small>{new Date(msg.created_time).toLocaleString()}</small>
-      </div>
-    </div>
-  );
-})}
-
-              </div>
-              <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message"
-                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                />
-                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
-                  Send
-                </Button>
-              </div>
-            </div>
+            <input
+              type="text"
+              placeholder="Type a reply..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              style={{ padding: 8, width: "60%" }}
+            />
+            <Button onClick={sendMessage} style={{ marginLeft: 10 }}>
+              Send
+            </Button>
           </div>
         )}
       </Card>
