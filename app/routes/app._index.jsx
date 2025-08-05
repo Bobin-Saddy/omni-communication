@@ -6,6 +6,7 @@ export default function SocialChatDashboard() {
   const [igPages, setIgPages] = useState([]);
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
+  const [waConnected, setWaConnected] = useState(false);
   const [selectedPage, setSelectedPage] = useState(null);
   const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [conversations, setConversations] = useState([]);
@@ -14,6 +15,9 @@ export default function SocialChatDashboard() {
   const [newMessage, setNewMessage] = useState("");
 
   const FACEBOOK_APP_ID = "544704651303656";
+  const WHATSAPP_TOKEN = "YOUR_WHATSAPP_CLOUD_API_TOKEN";
+  const WHATSAPP_PHONE_NUMBER_ID = "YOUR_PHONE_NUMBER_ID";
+  const WHATSAPP_RECIPIENT_NUMBER = "RECIPIENT_PHONE_NUMBER";
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -84,6 +88,23 @@ export default function SocialChatDashboard() {
     );
   };
 
+  const handleWhatsAppConnect = () => {
+    setWaConnected(true);
+    setSelectedPage({
+      id: "whatsapp",
+      name: "WhatsApp",
+      type: "whatsapp",
+    });
+    setConversations([
+      {
+        id: "wa-1",
+        userName: "WhatsApp User",
+        businessName: "You",
+      },
+    ]);
+    setMessages([]);
+  };
+
   const fetchFacebookPages = async (accessToken) => {
     const res = await fetch(
       `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
@@ -105,10 +126,10 @@ export default function SocialChatDashboard() {
     setFbPages(pages);
     setFbConnected(true);
     setSelectedPage(pages[0]);
-    fetchConversations(pages[0], tokens[pages[0].id]);
+    fetchConversations(pages[0]);
   };
 
-   const fetchInstagramPages = async (accessToken) => {
+  const fetchInstagramPages = async (accessToken) => {
     const res = await fetch(
       `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
     );
@@ -139,9 +160,7 @@ export default function SocialChatDashboard() {
     setIgPages(enriched);
     setIgConnected(true);
     setSelectedPage(enriched[0]);
-
--   fetchConversations(enriched[0], tokens[enriched[0].id]);  // IG: Remove this call
-+   setConversations([]); // IG does not support direct conversation fetch here
+    setConversations([]);
   };
 
   const fetchConversations = async (page) => {
@@ -157,81 +176,131 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
-if (page.type === "instagram") {
-  const enriched = await Promise.all(
-    (data.data || []).map(async (conv) => {
-      const msgRes = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+    if (page.type === "instagram") {
+      const enriched = await Promise.all(
+        (data.data || []).map(async (conv) => {
+          const msgRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+          );
+          const msgData = await msgRes.json();
+          const messages = msgData?.data || [];
+          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+          let userName = "Instagram User";
+          if (otherMsg) {
+            userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+          }
+
+          return {
+            ...conv,
+            userName,
+            businessName: page.name,
+          };
+        })
       );
-      const msgData = await msgRes.json();
-      const messages = msgData?.data || [];
-
-      // Find first message not sent by your IG account
-      const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-      let userName = "Instagram User";
-      if (otherMsg) {
-        userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-      }
-
-      return {
-        ...conv,
-        userName,
-        businessName: page.name,
-      };
-    })
-  );
-  setConversations(enriched);
-}
- else {
+      setConversations(enriched);
+    } else {
       setConversations(data.data || []);
     }
   };
 
-const fetchMessages = async (conv) => {
-  if (!selectedPage) return;
-  const token = pageAccessTokens[selectedPage.id];
+  const fetchMessages = async (conv) => {
+    if (!selectedPage) return;
+    const token = pageAccessTokens[selectedPage.id];
 
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-  );
-  const data = await res.json();
-  const rawMessages = data?.data?.reverse() || [];
-
-  const enrichedMessages = rawMessages.map((msg) => {
-    let displayName = "User";
-
-    if (selectedPage.type === "instagram") {
-      if (msg.from?.id === selectedPage.igId) {
-        displayName = selectedPage.name;
-      } else {
-        // For incoming messages
-        displayName =
-          conv.userName ||
-          msg.from?.name ||
-          msg.from?.username ||
-          `Instagram User #${msg.from?.id?.slice(-4)}`;
-      }
-    } else {
-      // Facebook
-      if (msg.from?.name === selectedPage.name) {
-        displayName = selectedPage.name;
-      } else {
-        displayName = msg.from?.name || "User";
-      }
+    if (selectedPage.type === "whatsapp") {
+      setSelectedConversation(conv);
+      setMessages([
+        {
+          id: "1",
+          displayName: "WhatsApp User",
+          message: "Hello from WhatsApp!",
+          created_time: new Date().toISOString(),
+          from: { id: "user" },
+        },
+      ]);
+      return;
     }
 
-    return {
-      ...msg,
-      displayName,
-    };
-  });
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
+    );
+    const data = await res.json();
+    const rawMessages = data?.data?.reverse() || [];
 
-  setMessages(enrichedMessages);
-  setSelectedConversation(conv);
-};
+    const enrichedMessages = rawMessages.map((msg) => {
+      let displayName = "User";
+
+      if (selectedPage.type === "instagram") {
+        if (msg.from?.id === selectedPage.igId) {
+          displayName = selectedPage.name;
+        } else {
+          displayName =
+            conv.userName ||
+            msg.from?.name ||
+            msg.from?.username ||
+            `Instagram User #${msg.from?.id?.slice(-4)}`;
+        }
+      } else {
+        if (msg.from?.name === selectedPage.name) {
+          displayName = selectedPage.name;
+        } else {
+          displayName = msg.from?.name || "User";
+        }
+      }
+
+      return {
+        ...msg,
+        displayName,
+      };
+    });
+
+    setMessages(enrichedMessages);
+    setSelectedConversation(conv);
+  };
+
+  const sendWhatsAppMessage = async () => {
+    const payload = {
+      messaging_product: "whatsapp",
+      to: WHATSAPP_RECIPIENT_NUMBER,
+      type: "text",
+      text: { body: newMessage },
+    };
+
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const data = await res.json();
+    console.log("WhatsApp send response", data);
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        displayName: "You",
+        message: newMessage,
+        created_time: new Date().toISOString(),
+        from: { id: "me" },
+      },
+    ]);
+    setNewMessage("");
+  };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
+
+    if (selectedPage.type === "whatsapp") {
+      await sendWhatsAppMessage();
+      return;
+    }
+
     const token = pageAccessTokens[selectedPage.id];
 
     if (selectedPage.type === "instagram") {
@@ -240,10 +309,9 @@ const fetchMessages = async (conv) => {
       );
       const msgData = await msgRes.json();
       const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-
       if (!sender) return alert("Recipient not found");
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}` , {
+      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -285,6 +353,11 @@ const fetchMessages = async (conv) => {
               Connect Instagram
             </Button>
           </div>
+          <div style={{ marginTop: 10 }}>
+            <Button onClick={handleWhatsAppConnect} disabled={waConnected}>
+              Connect WhatsApp
+            </Button>
+          </div>
         </div>
 
         {selectedPage && (
@@ -305,7 +378,7 @@ const fetchMessages = async (conv) => {
               {[...fbPages, ...igPages].map((page) => (
                 <div
                   key={page.id}
-                  onClick={() => fetchConversations(page, pageAccessTokens[page.id])}
+                  onClick={() => fetchConversations(page)}
                   style={{
                     padding: 12,
                     cursor: "pointer",
@@ -317,6 +390,18 @@ const fetchMessages = async (conv) => {
                   </Text>
                 </div>
               ))}
+              {waConnected && (
+                <div
+                  onClick={handleWhatsAppConnect}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
+                  }}
+                >
+                  <Text>WhatsApp</Text>
+                </div>
+              )}
             </div>
 
             <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
@@ -328,6 +413,8 @@ const fetchMessages = async (conv) => {
                 const name =
                   selectedPage?.type === "instagram"
                     ? `${conv.businessName} ↔️ ${conv.userName}`
+                    : selectedPage?.type === "whatsapp"
+                    ? "WhatsApp User"
                     : conv.participants?.data
                         ?.filter((p) => p.name !== selectedPage.name)
                         .map((p) => p.name)
@@ -353,37 +440,27 @@ const fetchMessages = async (conv) => {
                 <Text variant="headingMd">Chat</Text>
               </div>
               <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-{messages.map((msg) => {
-  const isMe = selectedPage?.type === "instagram"
-    ? (msg.from?.id === selectedPage.igId)
-    : (msg.from?.name === selectedPage?.name);
+                {messages.map((msg) => {
+                  const isMe = msg.from?.id === "me" || msg.from?.name === selectedPage?.name;
+                  const bubbleStyle = {
+                    display: "inline-block",
+                    padding: 10,
+                    borderRadius: 8,
+                    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+                    border: "1px solid #ccc",
+                    maxWidth: "80%",
+                  };
 
-  const bubbleStyle = {
-    display: "inline-block",
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-    border: "1px solid #ccc",
-    maxWidth: "80%",
-  };
-
-  return (
-    <div
-      key={msg.id}
-      style={{
-        textAlign: isMe ? "right" : "left",
-        marginBottom: 10,
-      }}
-    >
-      <div style={bubbleStyle}>
-        <strong>{msg.displayName}</strong>
-        <div>{msg.message}</div>
-        <small>{new Date(msg.created_time).toLocaleString()}</small>
-      </div>
-    </div>
-  );
-})}
-
+                  return (
+                    <div key={msg.id} style={{ textAlign: isMe ? "right" : "left", marginBottom: 10 }}>
+                      <div style={bubbleStyle}>
+                        <strong>{msg.displayName}</strong>
+                        <div>{msg.message}</div>
+                        <small>{new Date(msg.created_time).toLocaleString()}</small>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
                 <input
