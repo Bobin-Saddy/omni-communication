@@ -290,12 +290,14 @@ const fetchMessages = async (conv) => {
         {selectedPage && (
           <div
             style={{
-              display: "flex",
-              height: "650px",
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              overflow: "hidden",
-              width: "100%",
+            display: "flex",
+    height: "700px",
+    border: "1px solid #ddd",
+    borderRadius: 12,
+    overflow: "hidden",
+    width: "100%",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    backgroundColor: "#fff",
             }}
           >
             <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
@@ -336,11 +338,15 @@ const fetchMessages = async (conv) => {
                   <div
                     key={conv.id}
                     onClick={() => fetchMessages(conv)}
-                    style={{
-                      padding: 12,
-                      cursor: "pointer",
-                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                    }}
+                style={{
+  padding: 14,
+  cursor: "pointer",
+  borderBottom: "1px solid #eee",
+  backgroundColor: selectedConversation?.id === conv.id ? "#e3f2fd" : "#fff",
+  transition: "background-color 0.3s",
+  fontSize: 14,
+}}
+
                   >
                     <Text>{name}</Text>
                   </div>
@@ -359,12 +365,16 @@ const fetchMessages = async (conv) => {
     : (msg.from?.name === selectedPage?.name);
 
   const bubbleStyle = {
-    display: "inline-block",
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-    border: "1px solid #ccc",
-    maxWidth: "80%",
+     display: "inline-block",
+  padding: "12px 16px",
+  borderRadius: 20,
+  backgroundColor: isMe ? "#d1e7dd" : "#e9ecef",
+  border: isMe ? "1px solid #bcd0c7" : "1px solid #ccc",
+  maxWidth: "75%",
+  fontSize: 14,
+  color: "#333",
+  wordBreak: "break-word",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
   };
 
   return (
@@ -386,16 +396,25 @@ const fetchMessages = async (conv) => {
 
               </div>
               <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message"
-                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                />
-                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
-                  Send
-                </Button>
+<input
+  type="text"
+  value={newMessage}
+  onChange={(e) => setNewMessage(e.target.value)}
+  placeholder="Type your message here..."
+  style={{
+    flex: 1,
+    padding: "12px 16px",
+    borderRadius: 25,
+    border: "1px solid #ccc",
+    fontSize: 14,
+    outline: "none",
+    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
+  }}
+/>
+<Button onClick={sendMessage} primary style={{ marginLeft: 12, borderRadius: 25 }}>
+  Send
+</Button>
+
               </div>
             </div>
           </div>
