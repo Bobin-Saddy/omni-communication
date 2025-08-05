@@ -322,31 +322,36 @@ if (page.type === "instagram") {
                 <Text variant="headingMd">Chat</Text>
               </div>
               <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    style={{
-                      textAlign: msg.from?.name === selectedPage?.name ? "right" : "left",
-                      marginBottom: 10,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "inline-block",
-                        padding: 10,
-                        borderRadius: 8,
-                        backgroundColor:
-                          msg.from?.name === selectedPage?.name ? "#d1e7dd" : "white",
-                        border: "1px solid #ccc",
-                        maxWidth: "80%",
-                      }}
-                    >
-                      <strong>{msg.from?.name}</strong>
-                      <div>{msg.message}</div>
-                      <small>{new Date(msg.created_time).toLocaleString()}</small>
-                    </div>
-                  </div>
-                ))}
+{messages.map((msg) => {
+  const isMe = selectedPage?.type === "instagram"
+    ? (msg.from?.id === selectedPage.igId)
+    : (msg.from?.name === selectedPage?.name);
+
+  const bubbleStyle = {
+    display: "inline-block",
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+    border: "1px solid #ccc",
+    maxWidth: "80%",
+  };
+
+  return (
+    <div
+      key={msg.id}
+      style={{
+        textAlign: isMe ? "right" : "left",
+        marginBottom: 10,
+      }}
+    >
+      <div style={bubbleStyle}>
+        <strong>{msg.from?.name || "User"}</strong>
+        <div>{msg.message}</div>
+        <small>{new Date(msg.created_time).toLocaleString()}</small>
+      </div>
+    </div>
+  );
+})}
               </div>
               <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
                 <input
