@@ -366,7 +366,7 @@ const res = await fetch(
   };
 
   return (
-    <Page title="📱 Social Chat Dashboard">
+    <Page class="check-class" title="📱 Social Chat Dashboard">
       <Card sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>
@@ -460,7 +460,8 @@ const res = await fetch(
             </div>
 
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+              <div style={{ padding: 12, borderBottom: "1px solid #ddd"
+}}>
                 <Text variant="headingMd">Chat</Text>
               </div>
               <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
