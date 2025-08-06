@@ -15,11 +15,12 @@ export default function SocialChatDashboard() {
   const [newMessage, setNewMessage] = useState("");
 
   const FACEBOOK_APP_ID = "544704651303656";
-  const WHATSAPP_TOKEN = "EAAHvZAZB8ZCmugBPMISTJLnRMEImekKZC41u0sAgu2auZCin62forc8YfIZCNtf8iHBTy1KXjAwSmiGTXmAX0TQbYGcI41RJfrY0LsTJ6IyZC9UKzB5lK5RlHgXmvZCONaQjWl0s7vEyx3STlKPGb52NA0v3stWYaPmIpxYZBd1BRtNBGDqZCdgKvHrd0whk4yZC0e6Q66EY4H5gdfxZCBJrmDRAea3TO4fSlYr53PLgGCQX5YMZD";
-  const WHATSAPP_PHONE_NUMBER_ID = "102423629558178";
-  const WHATSAPP_RECIPIENT_NUMBER = "919876326376";
+const WHATSAPP_TOKEN = "EAAHvZAZB8ZCmugBPMISTJLnRMEImekKZC41u0sAgu2auZCin62forc8YfIZCNtf8iHBTy1KXjAwSmiGTXmAX0TQbYGcI41RJfrY0LsTJ6IyZC9UKzB5lK5RlHgXmvZCONaQjWl0s7vEyx3STlKPGb52NA0v3stWYaPmIpxYZBd1BRtNBGDqZCdgKvHrd0whk4yZC0e6Q66EY4H5gdfxZCBJrmDRAea3TO4fSlYr53PLgGCQX5YMZD";
 
-  // Facebook SDK setup
+const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
+const WHATSAPP_RECIPIENT_NUMBER = "919463955268";
+
+
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -91,22 +92,18 @@ export default function SocialChatDashboard() {
 
   const handleWhatsAppConnect = () => {
     setWaConnected(true);
-    const waPage = {
+    setSelectedPage({
       id: "whatsapp",
       name: "WhatsApp",
       type: "whatsapp",
-    };
-    setSelectedPage(waPage);
-
+    });
     setConversations([
       {
-        id: "wa-conv-1",
+        id: "wa-1",
         userName: "WhatsApp User",
         businessName: "You",
       },
     ]);
-
-    setSelectedConversation(null);
     setMessages([]);
   };
 
@@ -116,7 +113,7 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
-    if (!Array.isArray(data?.data)) {
+    if (!Array.isArray(data?.data) || data.data.length === 0) {
       alert("No Facebook pages found.");
       return;
     }
@@ -140,8 +137,12 @@ export default function SocialChatDashboard() {
     );
     const data = await res.json();
 
-    const igPages = (data.data || []).filter((p) => p.instagram_business_account);
+    if (!Array.isArray(data?.data)) {
+      alert("Instagram account response is invalid.");
+      return;
+    }
 
+    const igPages = data.data.filter((p) => p.instagram_business_account);
     if (igPages.length === 0) {
       alert("No Instagram business accounts found.");
       return;
@@ -165,11 +166,6 @@ export default function SocialChatDashboard() {
   };
 
   const fetchConversations = async (page) => {
-    if (page.type === "whatsapp") {
-      handleWhatsAppConnect();
-      return;
-    }
-
     const token = pageAccessTokens[page.id];
     setSelectedPage(page);
     setSelectedConversation(null);
@@ -211,37 +207,43 @@ export default function SocialChatDashboard() {
 
   const fetchMessages = async (conv) => {
     if (!selectedPage) return;
-
     const token = pageAccessTokens[selectedPage.id];
 
-    // WhatsApp case
-    if (selectedPage.type === "whatsapp") {
-      setSelectedConversation(conv);
-      try {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`
-        );
-        const data = await res.json();
+if (selectedPage.type === "whatsapp") {
+  setSelectedConversation(conv);
 
-        const formatted = (data?.data || [])
-          .filter((msg) => msg.type === "text")
-          .map((msg) => ({
-            id: msg.id,
-            displayName: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "WhatsApp User" : "You",
-            message: msg.text?.body || "",
-            created_time: msg.timestamp ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
-            from: { id: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "user" : "me" },
-          }));
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`
+    );
+    const data = await res.json();
 
-        setMessages(formatted.reverse());
-      } catch (error) {
-        console.error("Failed to fetch WhatsApp messages", error);
-        setMessages([]);
-      }
+    if (!data?.data) {
+      console.warn("No messages returned from WhatsApp API", data);
+      setMessages([]);
       return;
     }
 
-    // Facebook/Instagram
+    const formatted = data.data
+      .filter((msg) => msg.type === "text")
+      .map((msg) => ({
+        id: msg.id,
+        displayName: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "WhatsApp User" : "You",
+        message: msg.text?.body || "",
+        created_time: msg.timestamp ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
+        from: { id: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "user" : "me" },
+      }));
+
+    setMessages(formatted.reverse()); // optional: reverse to show latest at bottom
+  } catch (error) {
+    console.error("Failed to fetch WhatsApp messages", error);
+    setMessages([]);
+  }
+
+  return;
+}
+
+
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
     );
@@ -280,28 +282,28 @@ export default function SocialChatDashboard() {
   };
 
   const sendWhatsAppMessage = async () => {
-    const payload = {
-      messaging_product: "whatsapp",
-      to: WHATSAPP_RECIPIENT_NUMBER,
-      type: "text",
-      text: { body: newMessage },
-    };
+const payload = {
+  messaging_product: "whatsapp",
+  to: WHATSAPP_RECIPIENT_NUMBER,
+  type: "text",
+  text: { body: newMessage },
+};
 
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+const res = await fetch(
+  `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  }
+);
+
 
     const data = await res.json();
     console.log("WhatsApp send response", data);
-
     setMessages((prev) => [
       ...prev,
       {
