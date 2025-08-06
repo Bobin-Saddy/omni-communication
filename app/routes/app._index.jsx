@@ -279,33 +279,41 @@ export default function SocialChatDashboard() {
     setSelectedConversation(conv);
   };
 
+  const sendWhatsAppMessage = async () => {
+    const payload = {
+      messaging_product: "whatsapp",
+      to: WHATSAPP_RECIPIENT_NUMBER,
+      type: "text",
+      text: { body: newMessage },
+    };
 
-const sendWhatsAppMessage = async () => {
-  try {
-    const response = await axios.post(
-      `https://graph.facebook.com/v19.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
       {
-        messaging_product: "whatsapp",
-        to: WHATSAPP_RECIPIENT_NUMBER,
-        type: "text",
-        text: {
-          body: "Hello from WhatsApp Cloud API!"
-        }
-      },
-      {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       }
     );
 
-    console.log("Message sent successfully:", response.data);
-  } catch (error) {
-    console.error("Failed to send message:", error.response?.data || error.message);
-  }
-};
-sendWhatsAppMessage();
+    const data = await res.json();
+    console.log("WhatsApp send response", data);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        displayName: "You",
+        message: newMessage,
+        created_time: new Date().toISOString(),
+        from: { id: "me" },
+      },
+    ]);
+    setNewMessage("");
+  };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
