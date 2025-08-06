@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
-// At the bottom of your SocialChatDashboard.jsx file
-export function links() {
-  return [{ rel: "stylesheet", href: require("./ratam.css") }];
-}
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
