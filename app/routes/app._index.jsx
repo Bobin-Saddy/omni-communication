@@ -366,7 +366,8 @@ const res = await fetch(
   };
 
   return (
-    <Page class="check-class" title="📱 Social Chat Dashboard">
+    <div className="my-custom-page">
+    <Page  title="📱 Social Chat Dashboard">
       <Card sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>
@@ -504,5 +505,6 @@ const res = await fetch(
         )}
       </Card>
     </Page>
+    </div>
   );
 }
