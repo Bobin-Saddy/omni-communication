@@ -365,146 +365,106 @@ const res = await fetch(
     fetchMessages(selectedConversation);
   };
 
+ 
   return (
     <div className="my-custom-page">
-    <Page  title="📱 Social Chat Dashboard">
-      <Card sectioned>
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>
-            Connect Facebook
-          </Button>
-          <div style={{ marginTop: 10 }}>
+      <Page title="📱 Social Chat Dashboard">
+        <Card sectioned>
+          <div className="button-group">
+            <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>
+              Connect Facebook
+            </Button>
             <Button onClick={handleInstagramLogin} disabled={igConnected}>
               Connect Instagram
             </Button>
-          </div>
-          <div style={{ marginTop: 10 }}>
             <Button onClick={handleWhatsAppConnect} disabled={waConnected}>
               Connect WhatsApp
             </Button>
           </div>
-        </div>
 
-        {selectedPage && (
-          <div
-            style={{
-              display: "flex",
-              height: "650px",
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              overflow: "hidden",
-              width: "100%",
-            }}
-          >
-            <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+          {selectedPage && (
+            <div className="chat-container">
+              <div className="chat-sidebar">
                 <Text variant="headingMd">Pages</Text>
-              </div>
-              {[...fbPages, ...igPages].map((page) => (
-                <div
-                  key={page.id}
-                  onClick={() => fetchConversations(page)}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                  }}
-                >
-                  <Text>
-                    {page.name} ({page.type})
-                  </Text>
-                </div>
-              ))}
-              {waConnected && (
-                <div
-                  onClick={handleWhatsAppConnect}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
-                  }}
-                >
-                  <Text>WhatsApp</Text>
-                </div>
-              )}
-            </div>
-
-            <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Conversations</Text>
-              </div>
-              {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
-              {conversations.map((conv) => {
-                const name =
-                  selectedPage?.type === "instagram"
-                    ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : selectedPage?.type === "whatsapp"
-                    ? "WhatsApp User"
-                    : conv.participants?.data
-                        ?.filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ");
-                return (
+                {[...fbPages, ...igPages].map((page) => (
                   <div
-                    key={conv.id}
-                    onClick={() => fetchMessages(conv)}
-                    style={{
-                      padding: 12,
-                      cursor: "pointer",
-                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                    }}
+                    key={page.id}
+                    onClick={() => fetchConversations(page)}
+                    className={`page-item ${selectedPage?.id === page.id ? "active" : ""}`}
                   >
-                    <Text>{name}</Text>
+                    <Text>
+                      {page.name} ({page.type})
+                    </Text>
                   </div>
-                );
-              })}
-            </div>
-
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd"
-}}>
-                <Text variant="headingMd">Chat</Text>
+                ))}
+                {waConnected && (
+                  <div
+                    onClick={handleWhatsAppConnect}
+                    className={`page-item ${selectedPage?.type === "whatsapp" ? "active" : ""}`}
+                  >
+                    <Text>WhatsApp</Text>
+                  </div>
+                )}
               </div>
-              <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-                {messages.map((msg) => {
-                  const isMe = msg.from?.id === "me" || msg.from?.name === selectedPage?.name;
-                  const bubbleStyle = {
-                    display: "inline-block",
-                    padding: 10,
-                    borderRadius: 8,
-                    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                    border: "1px solid #ccc",
-                    maxWidth: "80%",
-                  };
 
+              <div className="chat-sidebar">
+                <Text variant="headingMd">Conversations</Text>
+                {conversations.length === 0 && <div>No conversations available.</div>}
+                {conversations.map((conv) => {
+                  const name =
+                    selectedPage?.type === "instagram"
+                      ? `${conv.businessName} ↔️ ${conv.userName}`
+                      : selectedPage?.type === "whatsapp"
+                      ? "WhatsApp User"
+                      : conv.participants?.data
+                          ?.filter((p) => p.name !== selectedPage.name)
+                          .map((p) => p.name)
+                          .join(", ");
                   return (
-                    <div key={msg.id} style={{ textAlign: isMe ? "right" : "left", marginBottom: 10 }}>
-                      <div style={bubbleStyle}>
-                        <strong>{msg.displayName}</strong>
-                        <div>{msg.message}</div>
-                        <small>{new Date(msg.created_time).toLocaleString()}</small>
-                      </div>
+                    <div
+                      key={conv.id}
+                      onClick={() => fetchMessages(conv)}
+                      className={`conversation-item ${selectedConversation?.id === conv.id ? "active" : ""}`}
+                    >
+                      <Text>{name}</Text>
                     </div>
                   );
                 })}
               </div>
-              <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message"
-                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                />
-                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
-                  Send
-                </Button>
+
+              <div className="chat-content">
+                <Text variant="headingMd">Chat</Text>
+                <div className="messages-container">
+                  {messages.map((msg) => {
+                    const isMe = msg.from?.id === "me" || msg.from?.name === selectedPage?.name;
+                    return (
+                      <div key={msg.id} className={`message ${isMe ? "me" : "them"}`}>
+                        <div className="message-bubble">
+                          <strong>{msg.displayName}</strong>
+                          <div>{msg.message}</div>
+                          <small>{new Date(msg.created_time).toLocaleString()}</small>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="input-area">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message"
+                  />
+                  <Button onClick={sendMessage} primary>
+                    Send
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </Card>
-    </Page>
+          )}
+        </Card>
+      </Page>
     </div>
   );
+
 }
