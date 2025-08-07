@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
 
 
-import customStyles from "./app/custom"; // ✅ Import your CSS file
+import customStyles from "./app.styles"; // ✅ Import your CSS file
 
 export function links() {
   return [
