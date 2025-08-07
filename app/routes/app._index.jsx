@@ -382,6 +382,8 @@ return (
           onClick={handleFacebookLogin}
           style={{ backgroundColor: "blue", color: "white", padding: "10px", border: "none", borderRadius: 4 }}
           disabled={fbConnected}
+          class="checkfb"
+          className="checkfbb"
         >
           Connect Facebook
         </button>
