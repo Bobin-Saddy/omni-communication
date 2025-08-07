@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import './SocialChatDashboard.css'; 
 // import { Page, Card, Button, Text } from "@shopify/polaris";
 // import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
