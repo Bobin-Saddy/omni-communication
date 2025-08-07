@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
-import '@shopify/polaris/build/esm/styles/module.css'
+import '@shopify/polaris/build/esm/styles'
 
 
 
