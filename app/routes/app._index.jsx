@@ -1,5 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, links } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
+
+
+import customStyles from "./app/custom"; // ✅ Import your CSS file
+
+export function links() {
+  return [
+    { rel: "stylesheet", href: customStyles }, // ✅ Add to links
+  ];
+}
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
