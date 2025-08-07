@@ -1,8 +1,7 @@
-// app/routes/index.jsx
 import { Form, useActionData } from "@remix-run/react";
 
 export default function Index() {
-  const response = useActionData();
+  const actionData = useActionData();
 
   return (
     <div className="p-8">
@@ -20,20 +19,18 @@ export default function Index() {
         </button>
       </Form>
 
-      {response && (
+      {/* Show response message */}
+      {actionData && (
         <div className="mt-4 p-4 border rounded bg-gray-100">
-          {response.success ? (
-            <>
-              <h2 className="font-semibold text-green-600">Message Sent Successfully</h2>
-              <pre className="text-sm mt-2 overflow-x-auto">
-                {JSON.stringify(response.data, null, 2)}
-              </pre>
-            </>
+          {actionData.success ? (
+            <p className="text-green-600">
+              ✅ Message sent successfully! Message ID:{" "}
+              {actionData.data.messages?.[0]?.id}
+            </p>
           ) : (
-            <>
-              <h2 className="font-semibold text-red-600">Failed to Send Message</h2>
-              <p className="text-sm">{response.error}</p>
-            </>
+            <p className="text-red-600">
+              ❌ Failed to send message: {actionData.error || actionData.data?.error?.message}
+            </p>
           )}
         </div>
       )}
