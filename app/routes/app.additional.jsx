@@ -5,7 +5,7 @@ export default function Index() {
   return (
     <div className="p-8">
       <h1 className="text-2xl mb-4">Send WhatsApp Message</h1>
-      <Form method="post" action="/app/send-message">
+      <Form method="post" action="./send-message">
         <input
           type="text"
           name="message"
