@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
-import '@shopify/polaris/build/esm/styles'
+import customStyles from "./app/styles";
+
+// ✅ Link CSS to the Remix page
+export function links() {
+  return [{ rel: "stylesheet", href: customStyles }];
+}
+
 
 
 

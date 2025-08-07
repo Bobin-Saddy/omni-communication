@@ -1,0 +1,17 @@
+.lorem {
+  padding: 20px;
+  background-color: #f8f9fa;
+}
+
+.for-box {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+input[type="text"] {
+  font-size: 14px;
+}
+
+div[style*="background-color: #e3f2fd"],
+div[style*="background-color: #e7f1ff"] {
+  font-weight: bold;
+}
