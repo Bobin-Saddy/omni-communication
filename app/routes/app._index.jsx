@@ -397,12 +397,24 @@ return (
 </button>
 
         <div style={{ marginTop: 10 }}>
-          <button style={{ backgroundColor: "red", color: "white", padding: "10px", border: "none", borderRadius: 4 }} onClick={handleInstagramLogin} disabled={igConnected}>
+          <button style={{    backgroundColor: "#000000",
+    color: "white",
+    padding: "10px",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "16px",
+    fontWeight: "500"}} onClick={handleInstagramLogin} disabled={igConnected}>
             Connect Instagram
           </button>
         </div>
         <div style={{ marginTop: 10 }}>
-          <button style={{ backgroundColor: "green", color: "white", padding: "10px", border: "none", borderRadius: 4 }} onClick={handleWhatsAppConnect} disabled={waConnected}>
+          <button style={{     backgroundColor: "#000000",
+    color: "white",
+    padding: "10px",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "16px",
+    fontWeight: "500" }} onClick={handleWhatsAppConnect} disabled={waConnected}>
             Connect WhatsApp
           </button>
         </div>
