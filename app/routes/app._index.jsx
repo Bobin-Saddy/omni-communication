@@ -1,4 +1,4 @@
-import { useState, useEffect, links } from "react";
+import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
 
 
