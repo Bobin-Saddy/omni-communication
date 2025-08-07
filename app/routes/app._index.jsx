@@ -13,7 +13,6 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
-  // ✅ NEW STATE for dynamic WhatsApp
   const [waPhoneNumberId, setWaPhoneNumberId] = useState("");
   const [waToken, setWaToken] = useState("");
   const [waRecipientNumber, setWaRecipientNumber] = useState("");
@@ -40,6 +39,55 @@ export default function SocialChatDashboard() {
     })(document, "script", "facebook-jssdk");
   }, []);
 
+  const resetFbData = () => {
+    setFbPages([]);
+    setFbConnected(false);
+    if (selectedPage?.type === "facebook") {
+      setSelectedPage(null);
+      setConversations([]);
+      setMessages([]);
+    }
+  };
+
+  const resetIgData = () => {
+    setIgPages([]);
+    setIgConnected(false);
+    if (selectedPage?.type === "instagram") {
+      setSelectedPage(null);
+      setConversations([]);
+      setMessages([]);
+    }
+  };
+
+  const handleFacebookLogin = () => {
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) {
+          resetIgData();
+          fetchFacebookPages(res.authResponse.accessToken);
+        }
+      },
+      {
+        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
+      }
+    );
+  };
+
+  const handleInstagramLogin = () => {
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) {
+          resetFbData();
+          fetchInstagramPages(res.authResponse.accessToken);
+        }
+      },
+      {
+        scope:
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+      }
+    );
+  };
+
   const handleWhatsAppConnect = () => {
     if (!waPhoneNumberId || !waToken || !waRecipientNumber) {
       alert("Please fill WhatsApp credentials.");
@@ -62,10 +110,101 @@ export default function SocialChatDashboard() {
     setMessages([]);
   };
 
+  const fetchFacebookPages = async (accessToken) => {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
+    );
+    const data = await res.json();
+
+    if (!Array.isArray(data?.data) || data.data.length === 0) {
+      alert("No Facebook pages found.");
+      return;
+    }
+
+    const tokens = {};
+    const pages = data.data.map((page) => {
+      tokens[page.id] = page.access_token;
+      return { ...page, type: "facebook" };
+    });
+
+    setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+    setFbPages(pages);
+    setFbConnected(true);
+    setSelectedPage(pages[0]);
+    fetchConversations(pages[0]);
+  };
+
+  const fetchInstagramPages = async (accessToken) => {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
+    );
+    const data = await res.json();
+
+    const igPages = (data.data || []).filter((p) => p.instagram_business_account);
+    if (igPages.length === 0) {
+      alert("No Instagram business accounts found.");
+      return;
+    }
+
+    const tokens = {};
+    const enriched = igPages.map((page) => {
+      tokens[page.id] = page.access_token;
+      return {
+        ...page,
+        type: "instagram",
+        igId: page.instagram_business_account.id,
+      };
+    });
+
+    setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+    setIgPages(enriched);
+    setIgConnected(true);
+    setSelectedPage(enriched[0]);
+    setConversations([]);
+  };
+
+  const fetchConversations = async (page) => {
+    const token = pageAccessTokens[page.id];
+    setSelectedPage(page);
+    setSelectedConversation(null);
+    setMessages([]);
+
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${page.id}/conversations?${
+        page.type === "instagram" ? "platform=instagram&" : ""
+      }fields=participants&access_token=${token}`
+    );
+    const data = await res.json();
+
+    if (page.type === "instagram") {
+      const enriched = await Promise.all(
+        (data.data || []).map(async (conv) => {
+          const msgRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+          );
+          const msgData = await msgRes.json();
+          const messages = msgData?.data || [];
+          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+          let userName = "Instagram User";
+          if (otherMsg) {
+            userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+          }
+
+          return {
+            ...conv,
+            userName,
+            businessName: page.name,
+          };
+        })
+      );
+      setConversations(enriched);
+    } else {
+      setConversations(data.data || []);
+    }
+  };
+
   const fetchMessages = async (conv) => {
     if (!selectedPage) return;
-
-    const token = pageAccessTokens[selectedPage.id];
 
     if (selectedPage.type === "whatsapp") {
       setSelectedConversation(conv);
@@ -82,7 +221,9 @@ export default function SocialChatDashboard() {
             id: msg.id,
             displayName: msg.from === waRecipientNumber ? "WhatsApp User" : "You",
             message: msg.text?.body || "",
-            created_time: msg.timestamp ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
+            created_time: msg.timestamp
+              ? new Date(Number(msg.timestamp) * 1000).toISOString()
+              : new Date().toISOString(),
             from: { id: msg.from === waRecipientNumber ? "user" : "me" },
           }));
 
@@ -95,8 +236,42 @@ export default function SocialChatDashboard() {
       return;
     }
 
-    // ... other platform fetch logic (Facebook/Instagram)
-    // [UNCHANGED]
+    const token = pageAccessTokens[selectedPage.id];
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
+    );
+    const data = await res.json();
+    const rawMessages = data?.data?.reverse() || [];
+
+    const enrichedMessages = rawMessages.map((msg) => {
+      let displayName = "User";
+
+      if (selectedPage.type === "instagram") {
+        if (msg.from?.id === selectedPage.igId) {
+          displayName = selectedPage.name;
+        } else {
+          displayName =
+            conv.userName ||
+            msg.from?.name ||
+            msg.from?.username ||
+            `Instagram User #${msg.from?.id?.slice(-4)}`;
+        }
+      } else {
+        if (msg.from?.name === selectedPage.name) {
+          displayName = selectedPage.name;
+        } else {
+          displayName = msg.from?.name || "User";
+        }
+      }
+
+      return {
+        ...msg,
+        displayName,
+      };
+    });
+
+    setMessages(enrichedMessages);
+    setSelectedConversation(conv);
   };
 
   const sendWhatsAppMessage = async () => {
@@ -142,8 +317,41 @@ export default function SocialChatDashboard() {
       return;
     }
 
-    // ... rest of Facebook / Instagram sending logic
-    // [UNCHANGED]
+    const token = pageAccessTokens[selectedPage.id];
+
+    if (selectedPage.type === "instagram") {
+      const msgRes = await fetch(
+        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
+      );
+      const msgData = await msgRes.json();
+      const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
+      if (!sender) return alert("Recipient not found");
+
+      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messaging_product: "instagram",
+          recipient: { id: sender.from.id },
+          message: { text: newMessage },
+        }),
+      });
+    } else {
+      const participants = selectedConversation.participants?.data || [];
+      const recipient = participants.find((p) => p.name !== selectedPage.name);
+      if (!recipient) return alert("Recipient not found");
+
+      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: recipient.id },
+          message: { text: newMessage },
+          messaging_type: "MESSAGE_TAG",
+          tag: "ACCOUNT_UPDATE",
+        }),
+      });
+    }
 
     setNewMessage("");
     fetchMessages(selectedConversation);
@@ -159,23 +367,21 @@ export default function SocialChatDashboard() {
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <button
             onClick={handleFacebookLogin}
-            style={{ backgroundColor: "#000", color: "white", padding: "10px", border: "none", borderRadius: "4px", fontSize: "16px", fontWeight: "500" }}
+            style={{ backgroundColor: "#000", color: "white", padding: "10px", borderRadius: "4px" }}
             disabled={fbConnected}
           >
             Connect Facebook
           </button>
-
           <div style={{ marginTop: 10 }}>
             <button
               onClick={handleInstagramLogin}
-              style={{ backgroundColor: "#000", color: "white", padding: "10px", border: "none", borderRadius: "4px", fontSize: "16px", fontWeight: "500" }}
+              style={{ backgroundColor: "#000", color: "white", padding: "10px", borderRadius: "4px" }}
               disabled={igConnected}
             >
               Connect Instagram
             </button>
           </div>
 
-          {/* ✅ NEW WhatsApp Input Fields */}
           <div style={{ marginTop: 20 }}>
             <input
               placeholder="Phone Number ID"
@@ -198,17 +404,15 @@ export default function SocialChatDashboard() {
             <button
               onClick={handleWhatsAppConnect}
               disabled={waConnected}
-              style={{ backgroundColor: "#000", color: "white", padding: "10px", border: "none", borderRadius: "4px", fontSize: "16px", fontWeight: "500", marginTop: 5 }}
+              style={{ backgroundColor: "#000", color: "white", padding: "10px", borderRadius: "4px" }}
             >
               Connect WhatsApp
             </button>
           </div>
         </div>
 
-        {/* Rest of your component remains unchanged (pages, conversations, chat, etc.) */}
-        {/* [NO CHANGE REQUIRED BELOW UNLESS ADDING FEATURES] */}
-        
-        {/* ... [Your existing UI rendering code] ... */}
+        {/* TODO: Add rest of the layout UI for chat, conversations, etc. like in your original code */}
+        {/* You can reinsert the chat UI from your earlier code if needed */}
       </div>
     </div>
   );
