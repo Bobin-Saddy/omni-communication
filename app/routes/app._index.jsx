@@ -389,12 +389,12 @@ return (
           Connect Facebook
         </button>
         <div style={{ marginTop: 10 }}>
-          <button onClick={handleInstagramLogin} disabled={igConnected}>
+          <button style={{ backgroundColor: "red", color: "white", padding: "10px", border: "none", borderRadius: 4 }} onClick={handleInstagramLogin} disabled={igConnected}>
             Connect Instagram
           </button>
         </div>
         <div style={{ marginTop: 10 }}>
-          <button onClick={handleWhatsAppConnect} disabled={waConnected}>
+          <button style={{ backgroundColor: "green", color: "white", padding: "10px", border: "none", borderRadius: 4 }} onClick={handleWhatsAppConnect} disabled={waConnected}>
             Connect WhatsApp
           </button>
         </div>
