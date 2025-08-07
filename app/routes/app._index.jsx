@@ -381,7 +381,7 @@ return (
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <button
           onClick={handleFacebookLogin}
-          style={{  backgroundcolor: "#000000", color: "white", padding: "10px", border: none, borderradius: "4px", fontsize: "16px", fontweight: "500" }}
+          style={{  backgroundColor: "#000000", color: "white", padding: "10px", border: none, borderRadius: "4px", fontSize: "16px", fontWeight: "500" }}
           disabled={fbConnected}
           class="checkfb"
           className="checkfbb"
