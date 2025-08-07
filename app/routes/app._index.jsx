@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
-import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import polarisStyles from "./app/styles";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
