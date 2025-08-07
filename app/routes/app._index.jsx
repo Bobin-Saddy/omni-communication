@@ -1,10 +1,4 @@
 import { useState, useEffect } from "react";
-import customStyles from  './SocialChatDashboard.css'; 
-export function links() {
-  return [
-    { rel: "stylesheet", href: customStyles },
-  ];
-}
 
 // import { Page, Card, Button, Text } from "@shopify/polaris";
 // import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
