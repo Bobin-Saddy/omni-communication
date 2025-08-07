@@ -379,15 +379,23 @@ return (
 
     <div className="card for-box">
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <button
-          onClick={handleFacebookLogin}
-          style={{  backgroundColor: "#000000", color: "white", padding: "10px", border: none, borderRadius: "4px", fontSize: "16px", fontWeight: "500" }}
-          disabled={fbConnected}
-          class="checkfb"
-          className="checkfbb"
-        >
-          Connect Facebook
-        </button>
+<button
+  onClick={handleFacebookLogin}
+  style={{
+    backgroundColor: "#000000",
+    color: "white",
+    padding: "10px",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "16px",
+    fontWeight: "500"
+  }}
+  disabled={fbConnected}
+  className="checkfbb"
+>
+  Connect Facebook
+</button>
+
         <div style={{ marginTop: 10 }}>
           <button style={{ backgroundColor: "red", color: "white", padding: "10px", border: "none", borderRadius: 4 }} onClick={handleInstagramLogin} disabled={igConnected}>
             Connect Instagram
