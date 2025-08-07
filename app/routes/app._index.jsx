@@ -2,13 +2,7 @@ import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
 
 
-import customStyles from "./app.styles"; // ✅ Import your CSS file
-
-export function links() {
-  return [
-    { rel: "stylesheet", href: customStyles }, // ✅ Add to links
-  ];
-}
+import styles from "./styles.module.css";
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
@@ -375,7 +369,7 @@ const res = await fetch(
   };
 
   return (
-    <div className="my-custom-page">
+    <div className={styles.text}>
     <Page  title="📱 Social Chat Dashboard">
       <Card className="for-box" sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
