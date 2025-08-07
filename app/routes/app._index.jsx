@@ -369,7 +369,7 @@ const res = await fetch(
   };
 
   return (
-    <div className={styles.text}>
+    <div className='lorem'>
     <Page  title="📱 Social Chat Dashboard">
       <Card className="for-box" sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
