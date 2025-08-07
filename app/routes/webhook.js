@@ -1,34 +1,49 @@
-// webhook.js
-import express from "express";
+// webhook.js or inside your Express/Node server
+ import express from 'express';
 const router = express.Router();
-
-let unreadMessages = {}; // { conversationId: count }
 
 router.post("/webhook", (req, res) => {
   const body = req.body;
 
-  if (body.object === "page") {
-    body.entry.forEach(function(entry) {
-      const messaging = entry.messaging[0];
-      const senderId = messaging.sender.id;
-      const recipientId = messaging.recipient.id;
-      const message = messaging.message;
+  console.log("📩 Incoming Webhook:", JSON.stringify(body, null, 2));
 
-      if (message && senderId !== 544704651303656) {
-        const conversationId = messaging.sender.id; // Use sender ID as conversation ID
+  if (body.object) {
+    const entry = body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+    const messages = value?.messages;
 
-        if (!unreadMessages[conversationId]) {
-          unreadMessages[conversationId] = 0;
-        }
-        unreadMessages[conversationId] += 1;
-      }
-    });
+    if (messages && messages.length > 0) {
+      const message = messages[0];
+      const from = message.from;
+      const text = message.text?.body;
 
-    res.status(200).send("EVENT_RECEIVED");
+      console.log(`📬 WhatsApp Message From: ${from}`);
+      console.log(`💬 Message Text: ${text}`);
+
+      // You can now:
+      // 1. Save this message to a database
+      // 2. Send it to frontend via WebSocket or SSE
+    }
+  }
+
+  res.sendStatus(200);
+});
+
+// Verification for webhook (first time setup)
+router.get("/webhook", (req, res) => {
+  const VERIFY_TOKEN = "my_verification_token"; // Use same in Meta developer portal
+
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token === VERIFY_TOKEN) {
+    console.log("Webhook verified");
+    res.status(200).send(challenge);
   } else {
-    res.sendStatus(404);
+    res.sendStatus(403);
   }
 });
 
-export { unreadMessages };
-export default router;
+module.exports = router;
