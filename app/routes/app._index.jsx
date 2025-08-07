@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Page, Card, Button, Text } from "@shopify/polaris";
-import customStyles from "./app/styles";
+// import customStyles from "./app/styles";
+import './SocialChatDashboard.css';
+
 
 // ✅ Link CSS to the Remix page
-export function links() {
-  return [{ rel: "stylesheet", href: customStyles }];
-}
+// export function links() {
+//   return [{ rel: "stylesheet", href: customStyles }];
+// }
 
 
 
