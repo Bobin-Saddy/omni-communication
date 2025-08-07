@@ -373,7 +373,7 @@ const res = await fetch(
     <Page  title="📱 Social Chat Dashboard">
       <Card className="for-box" sectioned>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Button onClick={handleFacebookLogin} className="fb-btn" primary disabled={fbConnected}>
+          <Button onClick={handleFacebookLogin}  style={{ textAlign: "center", backgroundColor: "blue", padding:"10px" }} primary disabled={fbConnected}>
             Connect Facebook
           </Button>
           <div style={{ marginTop: 10 }}>
