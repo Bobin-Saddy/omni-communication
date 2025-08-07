@@ -1,277 +1,83 @@
 import { useState, useEffect } from "react";
 
 export default function SocialChatDashboard() {
-  const [fbPages, setFbPages] = useState([]);
-  const [igPages, setIgPages] = useState([]);
-  const [fbConnected, setFbConnected] = useState(false);
-  const [igConnected, setIgConnected] = useState(false);
+  const [waPhoneNumberId, setWaPhoneNumberId] = useState("");
+  const [waToken, setWaToken] = useState("");
+  const [waInputNumber, setWaInputNumber] = useState("");
+  const [waRecipientNumber, setWaRecipientNumber] = useState("");
+  const [otp, setOtp] = useState("");
+  const [generatedOtp, setGeneratedOtp] = useState("");
   const [waConnected, setWaConnected] = useState(false);
   const [selectedPage, setSelectedPage] = useState(null);
-  const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
-  const [waPhoneNumberId, setWaPhoneNumberId] = useState("");
-  const [waToken, setWaToken] = useState("");
-  const [waRecipientNumber, setWaRecipientNumber] = useState("");
+  // Dummy OTP sending function (replace with real API)
+  const sendOtpToPhone = () => {
+    if (!waInputNumber) {
+      alert("Please enter phone number");
+      return;
+    }
 
-  const FACEBOOK_APP_ID = "544704651303656";
+    // Simulate sending OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(otpCode);
+    alert(`OTP sent to ${waInputNumber}: ${otpCode}`); // Show OTP for testing
+  };
 
-  useEffect(() => {
-    window.fbAsyncInit = function () {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: true,
-        version: "v18.0",
+  const verifyOtp = () => {
+    if (otp === generatedOtp) {
+      setWaRecipientNumber(waInputNumber);
+      setWaConnected(true);
+      setSelectedPage({
+        id: "whatsapp",
+        name: "WhatsApp",
+        type: "whatsapp",
       });
-    };
-
-    (function (d, s, id) {
-      if (d.getElementById(id)) return;
-      const js = d.createElement(s);
-      js.id = id;
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      const fjs = d.getElementsByTagName(s)[0];
-      fjs.parentNode.insertBefore(js, fjs);
-    })(document, "script", "facebook-jssdk");
-  }, []);
-
-  const resetFbData = () => {
-    setFbPages([]);
-    setFbConnected(false);
-    if (selectedPage?.type === "facebook") {
-      setSelectedPage(null);
-      setConversations([]);
+      setConversations([
+        {
+          id: "wa-1",
+          userName: "Verified WhatsApp User",
+          businessName: "You",
+        },
+      ]);
       setMessages([]);
-    }
-  };
-
-  const resetIgData = () => {
-    setIgPages([]);
-    setIgConnected(false);
-    if (selectedPage?.type === "instagram") {
-      setSelectedPage(null);
-      setConversations([]);
-      setMessages([]);
-    }
-  };
-
-  const handleFacebookLogin = () => {
-    window.FB.login(
-      (res) => {
-        if (res.authResponse) {
-          resetIgData();
-          fetchFacebookPages(res.authResponse.accessToken);
-        }
-      },
-      {
-        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
-      }
-    );
-  };
-
-  const handleInstagramLogin = () => {
-    window.FB.login(
-      (res) => {
-        if (res.authResponse) {
-          resetFbData();
-          fetchInstagramPages(res.authResponse.accessToken);
-        }
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
-    );
-  };
-
-  const handleWhatsAppConnect = () => {
-    if (!waPhoneNumberId || !waToken || !waRecipientNumber) {
-      alert("Please fill WhatsApp credentials.");
-      return;
-    }
-
-    setWaConnected(true);
-    setSelectedPage({
-      id: "whatsapp",
-      name: "WhatsApp",
-      type: "whatsapp",
-    });
-    setConversations([
-      {
-        id: "wa-1",
-        userName: "WhatsApp User",
-        businessName: "You",
-      },
-    ]);
-    setMessages([]);
-  };
-
-  const fetchFacebookPages = async (accessToken) => {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
-    );
-    const data = await res.json();
-
-    if (!Array.isArray(data?.data) || data.data.length === 0) {
-      alert("No Facebook pages found.");
-      return;
-    }
-
-    const tokens = {};
-    const pages = data.data.map((page) => {
-      tokens[page.id] = page.access_token;
-      return { ...page, type: "facebook" };
-    });
-
-    setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-    setFbPages(pages);
-    setFbConnected(true);
-    setSelectedPage(pages[0]);
-    fetchConversations(pages[0]);
-  };
-
-  const fetchInstagramPages = async (accessToken) => {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
-    );
-    const data = await res.json();
-
-    const igPages = (data.data || []).filter((p) => p.instagram_business_account);
-    if (igPages.length === 0) {
-      alert("No Instagram business accounts found.");
-      return;
-    }
-
-    const tokens = {};
-    const enriched = igPages.map((page) => {
-      tokens[page.id] = page.access_token;
-      return {
-        ...page,
-        type: "instagram",
-        igId: page.instagram_business_account.id,
-      };
-    });
-
-    setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-    setIgPages(enriched);
-    setIgConnected(true);
-    setSelectedPage(enriched[0]);
-    setConversations([]);
-  };
-
-  const fetchConversations = async (page) => {
-    const token = pageAccessTokens[page.id];
-    setSelectedPage(page);
-    setSelectedConversation(null);
-    setMessages([]);
-
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.id}/conversations?${
-        page.type === "instagram" ? "platform=instagram&" : ""
-      }fields=participants&access_token=${token}`
-    );
-    const data = await res.json();
-
-    if (page.type === "instagram") {
-      const enriched = await Promise.all(
-        (data.data || []).map(async (conv) => {
-          const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
-          );
-          const msgData = await msgRes.json();
-          const messages = msgData?.data || [];
-          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-          let userName = "Instagram User";
-          if (otherMsg) {
-            userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-          }
-
-          return {
-            ...conv,
-            userName,
-            businessName: page.name,
-          };
-        })
-      );
-      setConversations(enriched);
+      alert("OTP Verified!");
     } else {
-      setConversations(data.data || []);
+      alert("Invalid OTP");
     }
   };
 
   const fetchMessages = async (conv) => {
-    if (!selectedPage) return;
+    if (!selectedPage || selectedPage.type !== "whatsapp") return;
 
-    if (selectedPage.type === "whatsapp") {
-      setSelectedConversation(conv);
-
-      try {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${waPhoneNumberId}/messages?access_token=${waToken}`
-        );
-        const data = await res.json();
-
-        const formatted = (data.data || [])
-          .filter((msg) => msg.type === "text")
-          .map((msg) => ({
-            id: msg.id,
-            displayName: msg.from === waRecipientNumber ? "WhatsApp User" : "You",
-            message: msg.text?.body || "",
-            created_time: msg.timestamp
-              ? new Date(Number(msg.timestamp) * 1000).toISOString()
-              : new Date().toISOString(),
-            from: { id: msg.from === waRecipientNumber ? "user" : "me" },
-          }));
-
-        setMessages(formatted.reverse());
-      } catch (error) {
-        console.error("Failed to fetch WhatsApp messages", error);
-        setMessages([]);
-      }
-
-      return;
-    }
-
-    const token = pageAccessTokens[selectedPage.id];
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-    );
-    const data = await res.json();
-    const rawMessages = data?.data?.reverse() || [];
-
-    const enrichedMessages = rawMessages.map((msg) => {
-      let displayName = "User";
-
-      if (selectedPage.type === "instagram") {
-        if (msg.from?.id === selectedPage.igId) {
-          displayName = selectedPage.name;
-        } else {
-          displayName =
-            conv.userName ||
-            msg.from?.name ||
-            msg.from?.username ||
-            `Instagram User #${msg.from?.id?.slice(-4)}`;
-        }
-      } else {
-        if (msg.from?.name === selectedPage.name) {
-          displayName = selectedPage.name;
-        } else {
-          displayName = msg.from?.name || "User";
-        }
-      }
-
-      return {
-        ...msg,
-        displayName,
-      };
-    });
-
-    setMessages(enrichedMessages);
     setSelectedConversation(conv);
+
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${waPhoneNumberId}/messages?access_token=${waToken}`
+      );
+      const data = await res.json();
+
+      const formatted = (data.data || [])
+        .filter((msg) => msg.type === "text")
+        .map((msg) => ({
+          id: msg.id,
+          displayName: msg.from === waRecipientNumber ? "User" : "You",
+          message: msg.text?.body || "",
+          created_time: msg.timestamp
+            ? new Date(Number(msg.timestamp) * 1000).toISOString()
+            : new Date().toISOString(),
+          from: { id: msg.from === waRecipientNumber ? "user" : "me" },
+        }));
+
+      setMessages(formatted.reverse());
+    } catch (error) {
+      console.error("Failed to fetch WhatsApp messages", error);
+      setMessages([]);
+    }
   };
 
   const sendWhatsAppMessage = async () => {
@@ -309,236 +115,89 @@ export default function SocialChatDashboard() {
     setNewMessage("");
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
-
-    if (selectedPage.type === "whatsapp") {
-      await sendWhatsAppMessage();
-      return;
-    }
-
-    const token = pageAccessTokens[selectedPage.id];
-
-    if (selectedPage.type === "instagram") {
-      const msgRes = await fetch(
-        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
-      );
-      const msgData = await msgRes.json();
-      const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-      if (!sender) return alert("Recipient not found");
-
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "instagram",
-          recipient: { id: sender.from.id },
-          message: { text: newMessage },
-        }),
-      });
-    } else {
-      const participants = selectedConversation.participants?.data || [];
-      const recipient = participants.find((p) => p.name !== selectedPage.name);
-      if (!recipient) return alert("Recipient not found");
-
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: recipient.id },
-          message: { text: newMessage },
-          messaging_type: "MESSAGE_TAG",
-          tag: "ACCOUNT_UPDATE",
-        }),
-      });
-    }
-
-    setNewMessage("");
-    fetchMessages(selectedConversation);
-  };
-
   return (
-    <div className="social-chat-dashboard">
-      <div className="page-title">
-        <h1>📱 Social Chat Dashboard</h1>
+    <div style={{ padding: 30 }}>
+      <h2>📱 WhatsApp OTP Chat</h2>
+
+      <div style={{ marginBottom: 20 }}>
+        <input
+          placeholder="Phone Number ID"
+          value={waPhoneNumberId}
+          onChange={(e) => setWaPhoneNumberId(e.target.value)}
+          style={{ padding: 8, marginBottom: 5, width: "300px" }}
+        />
+        <br />
+        <input
+          placeholder="Access Token"
+          value={waToken}
+          onChange={(e) => setWaToken(e.target.value)}
+          style={{ padding: 8, marginBottom: 5, width: "300px" }}
+        />
+        <br />
+        <input
+          placeholder="Recipient Phone Number"
+          value={waInputNumber}
+          onChange={(e) => setWaInputNumber(e.target.value)}
+          style={{ padding: 8, marginBottom: 5, width: "300px" }}
+        />
+        <br />
+        <button onClick={sendOtpToPhone} style={{ marginRight: 10 }}>
+          Send OTP
+        </button>
+        <input
+          placeholder="Enter OTP"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value)}
+          style={{ padding: 8, marginRight: 10, width: "100px" }}
+        />
+        <button onClick={verifyOtp}>Verify OTP</button>
       </div>
 
-      <div className="card for-box">
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <button
-            onClick={handleFacebookLogin}
-            style={{ backgroundColor: "#000", color: "white", padding: "10px", borderRadius: "4px" }}
-            disabled={fbConnected}
-          >
-            Connect Facebook
-          </button>
-          <div style={{ marginTop: 10 }}>
-            <button
-              onClick={handleInstagramLogin}
-              style={{ backgroundColor: "#000", color: "white", padding: "10px", borderRadius: "4px" }}
-              disabled={igConnected}
-            >
-              Connect Instagram
-            </button>
+      {waConnected && (
+        <div style={{ border: "1px solid #ccc", padding: 10, borderRadius: 8 }}>
+          <h4>Connected to WhatsApp</h4>
+
+          <div>
+            <h5>Conversations</h5>
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                style={{
+                  padding: 8,
+                  borderBottom: "1px solid #eee",
+                  cursor: "pointer",
+                }}
+                onClick={() => fetchMessages(conv)}
+              >
+                {conv.userName}
+              </div>
+            ))}
           </div>
 
           <div style={{ marginTop: 20 }}>
+            <h5>Messages</h5>
+            <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 10 }}>
+              {messages.map((msg) => (
+                <div key={msg.id} style={{ marginBottom: 10 }}>
+                  <strong>{msg.displayName}:</strong> {msg.message}
+                  <br />
+                  <small>{new Date(msg.created_time).toLocaleString()}</small>
+                </div>
+              ))}
+            </div>
+
             <input
-              placeholder="Phone Number ID"
-              value={waPhoneNumberId}
-              onChange={(e) => setWaPhoneNumberId(e.target.value)}
-              style={{ padding: 8, marginBottom: 5, width: "80%" }}
+              placeholder="Type your message"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              style={{ width: "70%", padding: 8 }}
             />
-            <input
-              placeholder="Recipient Phone Number"
-              value={waRecipientNumber}
-              onChange={(e) => setWaRecipientNumber(e.target.value)}
-              style={{ padding: 8, marginBottom: 5, width: "80%" }}
-            />
-            <input
-              placeholder="WhatsApp Access Token"
-              value={waToken}
-              onChange={(e) => setWaToken(e.target.value)}
-              style={{ padding: 8, marginBottom: 5, width: "80%" }}
-            />
-            <button
-              onClick={handleWhatsAppConnect}
-              disabled={waConnected}
-              style={{ backgroundColor: "#000", color: "white", padding: "10px", borderRadius: "4px" }}
-            >
-              Connect WhatsApp
+            <button onClick={sendWhatsAppMessage} style={{ marginLeft: 10 }}>
+              Send
             </button>
           </div>
         </div>
-  {selectedPage && (
-        <div
-          style={{
-            display: "flex",
-            height: "650px",
-            border: "1px solid #ccc",
-            borderRadius: 8,
-            overflow: "hidden",
-            width: "100%",
-          }}
-        >
-          {/* Pages Sidebar */}
-          <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-              <h3>Pages</h3>
-            </div>
-            {[...fbPages, ...igPages].map((page) => (
-              <div
-                key={page.id}
-                onClick={() => fetchConversations(page)}
-                style={{
-                  padding: 12,
-                  cursor: "pointer",
-                  backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                }}
-              >
-                <span>{page.name} ({page.type})</span>
-              </div>
-            ))}
-            {waConnected && (
-              <div
-                onClick={handleWhatsAppConnect}
-                style={{
-                  padding: 12,
-                  cursor: "pointer",
-                  backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
-                }}
-              >
-                <span>WhatsApp</span>
-              </div>
-            )}
-          </div>
-
-          {/* Conversations List */}
-          <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-              <h3>Conversations</h3>
-            </div>
-            {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
-            {conversations.map((conv) => {
-              const name =
-                selectedPage?.type === "instagram"
-                  ? `${conv.businessName} ↔️ ${conv.userName}`
-                  : selectedPage?.type === "whatsapp"
-                  ? "WhatsApp User"
-                  : conv.participants?.data
-                      ?.filter((p) => p.name !== selectedPage.name)
-                      .map((p) => p.name)
-                      .join(", ");
-              return (
-                <div
-                  key={conv.id}
-                  onClick={() => fetchMessages(conv)}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                  }}
-                >
-                  <span>{name}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Chat Area */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-              <h3>Chat</h3>
-            </div>
-            <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-              {messages.map((msg) => {
-                const isMe = msg.from?.id === "me" || msg.from?.name === selectedPage?.name;
-                const bubbleStyle = {
-                  display: "inline-block",
-                  padding: 10,
-                  borderRadius: 8,
-                  backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                  border: "1px solid #ccc",
-                  maxWidth: "80%",
-                };
-
-                return (
-                  <div key={msg.id} style={{ textAlign: isMe ? "right" : "left", marginBottom: 10 }}>
-                    <div style={bubbleStyle}>
-                      <strong>{msg.displayName}</strong>
-                      <div>{msg.message}</div>
-                      <small>{new Date(msg.created_time).toLocaleString()}</small>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message"
-                style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-              />
-              <button
-                onClick={sendMessage}
-                style={{
-                  marginLeft: 10,
-                  padding: "10px 20px",
-                  backgroundColor: "#007bff",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 5,
-                }}
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
       )}
-      </div>
     </div>
   );
 }
