@@ -1,16 +1,17 @@
 // app/routes/whatsapp-webhook.js
 
+import { json } from "@remix-run/node";
 import { saveMessage } from "./messagesStore";
 
-export default async function handler(req, res) {
-  if (req.method === "POST") {
-    const { number, text } = req.body;
+export const action = async ({ request }) => {
+  const body = await request.json();
+  const { number, text } = body;
 
-    // Save the message
-    saveMessage(number, { sender: "User", text });
-
-    res.status(200).send("Message received");
-  } else {
-    res.status(405).send("Method Not Allowed");
+  if (!number || !text) {
+    return json({ error: "Missing number or text" }, { status: 400 });
   }
-}
+
+  saveMessage(number, { sender: "User", text });
+
+  return json({ success: true });
+};

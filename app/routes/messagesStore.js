@@ -1,6 +1,6 @@
 // app/routes/messagesStore.js
 
-let messagesDB = {}; // This should eventually be a real DB
+let messagesDB = {}; // In-memory store
 
 export function saveMessage(number, message) {
   if (!messagesDB[number]) {

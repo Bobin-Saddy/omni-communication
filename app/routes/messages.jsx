@@ -1,43 +1,37 @@
 // app/routes/messages.jsx
+
 import { useSearchParams } from "@remix-run/react";
-import { useEffect, useState } from "react";
-import { getMessages } from "./messagesStore"; // Adjust path if needed
+import { useLoaderData, redirect } from "@remix-run/node";
+import { getMessages } from "./messagesStore";
+
+export const loader = async ({ request }) => {
+  const url = new URL(request.url);
+  const number = url.searchParams.get("number");
+
+  if (!number) {
+    return redirect("/app/whatsapp");
+  }
+
+  const messages = getMessages(number);
+  return { number, messages };
+};
 
 export default function Messages() {
-  const [searchParams] = useSearchParams();
-  const number = searchParams.get("number");
-  const [messages, setMessages] = useState([]);
-
-  useEffect(() => {
-    if (!number) return;
-
-    const fetchMessages = async () => {
-      try {
-        const data = await getMessages(number);
-        setMessages(data || []);
-      } catch (err) {
-        console.error("Failed to fetch messages", err);
-      }
-    };
-
-    fetchMessages();
-  }, [number]);
-
-  if (!number) return <div>No number provided.</div>;
+  const { number, messages } = useLoaderData();
 
   return (
     <div style={{ padding: "20px" }}>
       <h2>Messages for {number}</h2>
-      {messages.length > 0 ? (
+      {messages.length === 0 ? (
+        <p>No messages found.</p>
+      ) : (
         <ul>
-          {messages.map((msg, idx) => (
-            <li key={idx}>
+          {messages.map((msg, index) => (
+            <li key={index}>
               <strong>{msg.sender}:</strong> {msg.text}
             </li>
           ))}
         </ul>
-      ) : (
-        <p>No messages found.</p>
       )}
     </div>
   );
