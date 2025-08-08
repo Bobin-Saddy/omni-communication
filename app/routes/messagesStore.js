@@ -1,5 +1,6 @@
 // app/routes/messagesStore.js
 
+
 const messagesDB = {
   "919779728764": [
     { sender: "Customer", text: "Hello, I need help with my order." },
@@ -11,6 +12,13 @@ const messagesDB = {
     { sender: "Support", text: "Yes, shipped yesterday. Expected by Friday." },
   ],
 };
+
+export function saveMessage(number, message) {
+  if (!messagesDB[number]) {
+    messagesDB[number] = [];
+  }
+  messagesDB[number].push(message);
+}
 
 export function getMessages(number) {
   return messagesDB[number] || [];
