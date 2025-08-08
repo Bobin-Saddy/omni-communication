@@ -1,44 +1,16 @@
-// pages/api/whatsapp-webhook.js
+// app/routes/whatsapp-webhook.js
+
 import { saveMessage } from "./messagesStore";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
-    const entry = req.body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const messageData = changes?.value?.messages?.[0];
-    const profileData = changes?.value?.contacts?.[0];
+    const { number, text } = req.body;
 
-    if (messageData && profileData) {
-      const from = messageData.from;
-      const name = profileData.profile?.name || "Unknown";
-      const msg = messageData.text?.body || "";
+    // Save the message
+    saveMessage(number, { sender: "User", text });
 
-      const formattedMsg = {
-        id: messageData.id,
-        from: { id: "user" },
-        displayName: name,
-        message: msg,
-        created_time: new Date().toISOString(),
-      };
-
-      saveMessage(from, formattedMsg);
-    }
-
-    return res.status(200).send("EVENT_RECEIVED");
+    res.status(200).send("Message received");
+  } else {
+    res.status(405).send("Method Not Allowed");
   }
-
-  // For webhook verification
-  if (req.method === "GET") {
-    const VERIFY_TOKEN = "my_verify_token";
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      return res.status(200).send(challenge);
-    } else {
-      return res.sendStatus(403);
-    }
-  }
-
-  res.status(405).send("Method Not Allowed");
 }
