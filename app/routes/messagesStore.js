@@ -6,7 +6,7 @@ export async function getMessages(number) {
   }
 
   try {
-    const response = await fetch(`/api/messages?number=${encodeURIComponent(number)}`);
+    const response = await fetch(`/app/messages?number=${encodeURIComponent(number)}`);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch messages: ${response.status}`);
