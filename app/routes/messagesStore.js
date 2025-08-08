@@ -1,4 +1,3 @@
-// lib/messagesStore.js
 const messagesByNumber = {};
 
 export function saveMessage(number, messageData) {
@@ -6,8 +5,11 @@ export function saveMessage(number, messageData) {
     messagesByNumber[number] = [];
   }
   messagesByNumber[number].push(messageData);
+  console.log('check-message-number-------->', messagesByNumber);
+
 }
 
 export function getMessages(number) {
   return messagesByNumber[number] || [];
+  
 }

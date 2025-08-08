@@ -211,9 +211,10 @@ const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
 if (selectedPage.type === "whatsapp") {
   try {
-    const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-    const data = await res.json();
-    setMessages(data.messages || []);
+ const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+const data = await res.json();
+setMessages(data.messages || []);
+
   } catch (err) {
     console.error("Error fetching WhatsApp messages", err);
   }
