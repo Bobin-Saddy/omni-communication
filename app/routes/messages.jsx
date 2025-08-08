@@ -1,16 +1,19 @@
 // app/routes/messages.jsx
-import { useSearchParams } from "@remix-run/react";
+import { useSearchParams, useNavigate } from "@remix-run/react";
 import { useEffect } from "react";
 
 export default function Messages() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const number = searchParams.get("number");
 
   useEffect(() => {
-    if (!number) return;
-    router.push("/app/whatsapp"); // if number is missing, go to WhatsApp input page
-    return;
-  }, [number]);
+    if (!number) {
+      navigate("/app/whatsapp"); // navigate correctly
+    }
+  }, [number, navigate]);
 
-  return <div>Show messages for {number}</div>;
+  return number ? (
+    <div>Show messages for {number}</div>
+  ) : null;
 }
