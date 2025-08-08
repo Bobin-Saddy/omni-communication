@@ -1,19 +1,44 @@
 // app/routes/messages.jsx
-import { useSearchParams, useNavigate } from "@remix-run/react";
-import { useEffect } from "react";
+import { useSearchParams } from "@remix-run/react";
+import { useEffect, useState } from "react";
+import { getMessages } from "./messagesStore"; // Adjust path if needed
 
 export default function Messages() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const number = searchParams.get("number");
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    if (!number) {
-      navigate("/app/whatsapp"); // navigate correctly
-    }
-  }, [number, navigate]);
+    if (!number) return;
 
-  return number ? (
-    <div>Show messages for {number}</div>
-  ) : null;
+    const fetchMessages = async () => {
+      try {
+        const data = await getMessages(number);
+        setMessages(data || []);
+      } catch (err) {
+        console.error("Failed to fetch messages", err);
+      }
+    };
+
+    fetchMessages();
+  }, [number]);
+
+  if (!number) return <div>No number provided.</div>;
+
+  return (
+    <div style={{ padding: "20px" }}>
+      <h2>Messages for {number}</h2>
+      {messages.length > 0 ? (
+        <ul>
+          {messages.map((msg, idx) => (
+            <li key={idx}>
+              <strong>{msg.sender}:</strong> {msg.text}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No messages found.</p>
+      )}
+    </div>
+  );
 }
