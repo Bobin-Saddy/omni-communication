@@ -221,46 +221,19 @@ const handleWhatsAppConnect = async () => {
   };
 
   const fetchMessages = async (conv) => {
-    if (!selectedPage) return;
-    const token = pageAccessTokens[selectedPage.id];
-
-if (selectedPage.type === "whatsapp") {
+ if (!selectedPage) return;
   setSelectedConversation(conv);
 
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`
-    );
-    const data = await res.json();
-
-    if (!data?.data) {
-      console.warn("No messages returned from WhatsApp API", data);
-      setMessages([]);
-      return;
+  if (selectedPage.type === "whatsapp") {
+    try {
+      const res = await fetch(`/get-whatsapp-messages?number=${conv.userNumber}`);
+      const data = await res.json();
+      setMessages(data.messages || []);
+    } catch (err) {
+      console.error("Error fetching WhatsApp messages", err);
     }
-
-    const formatted = data.data
-      .filter((msg) => msg.type === "text")
-      .filter((msg) => msg.from === conv.userNumber || msg.to === conv.userNumber) // Filter messages with the selected user
-      .map((msg) => ({
-        id: msg.id,
-        displayName: msg.from === conv.userNumber ? conv.userName : "You",
-        message: msg.text?.body || "",
-        created_time: msg.timestamp
-          ? new Date(Number(msg.timestamp) * 1000).toISOString()
-          : new Date().toISOString(),
-        from: { id: msg.from === conv.userNumber ? "user" : "me" },
-      }));
-
-    setMessages(formatted.reverse()); // newest at bottom
-  } catch (error) {
-    console.error("Failed to fetch WhatsApp messages", error);
-    setMessages([]);
+    return;
   }
-
-  return;
-}
-
 
 
     const res = await fetch(
