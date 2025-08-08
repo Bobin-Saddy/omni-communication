@@ -1,25 +1,32 @@
-// app/routes/messagesStore.js
+// app/lib/messagesStore.js
+import fs from "fs/promises";
+import path from "path";
 
+const filePath = path.resolve("data/messages.json");
 
-const messagesDB = {
-  "919779728764": [
-    { sender: "Customer", text: "Hello, I need help with my order." },
-    { sender: "Support", text: "Sure, can you give me your order ID?" },
-    { sender: "Customer", text: "Yes, it's #12345." },
-  ],
-  "9876543210": [
-    { sender: "Customer", text: "Is my parcel shipped?" },
-    { sender: "Support", text: "Yes, shipped yesterday. Expected by Friday." },
-  ],
-};
-
-export function saveMessage(number, message) {
-  if (!messagesDB[number]) {
-    messagesDB[number] = [];
+// Read messages
+export async function getMessages(number) {
+  try {
+    const data = await fs.readFile(filePath, "utf-8");
+    const db = JSON.parse(data);
+    return db[number] || [];
+  } catch (err) {
+    console.error("Error reading messages:", err);
+    return [];
   }
-  messagesDB[number].push(message);
 }
 
-export function getMessages(number) {
-  return messagesDB[number] || [];
+// Save message
+export async function saveMessage(number, message) {
+  try {
+    const data = await fs.readFile(filePath, "utf-8");
+    const db = JSON.parse(data);
+
+    if (!db[number]) db[number] = [];
+    db[number].push(message);
+
+    await fs.writeFile(filePath, JSON.stringify(db, null, 2));
+  } catch (err) {
+    console.error("Error saving message:", err);
+  }
 }
