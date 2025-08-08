@@ -1,11 +1,16 @@
-useEffect(() => {
-  if (!router.isReady) return;
-  const { number } = router.query;
+// app/routes/messages.jsx
+import { useSearchParams } from "@remix-run/react";
+import { useEffect } from "react";
 
-  if (!number) {
+export default function Messages() {
+  const [searchParams] = useSearchParams();
+  const number = searchParams.get("number");
+
+  useEffect(() => {
+    if (!number) return;
     router.push("/app/whatsapp"); // if number is missing, go to WhatsApp input page
     return;
-  }
+  }, [number]);
 
-  fetchMessages(number);
-}, [router.isReady, router.query]);
+  return <div>Show messages for {number}</div>;
+}

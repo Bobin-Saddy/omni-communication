@@ -1,15 +1,15 @@
-// pages/whatsapp.jsx
+// app/routes/app.whatsapp.jsx
+import { useSearchParams, useNavigate } from "@remix-run/react";
 import { useState } from "react";
-import { useRouter } from "next/router";
 
 export default function WhatsAppPage() {
   const [phone, setPhone] = useState("");
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!phone) return alert("Please enter a phone number");
-    router.push(`/messages?number=${encodeURIComponent(phone)}`);
+    navigate(`/messages?number=${encodeURIComponent(phone)}`);
   };
 
   return (
