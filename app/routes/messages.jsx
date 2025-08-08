@@ -3,7 +3,7 @@ useEffect(() => {
   const { number } = router.query;
 
   if (!number) {
-    router.push("/whatsapp"); // if number is missing, go to WhatsApp input page
+    router.push("/app/whatsapp"); // if number is missing, go to WhatsApp input page
     return;
   }
 

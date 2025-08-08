@@ -22,7 +22,7 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
-        <Link to="/whatsapp">whatsapp</Link>
+        <Link to="/app/whatsapp">Additional page</Link>
       </NavMenu>  
       <Outlet />
     </AppProvider>
