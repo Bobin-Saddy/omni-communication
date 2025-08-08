@@ -1,7 +1,7 @@
 // app/routes/messages.jsx
 
-import { useSearchParams } from "@remix-run/react";
-import { useLoaderData, redirect } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react"; // ✅ correct
+import { json, redirect } from "@remix-run/node"; // ✅ server functions
 import { getMessages } from "./messagesStore";
 
 export const loader = async ({ request }) => {
@@ -13,11 +13,11 @@ export const loader = async ({ request }) => {
   }
 
   const messages = getMessages(number);
-  return { number, messages };
+  return json({ number, messages });
 };
 
 export default function Messages() {
-  const { number, messages } = useLoaderData();
+  const { number, messages } = useLoaderData(); // ✅ this works now
 
   return (
     <div style={{ padding: "20px" }}>
