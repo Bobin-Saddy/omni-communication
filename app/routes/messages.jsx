@@ -1,6 +1,6 @@
 import { useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
-import { getMessages } from "../lib/messagesStore";
+import { getMessages } from "./messagesStore";
 
 export async function loader({ request }) {
   const url = new URL(request.url);
