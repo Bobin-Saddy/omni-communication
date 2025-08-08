@@ -90,22 +90,37 @@ const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
     );
   };
 
-  const handleWhatsAppConnect = () => {
-    setWaConnected(true);
-    setSelectedPage({
-      id: "whatsapp",
-      name: "WhatsApp",
-      type: "whatsapp",
-    });
-    setConversations([
-      {
-        id: "wa-1",
-        userName: "WhatsApp User",
-        businessName: "You",
-      },
-    ]);
-    setMessages([]);
-  };
+const handleWhatsAppConnect = async () => {
+  setWaConnected(true);
+  const mockUsers = [
+    {
+      id: "user1",
+      name: "John Doe",
+      number: "919779728764",
+    },
+    {
+      id: "user2",
+      name: "Jane Smith",
+      number: "919811112233",
+    },
+  ];
+  setWaUsers(mockUsers);
+  setSelectedPage({
+    id: "whatsapp",
+    name: "WhatsApp",
+    type: "whatsapp",
+  });
+  setConversations(
+    mockUsers.map((u) => ({
+      id: u.id,
+      userName: u.name,
+      userNumber: u.number,
+      businessName: "You",
+    }))
+  );
+  setMessages([]);
+};
+
 
   const fetchFacebookPages = async (accessToken) => {
     const res = await fetch(
@@ -226,15 +241,18 @@ if (selectedPage.type === "whatsapp") {
 
     const formatted = data.data
       .filter((msg) => msg.type === "text")
+      .filter((msg) => msg.from === conv.userNumber || msg.to === conv.userNumber) // Filter messages with the selected user
       .map((msg) => ({
         id: msg.id,
-        displayName: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "WhatsApp User" : "You",
+        displayName: msg.from === conv.userNumber ? conv.userName : "You",
         message: msg.text?.body || "",
-        created_time: msg.timestamp ? new Date(Number(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
-        from: { id: msg.from === WHATSAPP_RECIPIENT_NUMBER ? "user" : "me" },
+        created_time: msg.timestamp
+          ? new Date(Number(msg.timestamp) * 1000).toISOString()
+          : new Date().toISOString(),
+        from: { id: msg.from === conv.userNumber ? "user" : "me" },
       }));
 
-    setMessages(formatted.reverse()); // optional: reverse to show latest at bottom
+    setMessages(formatted.reverse()); // newest at bottom
   } catch (error) {
     console.error("Failed to fetch WhatsApp messages", error);
     setMessages([]);
@@ -242,6 +260,7 @@ if (selectedPage.type === "whatsapp") {
 
   return;
 }
+
 
 
     const res = await fetch(
@@ -281,41 +300,45 @@ if (selectedPage.type === "whatsapp") {
     setSelectedConversation(conv);
   };
 
-  const sendWhatsAppMessage = async () => {
-const payload = {
-  messaging_product: "whatsapp",
-  to: WHATSAPP_RECIPIENT_NUMBER,
-  type: "text",
-  text: { body: newMessage },
+const sendWhatsAppMessage = async () => {
+  const recipientNumber = selectedConversation?.userNumber;
+  if (!recipientNumber || !newMessage.trim()) return;
+
+  const payload = {
+    messaging_product: "whatsapp",
+    to: recipientNumber,
+    type: "text",
+    text: { body: newMessage },
+  };
+
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const data = await res.json();
+  console.log("WhatsApp send response", data);
+
+  setMessages((prev) => [
+    ...prev,
+    {
+      id: Date.now().toString(),
+      displayName: "You",
+      message: newMessage,
+      created_time: new Date().toISOString(),
+      from: { id: "me" },
+    },
+  ]);
+  setNewMessage("");
 };
 
-const res = await fetch(
-  `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  }
-);
-
-
-    const data = await res.json();
-    console.log("WhatsApp send response", data);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        displayName: "You",
-        message: newMessage,
-        created_time: new Date().toISOString(),
-        from: { id: "me" },
-      },
-    ]);
-    setNewMessage("");
-  };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
