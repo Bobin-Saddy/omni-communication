@@ -23,7 +23,7 @@ export default function SocialChatDashboard() {
   const FACEBOOK_APP_ID = "544704651303656";
   const WHATSAPP_TOKEN = "EAAHvZAZB8ZCmugBPD5J5UNL4X6nvRyNYpfBtz01Rfb138yTMLNc8Nbzq8FWeRfhy1mxhB6rHGyZCwa2rc1XcEttkxynfYhkZBBNVQPNPmgmPg37nm6YfXEcwafwXzHmDMl1PUp5H91ccrZAZCnm3lASQXQOFNz99cZCks2q64rhjVVo2sF6HXTHrJSompwZAgB3vivrrqPKZCwIntA5nfXGWvlFP9gI9aWNewduO3lVLileQZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
-  const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
+  const WHATSAPP_RECIPIENT_NUMBER = "918580495809";
 
   useEffect(() => {
     window.fbAsyncInit = function () {
