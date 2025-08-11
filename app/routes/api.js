@@ -1,46 +1,16 @@
 // api.js
 import express from "express";
-import fetch from "node-fetch";
-import { unreadMessages } from "./webhook";
-
+import { unreadMessages } from "./webhook.js";
 const router = express.Router();
 
-// Send WhatsApp message
-router.post("/send-whatsapp", async (req, res) => {
-  try {
-    const { to, message } = req.body;
-    const token = process.env.WHATSAPP_TOKEN; // store in env
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to,
-          text: { body: message },
-        }),
-      }
-    );
-
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (err) {
-    console.error("Error sending WhatsApp:", err);
-    res.status(500).json({ error: err.message });
-  }
+router.get("/unread-counts", (req, res) => {
+  res.json(unreadMessages);
 });
 
-// Get unread messages
-router.get("/get-messages", async (req, res) => {
-  // Example: Read messages from DB
-  const messages = await db.collection("messages").find({}).toArray();
-  res.json({ messages });
+router.post("/mark-read", (req, res) => {
+  const { conversationId } = req.body;
+  unreadMessages[conversationId] = 0;
+  res.json({ success: true });
 });
 
 export default router;
