@@ -16,6 +16,7 @@ export async function loader({ request }) {
 }
 
 export async function action({ request }) {
+      console.log("WhatsApp webhook POST received:", JSON.stringify(body, null, 2));
   const body = await request.json();
 
   body.entry?.forEach((entry) => {
