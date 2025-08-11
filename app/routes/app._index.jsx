@@ -90,22 +90,16 @@ const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
     );
   };
 
-  const handleWhatsAppConnect = () => {
+const handleWhatsAppConnect = async () => {
+  try {
+    const res = await fetch("/get-messages");
+    const data = await res.json();
+    console.log("WhatsApp messages:", data);
     setWaConnected(true);
-    setSelectedPage({
-      id: "whatsapp",
-      name: "WhatsApp",
-      type: "whatsapp",
-    });
-    setConversations([
-      {
-        id: "wa-1",
-        userName: "WhatsApp User",
-        businessName: "You",
-      },
-    ]);
-    setMessages([]);
-  };
+  } catch (err) {
+    console.error("Error connecting to WhatsApp:", err);
+  }
+};
 
   const fetchFacebookPages = async (accessToken) => {
     const res = await fetch(
@@ -398,7 +392,7 @@ return (
     border: "none",
     borderRadius: "4px",
     fontSize: "16px",
-    fontWeight: "500" }} onClick={fetchWhatsAppMessages} disabled={waConnected}>
+    fontWeight: "500" }} onClick={handleWhatsAppConnect} disabled={waConnected}>
             Connect WhatsApp
           </button>
         </div>
