@@ -209,17 +209,17 @@ const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
     if (!selectedPage) return;
     const token = pageAccessTokens[selectedPage.id];
 
-if (selectedPage.type === "whatsapp") {
-  try {
- const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-const data = await res.json();
-setMessages(data.messages || []);
-
-  } catch (err) {
-    console.error("Error fetching WhatsApp messages", err);
+  if (selectedPage.type === "whatsapp") {
+    setSelectedConversation(conv);
+    setMessages(conv.messages.map(m => ({
+      id: m.id,
+      displayName: m.from === BUSINESS_NUMBER ? "You" : conv.name,
+      message: m.text,
+      created_time: m.created_time,
+      from: { id: m.from === BUSINESS_NUMBER ? "me" : conv.name },
+    })));
+    return;
   }
-  return;
-}
 
 
 
@@ -260,41 +260,56 @@ setMessages(data.messages || []);
     setSelectedConversation(conv);
   };
 
-  const sendWhatsAppMessage = async () => {
-const payload = {
-  messaging_product: "whatsapp",
-  to: WHATSAPP_RECIPIENT_NUMBER,
-  type: "text",
-  text: { body: newMessage },
+  const fetchWhatsAppConversations = async () => {
+  try {
+    const res = await fetch("/whatsapp/conversations");
+    const data = await res.json();
+    setSelectedPage({ id: "whatsapp", type: "whatsapp", name: "WhatsApp" });
+    setConversations(data);
+  } catch (err) {
+    console.error("Error fetching WhatsApp conversations", err);
+  }
 };
 
-const res = await fetch(
-  `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  }
-);
 
+const sendWhatsAppMessage = async () => {
+  if (!newMessage.trim() || !selectedConversation) return;
 
-    const data = await res.json();
-    console.log("WhatsApp send response", data);
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        displayName: "You",
-        message: newMessage,
-        created_time: new Date().toISOString(),
-        from: { id: "me" },
-      },
-    ]);
-    setNewMessage("");
+  const payload = {
+    messaging_product: "whatsapp",
+    to: selectedConversation.userName, // this is the user's number
+    type: "text",
+    text: { body: newMessage },
   };
+
+  const res = await fetch(
+    `https://graph.facebook.com/v20.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const data = await res.json();
+  console.log("Send WhatsApp response", data);
+
+  setMessages(prev => [
+    ...prev,
+    {
+      id: Date.now().toString(),
+      displayName: "You",
+      message: newMessage,
+      created_time: new Date().toISOString(),
+      from: { id: "me" },
+    },
+  ]);
+  setNewMessage("");
+};
+
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation) return;
@@ -422,18 +437,20 @@ return (
                 <span>{page.name} ({page.type})</span>
               </div>
             ))}
-            {waConnected && (
-              <div
-                onClick={handleWhatsAppConnect}
-                style={{
-                  padding: 12,
-                  cursor: "pointer",
-                  backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
-                }}
-              >
-                <span>WhatsApp</span>
-              </div>
-            )}
+{waConnected && (
+  <div
+    onClick={fetchWhatsAppConversations}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
+    }}
+  >
+    <span>WhatsApp</span>
+  </div>
+)}
+
+
           </div>
 
           {/* Conversations List */}
