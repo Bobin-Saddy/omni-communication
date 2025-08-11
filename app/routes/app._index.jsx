@@ -99,23 +99,23 @@ export default function SocialChatDashboard() {
     );
   };
 
-  const handleWhatsAppConnect = () => {
-    setWaConnected(true);
-    setSelectedPage({
-      id: "whatsapp",
-      name: "WhatsApp",
-      type: "whatsapp",
-    });
-    setConversations([
-      {
-        id: "wa-1",
-        userName: "WhatsApp User",
-        businessName: "You",
-        userNumber: WHATSAPP_RECIPIENT_NUMBER,
-      },
-    ]);
-    setMessages([]);
-  };
+const handleWhatsAppConnect = () => {
+  setWaConnected(true);
+  setSelectedPage({
+    id: "whatsapp",
+    name: "WhatsApp",
+    type: "whatsapp",
+  });
+  setConversations([
+    {
+      id: "wa-1",
+      userName: "WhatsApp User",
+      businessName: "You",
+      userNumber: WHATSAPP_RECIPIENT_NUMBER, // Should be "919779728764"
+    },
+  ]);
+  setMessages([]);
+};
 
   const fetchFacebookPages = async (accessToken) => {
     setLoadingPages(true);
@@ -244,35 +244,35 @@ export default function SocialChatDashboard() {
 
   const fetchMessages = async (conv) => {
     if (!selectedPage) return;
-    setSelectedConversation(conv); // Immediate UI update
+  setSelectedConversation(conv); // Immediate UI update
 
-    const token = pageAccessTokens[selectedPage.id];
+  const token = pageAccessTokens[selectedPage.id];
 
-    if (selectedPage.type === "whatsapp") {
-      if (!conv.userNumber) {
-        console.error("WhatsApp conversation missing userNumber");
-        return;
-      }
-      try {
-        const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        const data = await res.json();
-const normalizedMessages = (data.messages || []).map((msg) => ({
-  id: msg.id,
-  from: { id: msg.from || msg.from?.id },
-  message: msg.message || msg.text?.body || "",
-  created_time:
-    msg.created_time ||
-    (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
-}));
-setMessages(normalizedMessages);
-
-      } catch (err) {
-        console.error("Error fetching WhatsApp messages", err);
-        alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
-      }
+  if (selectedPage.type === "whatsapp") {
+    if (!conv.userNumber) {
+      console.error("WhatsApp conversation missing userNumber");
       return;
     }
+    try {
+      const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+      const normalizedMessages = (data.messages || []).map((msg) => ({
+        id: msg.id,
+        from: { id: msg.from || msg.from?.id },
+        message: msg.message || msg.text?.body || "",
+        created_time:
+          msg.created_time ||
+          (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
+      }));
+      setMessages(normalizedMessages);
+    } catch (err) {
+      console.error("Error fetching WhatsApp messages", err);
+      alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
+    }
+    return;
+  }
+
 
     // Facebook & Instagram message fetch
     try {
