@@ -1,45 +1,63 @@
-const express = require("express");
-const bodyParser = require("body-parser");
+// server.js (Express backend)
+import express from "express";
+import fetch from "node-fetch";
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 
-let whatsappMessages = {}; // store in memory (DB recommended for production)
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN; // NEVER store in frontend
+const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-// WhatsApp webhook endpoint
-app.post("/webhook/whatsapp", (req, res) => {
-  const entry = req.body.entry?.[0];
-  const changes = entry?.changes || [];
+let messagesStore = []; // In real app, use a DB
 
-  changes.forEach(change => {
-    const value = change.value || {};
-    value.messages?.forEach(message => {
-      const from = message.from;
-      const text = message.text?.body || "";
-      const time = new Date(Number(message.timestamp) * 1000).toISOString();
-
-      if (!whatsappMessages[from]) whatsappMessages[from] = [];
-      whatsappMessages[from].push({
-        id: Date.now().toString(),
-        from,
-        text,
-        created_time: time,
+// Webhook to receive incoming messages from WhatsApp
+app.post("/webhook", (req, res) => {
+  const entry = req.body.entry?.[0]?.changes?.[0]?.value;
+  if (entry?.messages) {
+    entry.messages.forEach(msg => {
+      messagesStore.push({
+        id: msg.id,
+        from: msg.from,
+        text: msg.text?.body || "",
+        timestamp: msg.timestamp
       });
     });
-  });
-
+  }
   res.sendStatus(200);
 });
 
-// API for React frontend to get conversations
-app.get("/index", (req, res) => {
-  const users = Object.keys(whatsappMessages).map(num => ({
-    id: num,
-    type: "whatsapp",
-    name: num,
-    messages: whatsappMessages[num],
-  }));
-  res.json(users);
+// Send WhatsApp message
+app.post("/api/send-whatsapp", async (req, res) => {
+  const { to, text } = req.body;
+  try {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: "text",
+          text: { body: text },
+        }),
+      }
+    );
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to send message" });
+  }
 });
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+// Get stored messages
+app.get("/api/get-messages", (req, res) => {
+  res.json({ messages: messagesStore });
+});
+
+app.listen(3001, () => console.log("Server running on port 3001"));
