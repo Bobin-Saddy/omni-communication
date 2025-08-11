@@ -98,14 +98,15 @@ const handleWhatsAppConnect = () => {
     type: "whatsapp",
   });
   // Add userNumber here to be used when fetching messages
-  setConversations([
-    {
-      id: "wa-1",
-      userName: "WhatsApp User",
-      businessName: "You",
-      userNumber: WHATSAPP_RECIPIENT_NUMBER, // Must be set here
-    },
-  ]);
+setConversations([
+  {
+    id: "wa-1",
+    userName: "WhatsApp User",
+    businessName: "You",
+    userNumber: WHATSAPP_RECIPIENT_NUMBER, // Must be set here
+  },
+]);
+
   setMessages([]);
 };
   const fetchFacebookPages = async (accessToken) => {
@@ -219,7 +220,6 @@ if (selectedPage.type === "whatsapp") {
     const res = await fetch(`/get-messages?number=${conv.userNumber}`);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-
 const normalizedMessages = (data.messages || []).map(msg => ({
   id: msg.id,
   from: { id: msg.from || (msg.from?.id) }, // accept string or object
@@ -227,6 +227,7 @@ const normalizedMessages = (data.messages || []).map(msg => ({
   created_time: msg.created_time || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
 }));
 setMessages(normalizedMessages);
+
 
     setSelectedConversation(conv);
   } catch (err) {
@@ -491,8 +492,10 @@ return (
             </div>
             <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
 {messages.map((msg) => {
-  const businessNumber = "112888801832694"; // or dynamic
-  const isMe = msg.from?.id === businessNumber || msg.from === businessNumber;
+  // Use WhatsApp recipient number or your actual business number here
+  const businessNumber = WHATSAPP_RECIPIENT_NUMBER; // e.g. "919779728764"
+  const isMe = msg.from?.id === businessNumber || msg.from === businessNumber || msg.from?.id === "me";
+
   const bubbleStyle = {
     display: "inline-block",
     padding: 10,
