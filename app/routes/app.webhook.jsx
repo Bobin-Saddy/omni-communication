@@ -1,6 +1,6 @@
 // app/routes/api/webhook.jsx
 import { json } from "@remix-run/node";
-import { storeWhatsAppMessage } from "./webhook.js";
+import { storeWhatsAppMessage } from "./webhook";
 
 
 export async function action({ request }) {
