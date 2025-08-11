@@ -17,30 +17,32 @@ export async function loader({ request }) {
 
 export async function action({ request }) {
   const body = await request.json();
-  console.log("WhatsApp webhook POST received:", JSON.stringify(body, null, 2));
-  body.entry?.forEach((entry) => {
-    entry.changes?.forEach((change) => {
-      const value = change.value;
-      if (!value) return;
+console.log("WhatsApp webhook POST received:", JSON.stringify(body, null, 2));
+body.entry?.forEach((entry) => {
+  entry.changes?.forEach((change) => {
+    const value = change.value;
+    if (!value) return;
 
-      const messages = value.messages || [];
-      messages.forEach((msg) => {
-        const from = msg.from;
-        if (!from) return;
+    const messages = value.messages || [];
+    messages.forEach((msg) => {
+      const from = msg.from;
+      if (!from) return;
 
-        if (!messageStore[from]) {
-          messageStore[from] = [];
-        }
+      if (!messageStore[from]) {
+        messageStore[from] = [];
+      }
 
-        messageStore[from].push({
-          id: msg.id,
-          from,
-          message: msg.text?.body || "",
-          created_time: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
-        });
+      messageStore[from].push({
+        id: msg.id,
+        from,
+        message: msg.text?.body || "",
+        created_time: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
       });
+
+      console.log("Stored message:", messageStore[from][messageStore[from].length - 1]);
     });
   });
+});
 
   return json({ received: true });
 }

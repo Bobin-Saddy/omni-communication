@@ -257,15 +257,16 @@ export default function SocialChatDashboard() {
         const res = await fetch(`/get-messages?number=${conv.userNumber}`);
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         const data = await res.json();
-        const normalizedMessages = (data.messages || []).map((msg) => ({
-          id: msg.id,
-          from: { id: msg.from || msg.from?.id },
-          message: msg.message || msg.text?.body || "",
-          created_time:
-            msg.created_time ||
-            (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
-        }));
-        setMessages(normalizedMessages);
+const normalizedMessages = (data.messages || []).map((msg) => ({
+  id: msg.id,
+  from: { id: msg.from || msg.from?.id },
+  message: msg.message || msg.text?.body || "",
+  created_time:
+    msg.created_time ||
+    (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
+}));
+setMessages(normalizedMessages);
+
       } catch (err) {
         console.error("Error fetching WhatsApp messages", err);
         alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
