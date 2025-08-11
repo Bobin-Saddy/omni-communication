@@ -26,20 +26,7 @@ export async function action({ request }) {
   // Extract messages from webhook payload
   body.entry?.forEach((entry) => {
     entry.changes?.forEach((change) => {
-      const messages = change.value.messages || [];
-      messages.forEach((msg) => {
-        const userNumber = msg.from;
-        if (!messageStore[userNumber]) {
-          messageStore[userNumber] = [];
-        }
-        // Push new message to the user's message array
-        messageStore[userNumber].push({
-          id: msg.id,
-          from: msg.from,
-          message: msg.text?.body || "", // Adapt if other message types
-          created_time: new Date(parseInt(msg.timestamp) * 1000).toISOString(),
-        });
-      });
+      console.log("Webhook change value:", JSON.stringify(change.value, null, 2));
     });
   });
 
