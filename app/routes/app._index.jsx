@@ -293,7 +293,7 @@ const sendWhatsAppMessage = async () => {
   setNewMessage("");
 };
 const fetchWhatsAppMessages = async () => {
-  const res = await fetch("/api/get-messages");
+  const res = await fetch("/get-messages");
   const data = await res.json();
   setMessages(
     (data.messages || []).map(m => ({
