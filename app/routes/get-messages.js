@@ -1,5 +1,5 @@
-import { storedMessages } from './webhook';
+import { storedMessages } from "./webhook.js";
 
 export default function handler(req, res) {
-  res.status(200).json({ messages: storedMessages });
+  return res.json({ messages: storedMessages });
 }
