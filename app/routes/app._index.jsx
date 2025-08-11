@@ -210,23 +210,32 @@ const handleWhatsAppConnect = () => {
   if (!selectedPage) return;
   const token = pageAccessTokens[selectedPage.id];
 
-  if (selectedPage.type === "whatsapp") {
-    if (!conv.userNumber) {
-      console.error("WhatsApp conversation missing userNumber");
-      return;
-    }
-    try {
-      // This endpoint should be your backend route to get WhatsApp messages for a number
-      const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-      setMessages(data.messages || []);
-    } catch (err) {
-      console.error("Error fetching WhatsApp messages", err);
-      alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
-    }
+if (selectedPage.type === "whatsapp") {
+  if (!conv.userNumber) {
+    console.error("WhatsApp conversation missing userNumber");
     return;
   }
+  try {
+    const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+
+    const normalizedMessages = (data.messages || []).map(msg => ({
+      id: msg.id,
+      from: { id: msg.from?.id || msg.from },
+      message: msg.message || msg.text?.body || "",
+      created_time: msg.created_time || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
+    }));
+
+    setMessages(normalizedMessages);
+    setSelectedConversation(conv);
+  } catch (err) {
+    console.error("Error fetching WhatsApp messages", err);
+    alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
+  }
+  return;
+}
+
 
 
 
@@ -481,27 +490,19 @@ return (
               <h3>Chat</h3>
             </div>
             <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-              {messages.map((msg) => {
-                const isMe = msg.from?.id === "me" || msg.from?.name === selectedPage?.name;
-                const bubbleStyle = {
-                  display: "inline-block",
-                  padding: 10,
-                  borderRadius: 8,
-                  backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                  border: "1px solid #ccc",
-                  maxWidth: "80%",
-                };
+{messages.map(msg => {
+  const isMe = msg.from?.id === "me" || msg.from?.id === selectedPage?.phone_number_id;
+  return (
+    <div key={msg.id} style={{ textAlign: isMe ? "right" : "left" }}>
+      <div>
+        <strong>{isMe ? "You" : msg.from?.id || msg.from?.name}</strong>
+        <div>{msg.message || msg.text?.body}</div>
+        <small>{new Date(msg.created_time || msg.timestamp * 1000).toLocaleString()}</small>
+      </div>
+    </div>
+  );
+})}
 
-                return (
-                  <div key={msg.id} style={{ textAlign: isMe ? "right" : "left", marginBottom: 10 }}>
-                    <div style={bubbleStyle}>
-                      <strong>{msg.displayName}</strong>
-                      <div>{msg.message}</div>
-                      <small>{new Date(msg.created_time).toLocaleString()}</small>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
             <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
               <input
