@@ -1,7 +1,8 @@
 import { json } from "@remix-run/node";
 
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
+// Import messageStore from webhook file or move it to a common module
+// For simplicity, let's declare it here as well (ideally use shared storage or DB)
+const messageStore = {};  // Replace with your actual store reference or DB calls
 
 export async function loader({ request }) {
   try {
@@ -11,47 +12,12 @@ export async function loader({ request }) {
       return json({ error: "Missing 'number' query parameter" }, { status: 400 });
     }
 
-    // Simulate fetching messages
-    const messages = [
-      {
-        id: "1",
-        from: { id: number },
-        message: "Hello from WhatsApp user " + number,
-        created_time: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-      },
-      {
-        id: "2",
-        from: { id: "me" },
-        message: "Hi! How can I help you?",
-        created_time: new Date().toISOString(),
-      },
-    ];
+    // Fetch messages from the in-memory store
+    const messages = messageStore[number] || [];
 
     return json({ messages });
   } catch (error) {
     console.error("Error in get-messages loader:", error);
     return json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
-
-
-// Dummy DB fetch function for demonstration
-async function fetchMessagesFromDB(number) {
-  // Replace with real DB query filtering by number
-  // For now, returning dummy data with dynamic timestamp
-
-  return [
-    {
-      id: "1",
-      from: { id: number },
-      message: "Hello from WhatsApp user " + number,
-      created_time: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    },
-    {
-      id: "2",
-      from: { id: "me" },
-      message: "Hi! How can I help you?",
-      created_time: new Date().toISOString(),
-    },
-  ];
 }
