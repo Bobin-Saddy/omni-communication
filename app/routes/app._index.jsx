@@ -220,14 +220,14 @@ if (selectedPage.type === "whatsapp") {
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
-    const normalizedMessages = (data.messages || []).map(msg => ({
-      id: msg.id,
-      from: { id: msg.from?.id || msg.from },
-      message: msg.message || msg.text?.body || "",
-      created_time: msg.created_time || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
-    }));
+const normalizedMessages = (data.messages || []).map(msg => ({
+  id: msg.id,
+  from: { id: msg.from || (msg.from?.id) }, // accept string or object
+  message: msg.message || msg.text?.body || "",
+  created_time: msg.created_time || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
+}));
+setMessages(normalizedMessages);
 
-    setMessages(normalizedMessages);
     setSelectedConversation(conv);
   } catch (err) {
     console.error("Error fetching WhatsApp messages", err);
@@ -490,18 +490,29 @@ return (
               <h3>Chat</h3>
             </div>
             <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-{messages.map(msg => {
-  const isMe = msg.from?.id === "me" || msg.from?.id === selectedPage?.phone_number_id;
+{messages.map((msg) => {
+  const businessNumber = "112888801832694"; // or dynamic
+  const isMe = msg.from?.id === businessNumber || msg.from === businessNumber;
+  const bubbleStyle = {
+    display: "inline-block",
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+    border: "1px solid #ccc",
+    maxWidth: "80%",
+  };
+
   return (
-    <div key={msg.id} style={{ textAlign: isMe ? "right" : "left" }}>
-      <div>
-        <strong>{isMe ? "You" : msg.from?.id || msg.from?.name}</strong>
-        <div>{msg.message || msg.text?.body}</div>
-        <small>{new Date(msg.created_time || msg.timestamp * 1000).toLocaleString()}</small>
+    <div key={msg.id} style={{ textAlign: isMe ? "right" : "left", marginBottom: 10 }}>
+      <div style={bubbleStyle}>
+        <strong>{isMe ? "You" : "User"}</strong>
+        <div>{msg.message}</div>
+        <small>{new Date(msg.created_time).toLocaleString()}</small>
       </div>
     </div>
   );
 })}
+
 
             </div>
             <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
