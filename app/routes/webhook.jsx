@@ -1,39 +1,38 @@
-// app/routes/api/webhook.jsx
-import { json } from "@remix-run/node";
-import { storeWhatsAppMessage } from "./get-messages";
+// pages/api/webhook.js
+let storedMessages = []; // simple in-memory store
 
-export async function action({ request }) {
-  const body = await request.json();
-  
-  const entry = body.entry?.[0]?.changes?.[0]?.value;
-  if (entry?.messages) {
-    entry.messages.forEach(msg => {
-      storeWhatsAppMessage({
-        id: msg.id,
-        from: msg.from,
-        text: msg.text?.body || "",
-        timestamp: msg.timestamp
-      });
-    });
-  }
-  
-  return json({ status: "ok" });
-}
+export default function handler(req, res) {
+  if (req.method === 'GET') {
+    const VERIFY_TOKEN = '12345';
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
 
-export async function loader({ request }) {
-  // For webhook verification with Meta
-  const url = new URL(request.url);
-  const mode = url.searchParams.get("hub.mode");
-  const token = url.searchParams.get("hub.verify_token");
-  const challenge = url.searchParams.get("hub.challenge");
-
-  if (mode && token) {
-    if (mode === "subscribe" && token === process.env.WHATSAPP_VERIFY_TOKEN) {
-      return new Response(challenge, { status: 200 });
+    if (mode && token && mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('Webhook verified successfully');
+      res.status(200).send(challenge);
     } else {
-      return new Response("Forbidden", { status: 403 });
+      res.sendStatus(403);
     }
-  }
+  } 
+  
+  else if (req.method === 'POST') {
+    console.log('Incoming webhook:', JSON.stringify(req.body, null, 2));
 
-  return new Response("No verification params", { status: 400 });
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0]?.value?.messages;
+
+    if (changes && changes.length > 0) {
+      changes.forEach(msg => {
+        storedMessages.push({
+          id: msg.id,
+          from: msg.from,
+          text: msg.text?.body || '',
+          timestamp: msg.timestamp
+        });
+      });
+    }
+    res.sendStatus(200);
+  }
 }
+export { storedMessages };
