@@ -260,16 +260,17 @@ const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
     setSelectedConversation(conv);
   };
 
-  const fetchWhatsAppConversations = async () => {
+const fetchWhatsAppConversations = async () => {
   try {
     const res = await fetch("/whatsapp/conversations");
     const data = await res.json();
+    setConversations(data); // show WhatsApp users as conversations
     setSelectedPage({ id: "whatsapp", type: "whatsapp", name: "WhatsApp" });
-    setConversations(data);
-  } catch (err) {
-    console.error("Error fetching WhatsApp conversations", err);
+  } catch (error) {
+    console.error("Error fetching WhatsApp conversations:", error);
   }
 };
+
 
 
 const sendWhatsAppMessage = async () => {
