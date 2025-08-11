@@ -27,7 +27,7 @@ app.post("/webhook", (req, res) => {
 });
 
 // Send WhatsApp message
-app.post("/api/send-whatsapp", async (req, res) => {
+app.post("/send-whatsapp", async (req, res) => {
   const { to, text } = req.body;
   try {
     const response = await fetch(
