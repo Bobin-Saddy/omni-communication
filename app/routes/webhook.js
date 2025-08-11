@@ -1,38 +1,48 @@
-// pages/api/webhook.js
-let storedMessages = []; // simple in-memory store
+// webhook.js
+import express from "express";
 
-export default function handler(req, res) {
-  if (req.method === 'GET') {
-    const VERIFY_TOKEN = '12345';
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+const router = express.Router();
 
-    if (mode && token && mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('Webhook verified successfully');
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
-    }
-  } 
-  
-  else if (req.method === 'POST') {
-    console.log('Incoming webhook:', JSON.stringify(req.body, null, 2));
+// In-memory store for messages
+export let unreadMessages = [];
 
+// Webhook verification (GET)
+router.get("/", (req, res) => {
+  const VERIFY_TOKEN = "12345"; // your token
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode && token && mode === "subscribe" && token === VERIFY_TOKEN) {
+    console.log("WEBHOOK_VERIFIED");
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
+// Webhook receiver (POST)
+router.post("/", (req, res) => {
+  console.log("Webhook event:", JSON.stringify(req.body, null, 2));
+
+  if (req.body.object) {
     const entry = req.body.entry?.[0];
-    const changes = entry?.changes?.[0]?.value?.messages;
+    const changes = entry?.changes?.[0];
+    const messages = changes?.value?.messages;
 
-    if (changes && changes.length > 0) {
-      changes.forEach(msg => {
-        storedMessages.push({
-          id: msg.id,
+    if (messages && messages.length > 0) {
+      messages.forEach((msg) => {
+        unreadMessages.push({
           from: msg.from,
-          text: msg.text?.body || '',
-          timestamp: msg.timestamp
+          text: msg.text?.body || "",
+          timestamp: msg.timestamp,
         });
       });
     }
     res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
   }
-}
-export { storedMessages };
+});
+
+export default router;
