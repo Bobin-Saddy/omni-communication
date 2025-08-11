@@ -37,8 +37,10 @@ router.post("/send-whatsapp", async (req, res) => {
 });
 
 // Get unread messages
-router.get("/get-messages", (req, res) => {
-  res.json({ messages: unreadMessages });
+router.get("/get-messages", async (req, res) => {
+  // Example: Read messages from DB
+  const messages = await db.collection("messages").find({}).toArray();
+  res.json({ messages });
 });
 
 export default router;
