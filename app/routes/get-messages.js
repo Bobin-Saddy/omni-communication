@@ -1,6 +1,11 @@
 // app/routes/get-messages.js
 import express from "express";
-import { storedMessages } from "./webhook.js";
+
+let storedMessages = [];
+
+export function storeWhatsAppMessage(message) {
+  storedMessages.push(message);
+}
 
 const router = express.Router();
 
