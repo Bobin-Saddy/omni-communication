@@ -97,18 +97,17 @@ const handleWhatsAppConnect = () => {
     name: "WhatsApp",
     type: "whatsapp",
   });
-  // Add userNumber here to be used when fetching messages
-setConversations([
-  {
-    id: "wa-1",
-    userName: "WhatsApp User",
-    businessName: "You",
-    userNumber: WHATSAPP_RECIPIENT_NUMBER, // Must be set here
-  },
-]);
-
+  setConversations([
+    {
+      id: "wa-1",
+      userName: "WhatsApp User",
+      businessName: "You",
+      userNumber: WHATSAPP_RECIPIENT_NUMBER,
+    },
+  ]);
   setMessages([]);
 };
+
   const fetchFacebookPages = async (accessToken) => {
     const res = await fetch(
       `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
@@ -222,10 +221,12 @@ if (selectedPage.type === "whatsapp") {
     const data = await res.json();
 const normalizedMessages = (data.messages || []).map(msg => ({
   id: msg.id,
-  from: { id: msg.from || (msg.from?.id) }, // accept string or object
+  from: { id: msg.from || (msg.from?.id) },
   message: msg.message || msg.text?.body || "",
   created_time: msg.created_time || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
 }));
+
+
 setMessages(normalizedMessages);
 
 
