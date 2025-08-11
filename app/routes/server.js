@@ -56,7 +56,7 @@ app.post("/send-whatsapp", async (req, res) => {
 });
 
 // Get stored messages
-app.get("/api/get-messages", (req, res) => {
+app.get("/get-messages", (req, res) => {
   res.json({ messages: messagesStore });
 });
 
