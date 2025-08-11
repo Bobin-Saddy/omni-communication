@@ -1,6 +1,7 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, Link } from "@remix-run/react";
-import { db } from "../db.server";
+import db from "../db.server";
+
 
 export async function loader() {
   const customers = await db.whatsAppMessage.findMany({

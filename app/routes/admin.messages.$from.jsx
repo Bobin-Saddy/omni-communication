@@ -1,6 +1,7 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { db } from "../db.server";
+import db from "../db.server";
+
 
 export async function loader({ params }) {
   const from = decodeURIComponent(params.from);
