@@ -88,3 +88,9 @@ model Message {
   page       Page     @relation(fields: [pageId], references: [id])
 }
 
+model WhatsAppMessage {
+  id        String   @id @default(cuid())
+  from      String
+  text      String
+  timestamp DateTime @default(now())
+}
