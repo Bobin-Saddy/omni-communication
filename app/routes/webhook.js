@@ -1,34 +1,38 @@
-// webhook.js
-import express from "express";
-const router = express.Router();
+// pages/api/webhook.js
+let storedMessages = []; // simple in-memory store
 
-let unreadMessages = {}; // { conversationId: count }
+export default function handler(req, res) {
+  if (req.method === 'GET') {
+    const VERIFY_TOKEN = '12345';
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
 
-router.post("/webhook", (req, res) => {
-  const body = req.body;
+    if (mode && token && mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('Webhook verified successfully');
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
+    }
+  } 
+  
+  else if (req.method === 'POST') {
+    console.log('Incoming webhook:', JSON.stringify(req.body, null, 2));
 
-  if (body.object === "page") {
-    body.entry.forEach(function(entry) {
-      const messaging = entry.messaging[0];
-      const senderId = messaging.sender.id;
-      const recipientId = messaging.recipient.id;
-      const message = messaging.message;
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0]?.value?.messages;
 
-      if (message && senderId !== 544704651303656) {
-        const conversationId = messaging.sender.id; // Use sender ID as conversation ID
-
-        if (!unreadMessages[conversationId]) {
-          unreadMessages[conversationId] = 0;
-        }
-        unreadMessages[conversationId] += 1;
-      }
-    });
-
-    res.status(200).send("EVENT_RECEIVED");
-  } else {
-    res.sendStatus(404);
+    if (changes && changes.length > 0) {
+      changes.forEach(msg => {
+        storedMessages.push({
+          id: msg.id,
+          from: msg.from,
+          text: msg.text?.body || '',
+          timestamp: msg.timestamp
+        });
+      });
+    }
+    res.sendStatus(200);
   }
-});
-
-export { unreadMessages };
-export default router;
+}
+export { storedMessages };
