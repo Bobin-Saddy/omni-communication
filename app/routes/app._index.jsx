@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Page, Card, Button, Text } from "@shopify/polaris";
+
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
@@ -15,9 +15,11 @@ export default function SocialChatDashboard() {
   const [newMessage, setNewMessage] = useState("");
 
   const FACEBOOK_APP_ID = "544704651303656";
-  const WHATSAPP_TOKEN = "EAAHvZAZB8ZCmugBPOGVrU8YvOmyv8L7dYOTJZAZCqzcm7ELtjnbCED0lOkNguYdZAtkD4ww21MZAtWODsXoaEIaZAN0ZCVL6ZBQMg0KHxv8PJohqKG8PZBZBPZCf7spGjllnCXxADmZBw19dTiFtZCpbfJq3a06ek5fbwFGEAQADPf9av3LDXwa0LHkjivfRl3OZAsoI2wNSjdhoyCiero3MSfzTShT7Lz9QDtknvUjy2AW5xZBsPGwZDZD";
-  const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
-  const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
+const WHATSAPP_TOKEN = "EAAHvZAZB8ZCmugBPOGVrU8YvOmyv8L7dYOTJZAZCqzcm7ELtjnbCED0lOkNguYdZAtkD4ww21MZAtWODsXoaEIaZAN0ZCVL6ZBQMg0KHxv8PJohqKG8PZBZBPZCf7spGjllnCXxADmZBw19dTiFtZCpbfJq3a06ek5fbwFGEAQADPf9av3LDXwa0LHkjivfRl3OZAsoI2wNSjdhoyCiero3MSfzTShT7Lz9QDtknvUjy2AW5xZBsPGwZDZD";
+
+const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
+const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
+
 
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -207,19 +209,19 @@ export default function SocialChatDashboard() {
     if (!selectedPage) return;
     const token = pageAccessTokens[selectedPage.id];
 
-    if (selectedPage.type === "whatsapp") {
-      setSelectedConversation(conv);
-      setMessages([
-        {
-          id: "1",
-          displayName: "WhatsApp User",
-          message: "Hello from WhatsApp!",
-          created_time: new Date().toISOString(),
-          from: { id: "user" },
-        },
-      ]);
-      return;
-    }
+if (selectedPage.type === "whatsapp") {
+  try {
+ const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+const data = await res.json();
+setMessages(data.messages || []);
+
+  } catch (err) {
+    console.error("Error fetching WhatsApp messages", err);
+  }
+  return;
+}
+
+
 
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
@@ -259,24 +261,25 @@ export default function SocialChatDashboard() {
   };
 
   const sendWhatsAppMessage = async () => {
-    const payload = {
-      messaging_product: "whatsapp",
-      to: WHATSAPP_RECIPIENT_NUMBER,
-      type: "text",
-      text: { body: newMessage },
-    };
+const payload = {
+  messaging_product: "whatsapp",
+  to: WHATSAPP_RECIPIENT_NUMBER,
+  type: "text",
+  text: { body: newMessage },
+};
 
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+const res = await fetch(
+  `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  }
+);
+
 
     const data = await res.json();
     console.log("WhatsApp send response", data);
@@ -341,143 +344,185 @@ export default function SocialChatDashboard() {
     fetchMessages(selectedConversation);
   };
 
-  return (
-    <Page title="📱 Social Chat Dashboard">
-      <Card sectioned>
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <Button onClick={handleFacebookLogin} primary disabled={fbConnected}>
-            Connect Facebook
-          </Button>
-          <div style={{ marginTop: 10 }}>
-            <Button onClick={handleInstagramLogin} disabled={igConnected}>
-              Connect Instagram
-            </Button>
-          </div>
-          <div style={{ marginTop: 10 }}>
-            <Button onClick={handleWhatsAppConnect} disabled={waConnected}>
-              Connect WhatsApp
-            </Button>
-          </div>
+return (
+  <div className="social-chat-dashboard">
+    <div className="page-title">
+      <h1>📱 Social Chat Dashboard</h1>
+    </div>
+
+    <div className="card for-box">
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+<button
+  onClick={handleFacebookLogin}
+  style={{
+    backgroundColor: "#000000",
+    color: "white",
+    padding: "10px",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "16px",
+    fontWeight: "500"
+  }}
+  disabled={fbConnected}
+  className="checkfbb"
+>
+  Connect Facebook
+</button>
+
+        <div style={{ marginTop: 10 }}>
+          <button style={{    backgroundColor: "#000000",
+    color: "white",
+    padding: "10px",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "16px",
+    fontWeight: "500"}} onClick={handleInstagramLogin} disabled={igConnected}>
+            Connect Instagram
+          </button>
         </div>
+        <div style={{ marginTop: 10 }}>
+          <button style={{     backgroundColor: "#000000",
+    color: "white",
+    padding: "10px",
+    border: "none",
+    borderRadius: "4px",
+    fontSize: "16px",
+    fontWeight: "500" }} onClick={handleWhatsAppConnect} disabled={waConnected}>
+            Connect WhatsApp
+          </button>
+        </div>
+      </div>
 
-        {selectedPage && (
-          <div
-            style={{
-              display: "flex",
-              height: "650px",
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              overflow: "hidden",
-              width: "100%",
-            }}
-          >
-            <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Pages</Text>
-              </div>
-              {[...fbPages, ...igPages].map((page) => (
-                <div
-                  key={page.id}
-                  onClick={() => fetchConversations(page)}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                  }}
-                >
-                  <Text>
-                    {page.name} ({page.type})
-                  </Text>
-                </div>
-              ))}
-              {waConnected && (
-                <div
-                  onClick={handleWhatsAppConnect}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
-                  }}
-                >
-                  <Text>WhatsApp</Text>
-                </div>
-              )}
+      {selectedPage && (
+        <div
+          style={{
+            display: "flex",
+            height: "650px",
+            border: "1px solid #ccc",
+            borderRadius: 8,
+            overflow: "hidden",
+            width: "100%",
+          }}
+        >
+          {/* Pages Sidebar */}
+          <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+              <h3>Pages</h3>
             </div>
-
-            <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Conversations</Text>
+            {[...fbPages, ...igPages].map((page) => (
+              <div
+                key={page.id}
+                onClick={() => fetchConversations(page)}
+                style={{
+                  padding: 12,
+                  cursor: "pointer",
+                  backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
+                }}
+              >
+                <span>{page.name} ({page.type})</span>
               </div>
-              {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
-              {conversations.map((conv) => {
-                const name =
-                  selectedPage?.type === "instagram"
-                    ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : selectedPage?.type === "whatsapp"
-                    ? "WhatsApp User"
-                    : conv.participants?.data
-                        ?.filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ");
+            ))}
+            {waConnected && (
+              <div
+                onClick={handleWhatsAppConnect}
+                style={{
+                  padding: 12,
+                  cursor: "pointer",
+                  backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
+                }}
+              >
+                <span>WhatsApp</span>
+              </div>
+            )}
+          </div>
+
+          {/* Conversations List */}
+          <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+              <h3>Conversations</h3>
+            </div>
+            {conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
+            {conversations.map((conv) => {
+              const name =
+                selectedPage?.type === "instagram"
+                  ? `${conv.businessName} ↔️ ${conv.userName}`
+                  : selectedPage?.type === "whatsapp"
+                  ? "WhatsApp User"
+                  : conv.participants?.data
+                      ?.filter((p) => p.name !== selectedPage.name)
+                      .map((p) => p.name)
+                      .join(", ");
+              return (
+                <div
+                  key={conv.id}
+                  onClick={() => fetchMessages(conv)}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
+                  }}
+                >
+                  <span>{name}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Chat Area */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
+              <h3>Chat</h3>
+            </div>
+            <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
+              {messages.map((msg) => {
+                const isMe = msg.from?.id === "me" || msg.from?.name === selectedPage?.name;
+                const bubbleStyle = {
+                  display: "inline-block",
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+                  border: "1px solid #ccc",
+                  maxWidth: "80%",
+                };
+
                 return (
-                  <div
-                    key={conv.id}
-                    onClick={() => fetchMessages(conv)}
-                    style={{
-                      padding: 12,
-                      cursor: "pointer",
-                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                    }}
-                  >
-                    <Text>{name}</Text>
+                  <div key={msg.id} style={{ textAlign: isMe ? "right" : "left", marginBottom: 10 }}>
+                    <div style={bubbleStyle}>
+                      <strong>{msg.displayName}</strong>
+                      <div>{msg.message}</div>
+                      <small>{new Date(msg.created_time).toLocaleString()}</small>
+                    </div>
                   </div>
                 );
               })}
             </div>
-
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div style={{ padding: 12, borderBottom: "1px solid #ddd" }}>
-                <Text variant="headingMd">Chat</Text>
-              </div>
-              <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9" }}>
-                {messages.map((msg) => {
-                  const isMe = msg.from?.id === "me" || msg.from?.name === selectedPage?.name;
-                  const bubbleStyle = {
-                    display: "inline-block",
-                    padding: 10,
-                    borderRadius: 8,
-                    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                    border: "1px solid #ccc",
-                    maxWidth: "80%",
-                  };
-
-                  return (
-                    <div key={msg.id} style={{ textAlign: isMe ? "right" : "left", marginBottom: 10 }}>
-                      <div style={bubbleStyle}>
-                        <strong>{msg.displayName}</strong>
-                        <div>{msg.message}</div>
-                        <small>{new Date(msg.created_time).toLocaleString()}</small>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message"
-                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                />
-                <Button onClick={sendMessage} primary style={{ marginLeft: 10 }}>
-                  Send
-                </Button>
-              </div>
+            <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message"
+                style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+              />
+              <button
+                onClick={sendMessage}
+                style={{
+                  marginLeft: 10,
+                  padding: "10px 20px",
+                  backgroundColor: "#007bff",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 5,
+                }}
+              >
+                Send
+              </button>
             </div>
           </div>
-        )}
-      </Card>
-    </Page>
-  );
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 }
