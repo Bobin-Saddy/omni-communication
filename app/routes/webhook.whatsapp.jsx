@@ -25,28 +25,28 @@ export async function action({ request }) {
     const text = msg?.text?.body || "";
     const name = msg?.profile?.name || "";
 
-    // Save to DB with upsert
+    // Upsert chat session and create message
     await prisma.chatSession.upsert({
-      where: { phone: from },
+      where: { phone: from },  // phone must be unique in schema
       update: {
         messages: {
           create: {
             content: text,
             sender: "user",
-          }
-        }
+          },
+        },
       },
       create: {
-        userId: from, // could also be some generated unique ID
+        userId: from,
         userName: name,
         phone: from,
         messages: {
           create: {
             content: text,
             sender: "user",
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     console.log("Stored message from", from, text);

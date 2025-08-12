@@ -1,4 +1,3 @@
-// app/routes/get-messages.jsx
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
 
@@ -10,25 +9,18 @@ export async function loader({ request }) {
     return json({ error: "Phone number is required" }, { status: 400 });
   }
 
-  // 1️⃣ Find the chat session linked to this phone number
+  // Find chat session by phone (phone must exist in ChatSession)
   const session = await prisma.chatSession.findFirst({
-    where: {
-      contacts: {
-        some: {
-          phone: phoneNumber,
-        },
-      },
-    },
-    select: {
-      id: true,
-    },
+    where: { phone: phoneNumber },
+    select: { id: true },
   });
 
   if (!session) {
-    return json({ messages: [] }); // No chat session found
+    // No chat session found, return empty messages
+    return json({ messages: [] });
   }
 
-  // 2️⃣ Fetch all messages for that conversation ID
+  // Fetch all messages for this session
   const messages = await prisma.chatMessage.findMany({
     where: { conversationId: session.id },
     orderBy: { createdAt: "asc" },
