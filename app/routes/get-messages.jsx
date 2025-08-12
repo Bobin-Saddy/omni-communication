@@ -3,22 +3,24 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const loader = async ({ request }) => {
-  try {
-    const url = new URL(request.url);
-    const number = url.searchParams.get("number");
-    if (!number) {
-      return json({ error: "Number parameter is required" }, { status: 400 });
-    }
+export async function loader({ request }) {
+  const url = new URL(request.url);
+  const phoneNumber = url.searchParams.get("number");
 
-    // Fetch all messages where either to or from is this number
+  if (!phoneNumber) {
+    return json({ error: "Phone number is required" }, { status: 400 });
+  }
+
+  try {
+    // Fetch messages where the phone number is either the sender or the recipient
     const messages = await prisma.customerWhatsAppMessage.findMany({
       where: {
-        OR: [{ to: number }, { from: number }],
+        OR: [
+          { to: phoneNumber },
+          { from: phoneNumber },
+        ],
       },
-      orderBy: {
-        timestamp: "asc", // or 'createdAt' if you use that field
-      },
+      orderBy: { timestamp: "asc" }, // or createdAt if you use that field
     });
 
     return json({ messages });
@@ -26,4 +28,4 @@ export const loader = async ({ request }) => {
     console.error("Error fetching WhatsApp messages:", error);
     return json({ error: "Server error" }, { status: 500 });
   }
-};
+}
