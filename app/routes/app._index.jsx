@@ -438,25 +438,58 @@ if (!saveRes.ok) {
   }
 };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedPage || !selectedConversation || sendingMessage) return;
+const sendMessage = async () => {
+  if (!newMessage.trim() || !selectedConversation) return;
 
+  setSendingMessage(true);
+
+  try {
     if (selectedPage.type === "whatsapp") {
-      await sendWhatsAppMessage();
-      return;
-    }
+      // WhatsApp: add local message first
+      const messageToSend = {
+        id: `local-${Date.now()}`,
+        message: newMessage,
+        from: { id: "me" },
+        created_time: new Date().toISOString(),
+        direction: "outgoing",
+      };
 
-    setSendingMessage(true);
-    try {
+      setMessages((prev) => {
+        const convMessages = prev[selectedConversation.id] || [];
+        return {
+          ...prev,
+          [selectedConversation.id]: [...convMessages, messageToSend],
+        };
+      });
+
+      // Send to backend
+      const res = await fetch("/save-whatsapp-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: selectedConversation.userNumber,
+          from: WHATSAPP_PHONE_NUMBER_ID,
+          message: newMessage,
+          direction: "outgoing",
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to send WhatsApp message");
+
+      setNewMessage("");
+    } else {
+      // Facebook or Instagram
       const token = pageAccessTokens[selectedPage.id];
-
       if (selectedPage.type === "instagram") {
         const msgRes = await fetch(
           `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
         );
         const msgData = await msgRes.json();
         const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-        if (!sender) return alert("Recipient not found");
+        if (!sender) {
+          alert("Recipient not found");
+          return;
+        }
 
         await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
           method: "POST",
@@ -468,9 +501,13 @@ if (!saveRes.ok) {
           }),
         });
       } else {
+        // Facebook
         const participants = selectedConversation.participants?.data || [];
         const recipient = participants.find((p) => p.name !== selectedPage.name);
-        if (!recipient) return alert("Recipient not found");
+        if (!recipient) {
+          alert("Recipient not found");
+          return;
+        }
 
         await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
           method: "POST",
@@ -486,13 +523,15 @@ if (!saveRes.ok) {
 
       setNewMessage("");
       await fetchMessages(selectedConversation);
-    } catch (error) {
-      alert("Failed to send message.");
-      console.error(error);
-    } finally {
-      setSendingMessage(false);
     }
-  };
+  } catch (error) {
+    alert("Failed to send message.");
+    console.error(error);
+  } finally {
+    setSendingMessage(false);
+  }
+};
+
 
   return (
     <div
