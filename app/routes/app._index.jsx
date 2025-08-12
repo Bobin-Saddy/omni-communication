@@ -350,7 +350,7 @@ const sendWhatsAppMessage = async () => {
     console.log("WhatsApp send response", data);
 
     // Save message in your DB backend
-    await fetch('/api/save-whatsapp-message', {
+    await fetch('/save-whatsapp-message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
