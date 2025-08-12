@@ -316,11 +316,14 @@ if (selectedPage.type === "whatsapp") {
   };
 
 const sendWhatsAppMessage = async () => {
+  if (!newMessage.trim()) return;
+  
   setSendingMessage(true);
+  
   try {
     const payload = {
       messaging_product: "whatsapp",
-      to: selectedConversation.userNumber, // Make sure you send to the current conversation user
+      to: selectedConversation.userNumber, // Ensure this is the current chat number
       type: "text",
       text: { body: newMessage },
     };
@@ -340,10 +343,24 @@ const sendWhatsAppMessage = async () => {
     const data = await res.json();
     console.log("WhatsApp send response", data);
 
-    // Instead of just adding locally, fetch messages fresh from backend
-    await fetchMessages(selectedConversation);
-
+    // 1️⃣ Optimistic update - turant message show karo
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        displayName: "You",
+        message: newMessage,
+        created_time: new Date().toISOString(),
+        from: { id: "me" },
+      },
+    ]);
     setNewMessage("");
+
+    // 2️⃣ Thodi der baad backend se refresh karo (backend webhook processing ke liye thoda wait karen)
+    setTimeout(() => {
+      fetchMessages(selectedConversation);
+    }, 2000); // 2 second delay adjust kar sakte hain
+
   } catch (error) {
     alert("Failed to send WhatsApp message.");
     console.error(error);
@@ -351,6 +368,7 @@ const sendWhatsAppMessage = async () => {
     setSendingMessage(false);
   }
 };
+
 
 
   const sendMessage = async () => {
