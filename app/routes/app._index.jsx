@@ -22,7 +22,7 @@ export default function SocialChatDashboard() {
 
   const FACEBOOK_APP_ID = "544704651303656";
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPK91HqkqaVvZCQrRQznIWOj349l6eycIUsD1W0bt1GYPxKSIwZBCnwUfA14yVh9fbbzcisZAQrrEJD5jqmNyXF5VEoWZChEjUgjAIZAF5ZBVw4xc4VakLZAJVTrs6n1rP6spqA3Pr3nEZAtHyno6oIHnWPEgH456g1BfNkunwbwXFfgI36j0cdV4Wt86cXKjLXQlW6uCzajXV0oePzCvdwcOelM0Yv8eSgZDZD";
+    "EAAHvZAZB8ZCmugBPKJxE3N6W9BacCsuupbdraq8VbT7nhN7rCSra9N6suFzc9dDc2bAQhq8ZCUfjY87WHu8NU5MRJytzZCzQp2DW68fMdbSZAaxrElMiP1nAI04AzkKvq0fWIwP9XnjBGoD7gK7KbJ6lgP3DxgVZAfp47TNN6ZBBfLQQoUjCq9W7UP5nxDQEQchbhHq68hPF1bwUIMpWRmlWedFXxAWjK047INQMjIE9FVA4";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
@@ -253,7 +253,7 @@ export default function SocialChatDashboard() {
   };
 
 const fetchMessages = async (conv) => {
-   if (!selectedPage) return;
+  if (!selectedPage) return;
 
   setSelectedConversation(conv);
 
@@ -267,33 +267,40 @@ const fetchMessages = async (conv) => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-      const backendMessages = (data.messages || []).map(msg => ({
+      const backendMessages = (data.messages || []).map((msg) => ({
         id: msg.id,
         from: { id: msg.sender || "unknown" },
         message: msg.content || "",
-        created_time: msg.createdAt || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
+        created_time:
+          msg.createdAt ||
+          (msg.timestamp
+            ? new Date(msg.timestamp * 1000).toISOString()
+            : new Date().toISOString()),
       }));
 
-setMessages((prev) => {
-  const prevConvMessages = prev[conv.id] || [];
-const localMessages = prevConvMessages.filter((m) => {
-  if (!m.id) return false;
-  const idStr = m.id.toString();
-  return idStr.startsWith("local-") && !backendMessages.some((bm) => bm.id.toString() === idStr);
-});
+      setMessages((prevMessages) => {
+        const prevConvMessages = prevMessages[conv.id] || [];
 
-  return {
-    ...prev,
-    [conv.id]: [...backendMessages, ...localMessages],
-  };
-});
+        // Filter local messages that backend hasn't returned yet
+        const localMessagesNotInBackend = prevConvMessages.filter(
+          (localMsg) =>
+            localMsg.id?.toString().startsWith("local-") &&
+            !backendMessages.some((bm) => bm.id === localMsg.id)
+        );
 
+        // Combine backend + local pending messages for this conversation only
+        return {
+          ...prevMessages,
+          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
+        };
+      });
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
     }
     return;
   }
+
   // Facebook & Instagram messages
   try {
     const token = pageAccessTokens[selectedPage.id];
@@ -303,7 +310,6 @@ const localMessages = prevConvMessages.filter((m) => {
     const data = await res.json();
     const rawMessages = data?.data?.reverse() || [];
 
-    // This is where we define enrichedMessages before using it
     const enrichedMessages = rawMessages.map((msg) => {
       let displayName = "User";
 
@@ -331,31 +337,15 @@ const localMessages = prevConvMessages.filter((m) => {
       };
     });
 
-    // Now merge local messages with enrichedMessages:
-setMessages((prevMessages) => {
-  const prevConvMessages = prevMessages[conv.id] || [];
-
-const localMessagesNotInBackend = prevConvMessages.filter(localMsg => {
-  if (!localMsg.id) return false;
-  const idStr = localMsg.id.toString();
-  return idStr.startsWith("local-") && !backendMessages.some(bm => bm.id.toString() === idStr);
-});
-
-
-  return {
-    ...prevMessages,
-    [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
-  };
-});
-
-
-
+    setMessages((prevMessages) => ({
+      ...prevMessages,
+      [conv.id]: enrichedMessages,
+    }));
   } catch (error) {
     alert("Error fetching messages.");
     console.error(error);
   }
 };
-
 
 
 const sendWhatsAppMessage = async () => {
@@ -386,25 +376,16 @@ const sendWhatsAppMessage = async () => {
     console.log("WhatsApp send response", data);
 
     // Save message in your DB backend
-const saveRes = await fetch("/save-whatsapp-message", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    to: selectedConversation.userNumber, // recipient phone number (customer)
-    from: WHATSAPP_PHONE_NUMBER_ID,     // your business phone id
-    message: newMessage,
-    direction: "outgoing",
-  }),
-});
-
-
-if (!saveRes.ok) {
-  const errData = await saveRes.json();
-  console.error("Error saving WhatsApp message:", errData);
-  alert("Failed to save WhatsApp message to DB");
-  return;
-}
-
+    await fetch("/save-whatsapp-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: selectedConversation.userNumber,
+        from: WHATSAPP_PHONE_NUMBER_ID,
+        message: newMessage,
+        direction: "outgoing",
+      }),
+    });
 
     // Add local message immediately only for current conversation
     const localMsg = {
