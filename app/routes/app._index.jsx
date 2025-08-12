@@ -278,22 +278,20 @@ const fetchMessages = async (conv) => {
             : new Date().toISOString()),
       }));
 
-setMessages((prevMessages) => {
-  const prevConvMessages = prevMessages[conv.id] || [];
+      setMessages((prevMessages) => {
+        const prevConvMessages = prevMessages[conv.id] || [];
 
-  // Local messages not yet on backend
-  const localMessagesNotInBackend = prevConvMessages.filter(
-    (localMsg) =>
-      localMsg.id?.toString().startsWith("local-") &&
-      !enrichedMessages.some((bm) => bm.id === localMsg.id)
-  );
+        const localMessagesNotInBackend = prevConvMessages.filter(
+          (localMsg) =>
+            localMsg.id?.toString().startsWith("local-") &&
+            !backendMessages.some((bm) => bm.id === localMsg.id)
+        );
 
-  return {
-    ...prevMessages,
-    [conv.id]: [...enrichedMessages, ...localMessagesNotInBackend],
-  };
-});
-
+        return {
+          ...prevMessages,
+          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
+        };
+      });
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
@@ -310,6 +308,7 @@ setMessages((prevMessages) => {
     const data = await res.json();
     const rawMessages = data?.data?.reverse() || [];
 
+    // This is where we define enrichedMessages before using it
     const enrichedMessages = rawMessages.map((msg) => {
       let displayName = "User";
 
@@ -337,27 +336,27 @@ setMessages((prevMessages) => {
       };
     });
 
-setMessages((prevMessages) => {
-  const prevConvMessages = prevMessages[conv.id] || [];
+    // Now merge local messages with enrichedMessages:
+    setMessages((prevMessages) => {
+      const prevConvMessages = prevMessages[conv.id] || [];
 
-  // Local messages not yet on backend
-  const localMessagesNotInBackend = prevConvMessages.filter(
-    (localMsg) =>
-      localMsg.id?.toString().startsWith("local-") &&
-      !enrichedMessages.some((bm) => bm.id === localMsg.id)
-  );
+      const localMessagesNotInBackend = prevConvMessages.filter(
+        (localMsg) =>
+          localMsg.id?.toString().startsWith("local-") &&
+          !enrichedMessages.some((bm) => bm.id === localMsg.id)
+      );
 
-  return {
-    ...prevMessages,
-    [conv.id]: [...enrichedMessages, ...localMessagesNotInBackend],
-  };
-});
-
+      return {
+        ...prevMessages,
+        [conv.id]: [...enrichedMessages, ...localMessagesNotInBackend],
+      };
+    });
   } catch (error) {
     alert("Error fetching messages.");
     console.error(error);
   }
 };
+
 
 
 const sendWhatsAppMessage = async () => {
