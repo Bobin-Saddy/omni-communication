@@ -5,25 +5,30 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // Example Remix loader
+// Inside /get-messages route loader
 export async function loader({ request }) {
   const url = new URL(request.url);
-  const phone = url.searchParams.get("number");
+  const phoneNumber = url.searchParams.get("number");
 
-  // 1. Find the conversation for that phone
+  if (!phoneNumber) {
+    throw new Error("Phone number is required");
+  }
+
+  // 1️⃣ Find the conversation for that phone
   const conversation = await prisma.chatSession.findUnique({
-    where: { phone },
-    select: { id: true }
+    where: { phone: phoneNumber },
+    select: { id: true },
   });
 
   if (!conversation) {
-    return json([]); // No messages if conversation doesn't exist
+    return []; // No conversation found
   }
 
-  // 2. Fetch messages for that conversationId
+  // 2️⃣ Get the messages for that conversationId
   const messages = await prisma.chatMessage.findMany({
     where: { conversationId: conversation.id },
-    orderBy: { createdAt: "asc" }
+    orderBy: { createdAt: "asc" },
   });
 
-  return json(messages);
+  return messages;
 }
