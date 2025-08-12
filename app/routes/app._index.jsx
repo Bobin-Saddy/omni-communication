@@ -244,8 +244,9 @@ const handleWhatsAppConnect = async () => {
 
   const fetchMessages = async (conv) => {
      if (!selectedPage) return;
+
   setSelectedConversation(conv);
-  
+
   if (selectedPage.type === "whatsapp") {
     if (!conv.userNumber) {
       console.error("WhatsApp conversation missing userNumber");
@@ -256,7 +257,7 @@ const handleWhatsAppConnect = async () => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-      let backendMessages = (data.messages || []).map((msg) => ({
+      const backendMessages = (data.messages || []).map((msg) => ({
         id: msg.id,
         from: { id: msg.sender || "unknown" },
         message: msg.content || "",
@@ -265,17 +266,18 @@ const handleWhatsAppConnect = async () => {
           (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
       }));
 
-      // Merge local optimistic messages (not yet in backend) with backendMessages
+      // Local messages jo abhi backend me nahi hain unhe add karo
       setMessages((prevMessages) => {
-        // Filter prevMessages which are not present in backendMessages
-        const newLocalMessages = prevMessages.filter(
-          (localMsg) => !backendMessages.some((bm) => bm.id === localMsg.id)
+        const localMessagesNotInBackend = prevMessages.filter(
+          (localMsg) => localMsg.id?.toString().startsWith("local-") &&
+            !backendMessages.some((bm) => bm.id === localMsg.id)
         );
-        return [...backendMessages, ...newLocalMessages];
+        return [...backendMessages, ...localMessagesNotInBackend];
       });
+
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
-      alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
+      alert("Failed to fetch WhatsApp messages.");
     }
     return;
   }
@@ -321,18 +323,18 @@ const handleWhatsAppConnect = async () => {
   };
 
 const sendWhatsAppMessage = async () => {
-  if (!newMessage.trim()) return;
-  
+  if (!selectedConversation?.userNumber) return alert("Select a WhatsApp user first");
+
   setSendingMessage(true);
-  
   try {
     const payload = {
       messaging_product: "whatsapp",
-      to: selectedConversation.userNumber, // Ensure this is the current chat number
+      to: selectedConversation.userNumber, // Yahi pe selected user number hona chahiye
       type: "text",
       text: { body: newMessage },
     };
 
+    // WhatsApp message bhejna
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
       {
@@ -348,23 +350,18 @@ const sendWhatsAppMessage = async () => {
     const data = await res.json();
     console.log("WhatsApp send response", data);
 
- setMessages((prev) => [
-  ...prev,
-  {
-    id: "local-" + Date.now().toString(), // local unique id prefix
-    displayName: "You",
-    message: newMessage,
-    created_time: new Date().toISOString(),
-    from: { id: "me" },
-  },
-]);
-setNewMessage("");
-
-// Fir backend se latest messages ko reload karen 2s ke baad
-setTimeout(() => {
-  fetchMessages(selectedConversation);
-}, 2000);
-
+    // Local message turant add karo chat me (optimistic update)
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: "local-" + Date.now().toString(),
+        displayName: "You",
+        message: newMessage,
+        created_time: new Date().toISOString(),
+        from: { id: "me" },
+      },
+    ]);
+    setNewMessage("");
 
   } catch (error) {
     alert("Failed to send WhatsApp message.");
@@ -373,6 +370,7 @@ setTimeout(() => {
     setSendingMessage(false);
   }
 };
+
 
 
 
