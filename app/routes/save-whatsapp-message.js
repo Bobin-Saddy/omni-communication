@@ -13,16 +13,18 @@ export const action = async ({ request }) => {
       return json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const savedMessage = await prisma.customerWhatsAppMessage.create({
-      data: {
-        to,
-        from,
-        message,
-        direction,
-      },
-    });
+const savedMessage = await prisma.customerWhatsAppMessage.create({
+  data: {
+    to,
+    from,
+    message,
+    direction,
+    timestamp: new Date(),  // Add this line
+  },
+});
 
-    console.log("Saved message:", savedMessage);  // Add this line
+
+    console.log("Saved message---->:", savedMessage);  // Add this line
 
     return json(savedMessage, { status: 201 });
   } catch (error) {

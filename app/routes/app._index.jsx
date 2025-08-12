@@ -393,12 +393,13 @@ const saveRes = await fetch("/save-whatsapp-message", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    to: selectedConversation.userNumber,
-    from: WHATSAPP_PHONE_NUMBER_ID,
+    to: selectedConversation.userNumber, // recipient phone number (customer)
+    from: WHATSAPP_PHONE_NUMBER_ID,     // your business phone id
     message: newMessage,
     direction: "outgoing",
   }),
 });
+
 
 if (!saveRes.ok) {
   const errData = await saveRes.json();
