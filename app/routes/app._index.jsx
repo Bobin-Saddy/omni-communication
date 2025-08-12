@@ -243,37 +243,42 @@ const handleWhatsAppConnect = async () => {
   };
 
   const fetchMessages = async (conv) => {
-    if (!selectedPage) return;
-  setSelectedConversation(conv); // Immediate UI update
+     if (!selectedPage) return;
+  setSelectedConversation(conv);
+  
+  if (selectedPage.type === "whatsapp") {
+    if (!conv.userNumber) {
+      console.error("WhatsApp conversation missing userNumber");
+      return;
+    }
+    try {
+      const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
 
-  const token = pageAccessTokens[selectedPage.id];
+      let backendMessages = (data.messages || []).map((msg) => ({
+        id: msg.id,
+        from: { id: msg.sender || "unknown" },
+        message: msg.content || "",
+        created_time:
+          msg.createdAt ||
+          (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
+      }));
 
-if (selectedPage.type === "whatsapp") {
-  if (!conv.userNumber) {
-    console.error("WhatsApp conversation missing userNumber");
+      // Merge local optimistic messages (not yet in backend) with backendMessages
+      setMessages((prevMessages) => {
+        // Filter prevMessages which are not present in backendMessages
+        const newLocalMessages = prevMessages.filter(
+          (localMsg) => !backendMessages.some((bm) => bm.id === localMsg.id)
+        );
+        return [...backendMessages, ...newLocalMessages];
+      });
+    } catch (err) {
+      console.error("Error fetching WhatsApp messages", err);
+      alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
+    }
     return;
   }
-  try {
-    const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    const data = await res.json();
-
-    const normalizedMessages = (data.messages || []).map((msg) => ({
-      id: msg.id,
-      from: { id: msg.sender || "unknown" },
-      message: msg.content || "",
-      created_time:
-        msg.createdAt ||
-        (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
-    }));
-
-    setMessages(normalizedMessages);
-  } catch (err) {
-    console.error("Error fetching WhatsApp messages", err);
-    alert("Failed to fetch WhatsApp messages. Make sure your backend API is working.");
-  }
-  return;
-}
 
 
     // Facebook & Instagram message fetch
@@ -343,23 +348,23 @@ const sendWhatsAppMessage = async () => {
     const data = await res.json();
     console.log("WhatsApp send response", data);
 
-    // 1️⃣ Optimistic update - turant message show karo
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        displayName: "You",
-        message: newMessage,
-        created_time: new Date().toISOString(),
-        from: { id: "me" },
-      },
-    ]);
-    setNewMessage("");
+ setMessages((prev) => [
+  ...prev,
+  {
+    id: "local-" + Date.now().toString(), // local unique id prefix
+    displayName: "You",
+    message: newMessage,
+    created_time: new Date().toISOString(),
+    from: { id: "me" },
+  },
+]);
+setNewMessage("");
 
-    // 2️⃣ Thodi der baad backend se refresh karo (backend webhook processing ke liye thoda wait karen)
-    setTimeout(() => {
-      fetchMessages(selectedConversation);
-    }, 2000); // 2 second delay adjust kar sakte hain
+// Fir backend se latest messages ko reload karen 2s ke baad
+setTimeout(() => {
+  fetchMessages(selectedConversation);
+}, 2000);
+
 
   } catch (error) {
     alert("Failed to send WhatsApp message.");
