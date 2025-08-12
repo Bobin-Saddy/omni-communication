@@ -253,7 +253,7 @@ export default function SocialChatDashboard() {
   };
 
 const fetchMessages = async (conv) => {
-  if (!selectedPage) return;
+   if (!selectedPage) return;
 
   setSelectedConversation(conv);
 
@@ -263,33 +263,25 @@ const fetchMessages = async (conv) => {
       return;
     }
     try {
-     const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+      const res = await fetch(`/get-messages?number=${conv.userNumber}`);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    const data = await res.json();
+      const data = await res.json();
 
-      const backendMessages = (data.messages || []).map((msg) => ({
+      const backendMessages = (data.messages || []).map(msg => ({
         id: msg.id,
         from: { id: msg.sender || "unknown" },
         message: msg.content || "",
-        created_time:
-          msg.createdAt ||
-          (msg.timestamp
-            ? new Date(msg.timestamp * 1000).toISOString()
-            : new Date().toISOString()),
+        created_time: msg.createdAt || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
       }));
 
-setMessages(prevMessages => {
-  const prevConvMessages = prevMessages[conv.id] || [];
-
-  const localMessagesNotInBackend = prevConvMessages.filter(
-    localMsg =>
-      localMsg.id?.toString().startsWith("local-") &&
-      !backendMessages.some(bm => bm.id === localMsg.id)
+  setMessages(prev => {
+  const prevConvMessages = prev[conv.id] || [];
+  const localMessages = prevConvMessages.filter(
+    m => m.id.toString().startsWith("local-") && !backendMessages.some(bm => bm.id === m.id)
   );
-
   return {
-    ...prevMessages,
-    [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
+    ...prev,
+    [conv.id]: [...backendMessages, ...localMessages],
   };
 });
 
@@ -299,7 +291,6 @@ setMessages(prevMessages => {
     }
     return;
   }
-
   // Facebook & Instagram messages
   try {
     const token = pageAccessTokens[selectedPage.id];
