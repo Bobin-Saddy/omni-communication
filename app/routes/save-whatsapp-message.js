@@ -13,11 +13,7 @@ export const action = async ({ request }) => {
     }
 
     const savedMessage = await prisma.customerWhatsAppMessage.create({
-      data: {
-        to,
-        message,
-        direction,
-      },
+      data: { to, message, direction },
     });
 
     return json(savedMessage, { status: 201 });
@@ -27,6 +23,7 @@ export const action = async ({ request }) => {
   }
 };
 
-export default function SaveWhatsAppMessage() {
-  return <div>Save WhatsApp Message Route</div>;
-}
+// React component hata dein ya comment kar dein agar ye sirf API route hai
+// export default function SaveWhatsAppMessage() {
+//   return <div>Save WhatsApp Message Route</div>;
+// }
