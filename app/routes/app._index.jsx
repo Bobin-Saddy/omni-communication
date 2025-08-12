@@ -329,12 +329,11 @@ const sendWhatsAppMessage = async () => {
   try {
     const payload = {
       messaging_product: "whatsapp",
-      to: selectedConversation.userNumber, // Yahi pe selected user number hona chahiye
+      to: selectedConversation.userNumber,
       type: "text",
       text: { body: newMessage },
     };
 
-    // WhatsApp message bhejna
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
       {
@@ -350,7 +349,17 @@ const sendWhatsAppMessage = async () => {
     const data = await res.json();
     console.log("WhatsApp send response", data);
 
-    // Local message turant add karo chat me (optimistic update)
+    // Save message in your DB backend
+    await fetch('/api/save-whatsapp-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: selectedConversation.userNumber,
+        message: newMessage,
+        direction: 'outgoing',
+      }),
+    });
+
     setMessages((prev) => [
       ...prev,
       {
@@ -370,6 +379,8 @@ const sendWhatsAppMessage = async () => {
     setSendingMessage(false);
   }
 };
+
+
 
 
 

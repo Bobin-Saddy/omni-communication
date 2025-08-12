@@ -112,3 +112,13 @@ model ChatMessage {
 
   conversation   ChatSession @relation(fields: [conversationId], references: [id])
 }
+
+model CustomerWhatsAppMessage {
+  id             Int      @id @default(autoincrement())
+  from           String
+  to             String
+  message        String
+  timestamp      DateTime @default(now())
+  direction      String   // "incoming" or "outgoing"
+  conversationId Int?     // optional relation to conversation
+}
