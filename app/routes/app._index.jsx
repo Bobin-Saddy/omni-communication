@@ -278,20 +278,21 @@ const fetchMessages = async (conv) => {
             : new Date().toISOString()),
       }));
 
-      setMessages((prevMessages) => {
-        const prevConvMessages = prevMessages[conv.id] || [];
+setMessages(prevMessages => {
+  const prevConvMessages = prevMessages[conv.id] || [];
 
-        const localMessagesNotInBackend = prevConvMessages.filter(
-          (localMsg) =>
-            localMsg.id?.toString().startsWith("local-") &&
-            !backendMessages.some((bm) => bm.id === localMsg.id)
-        );
+  const localMessagesNotInBackend = prevConvMessages.filter(
+    localMsg =>
+      localMsg.id?.toString().startsWith("local-") &&
+      !backendMessages.some(bm => bm.id === localMsg.id)
+  );
 
-        return {
-          ...prevMessages,
-          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
-        };
-      });
+  return {
+    ...prevMessages,
+    [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
+  };
+});
+
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
@@ -388,16 +389,24 @@ const sendWhatsAppMessage = async () => {
     console.log("WhatsApp send response", data);
 
     // Save message in your DB backend
-    await fetch("/save-whatsapp-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: selectedConversation.userNumber,
-        from: WHATSAPP_PHONE_NUMBER_ID,
-        message: newMessage,
-        direction: "outgoing",
-      }),
-    });
+const saveRes = await fetch("/save-whatsapp-message", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    to: selectedConversation.userNumber,
+    from: WHATSAPP_PHONE_NUMBER_ID,
+    message: newMessage,
+    direction: "outgoing",
+  }),
+});
+
+if (!saveRes.ok) {
+  const errData = await saveRes.json();
+  console.error("Error saving WhatsApp message:", errData);
+  alert("Failed to save WhatsApp message to DB");
+  return;
+}
+
 
     // Add local message immediately only for current conversation
     const localMsg = {
