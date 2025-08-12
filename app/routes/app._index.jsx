@@ -494,15 +494,15 @@ const handleWhatsAppConnect = () => {
                 <div style={{ padding: 12 }}>No conversations available.</div>
               )}
               {conversations.map((conv) => {
-                const name =
-                  selectedPage?.type === "instagram"
-                    ? `${conv.businessName} ↔️ ${conv.userName}`
-                    : selectedPage?.type === "whatsapp"
-                    ? conv.userName || "WhatsApp User"
-                    : conv.participants?.data
-                        ?.filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ") || "User";
+        const name =
+  selectedPage?.type === "instagram"
+    ? `${conv.businessName} ↔️ ${conv.userName}`
+    : selectedPage?.type === "whatsapp"
+    ? conv.userName || conv.profile?.name || conv.wa_id || "WhatsApp User"
+    : conv.participants?.data
+        ?.filter((p) => p.name !== selectedPage.name)
+        .map((p) => p.name)
+        .join(", ") || "User";
                         console.log('Check-user-name---->', conv.userName);
                 return (
                   <div
