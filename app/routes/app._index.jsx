@@ -337,20 +337,21 @@ const fetchMessages = async (conv) => {
     });
 
     // Now merge local messages with enrichedMessages:
-    setMessages((prevMessages) => {
-      const prevConvMessages = prevMessages[conv.id] || [];
+setMessages((prevMessages) => {
+  const prevConvMessages = prevMessages[conv.id] || [];
 
-      const localMessagesNotInBackend = prevConvMessages.filter(
-        (localMsg) =>
-          localMsg.id?.toString().startsWith("local-") &&
-          !enrichedMessages.some((bm) => bm.id === localMsg.id)
-      );
+  const localMessagesNotInBackend = prevConvMessages.filter(
+    (localMsg) =>
+      localMsg.id?.toString().startsWith("local-") &&
+      !backendMessages.some((bm) => bm.id === localMsg.id)
+  );
 
-      return {
-        ...prevMessages,
-        [conv.id]: [...enrichedMessages, ...localMessagesNotInBackend],
-      };
-    });
+  return {
+    ...prevMessages,
+    [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
+  };
+});
+
   } catch (error) {
     alert("Error fetching messages.");
     console.error(error);
