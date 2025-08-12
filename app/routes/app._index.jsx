@@ -267,13 +267,14 @@ const handleWhatsAppConnect = async () => {
       }));
 
       // Local messages jo abhi backend me nahi hain unhe add karo
-      setMessages((prevMessages) => {
-        const localMessagesNotInBackend = prevMessages.filter(
-          (localMsg) => localMsg.id?.toString().startsWith("local-") &&
-            !backendMessages.some((bm) => bm.id === localMsg.id)
-        );
-        return [...backendMessages, ...localMessagesNotInBackend];
-      });
+setMessages((prevMessages) => {
+  const localMessagesNotInBackend = prevMessages.filter(
+    (localMsg) => localMsg.id?.toString().startsWith("local-") &&
+      !backendMessages.some((bm) => bm.id === localMsg.id)
+  );
+  return [...backendMessages, ...localMessagesNotInBackend];
+});
+
 
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
@@ -350,18 +351,18 @@ const sendWhatsAppMessage = async () => {
     console.log("WhatsApp send response", data);
 
     // Save message in your DB backend
-await fetch("/save-whatsapp-message", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    to: selectedConversation.userNumber,
-    from: WHATSAPP_PHONE_NUMBER_ID,   // ya koi bhi jo aapka "from" ho
-    message: newMessage,
-    direction: "outgoing",
-  }),
-});
+    await fetch("/save-whatsapp-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: selectedConversation.userNumber,
+        from: WHATSAPP_PHONE_NUMBER_ID,
+        message: newMessage,
+        direction: "outgoing",
+      }),
+    });
 
-
+    // Add local message immediately
     setMessages((prev) => [
       ...prev,
       {
@@ -374,6 +375,9 @@ await fetch("/save-whatsapp-message", {
     ]);
     setNewMessage("");
 
+    // REFRESH messages from backend after sending to sync UI
+    await fetchMessages(selectedConversation);
+
   } catch (error) {
     alert("Failed to send WhatsApp message.");
     console.error(error);
@@ -381,6 +385,7 @@ await fetch("/save-whatsapp-message", {
     setSendingMessage(false);
   }
 };
+
 
 
 
