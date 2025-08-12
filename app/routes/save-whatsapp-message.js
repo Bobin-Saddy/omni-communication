@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export const action = async ({ request }) => {
   try {
     const formData = await request.json();
+    console.log("Received formData:", formData);   // Add this line
     const { to, from, message, direction } = formData;
 
     if (!to || !from || !message || !direction) {
@@ -15,11 +16,13 @@ export const action = async ({ request }) => {
     const savedMessage = await prisma.customerWhatsAppMessage.create({
       data: {
         to,
-        from,       // <-- Yahan add kiya
+        from,
         message,
         direction,
       },
     });
+
+    console.log("Saved message:", savedMessage);  // Add this line
 
     return json(savedMessage, { status: 201 });
   } catch (error) {
@@ -27,6 +30,7 @@ export const action = async ({ request }) => {
     return json({ error: "Server error" }, { status: 500 });
   }
 };
+
 
 
 // React component hata dein ya comment kar dein agar ye sirf API route hai

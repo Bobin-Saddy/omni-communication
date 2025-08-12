@@ -355,6 +355,7 @@ await fetch("/save-whatsapp-message", {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     to: selectedConversation.userNumber,
+    from: WHATSAPP_PHONE_NUMBER_ID,   // ya koi bhi jo aapka "from" ho
     message: newMessage,
     direction: "outgoing",
   }),
