@@ -255,42 +255,45 @@ export default function SocialChatDashboard() {
   const fetchMessages = async (conv) => {
     if (!selectedPage) return;
 
-  
-  if (selectedPage.type === "whatsapp") {
-    if (!conv.userNumber) {
-      console.error("WhatsApp conversation missing userNumber");
+    setSelectedConversation(conv);
+
+    if (selectedPage.type === "whatsapp") {
+      if (!conv.userNumber) {
+        console.error("WhatsApp conversation missing userNumber");
+        return;
+      }
+      try {
+        const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data = await res.json();
+
+        const backendMessages = (data.messages || []).map((msg) => ({
+          id: msg.id,
+          from: { id: msg.sender || "unknown" },
+          message: msg.content || "",
+          created_time:
+            msg.createdAt ||
+            (msg.timestamp
+              ? new Date(msg.timestamp * 1000).toISOString()
+              : new Date().toISOString()),
+        }));
+
+        // Merge local "pending" messages (id starts with "local-") that backend hasn't returned yet
+        setMessages((prevMessages) => {
+          const localMessagesNotInBackend = prevMessages.filter(
+            (localMsg) =>
+              localMsg.id?.toString().startsWith("local-") &&
+              !backendMessages.some((bm) => bm.id === localMsg.id)
+          );
+          return [...backendMessages, ...localMessagesNotInBackend];
+        });
+      } catch (err) {
+        console.error("Error fetching WhatsApp messages", err);
+        alert("Failed to fetch WhatsApp messages.");
+      }
       return;
     }
-    try {
-      const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
 
-      const backendMessages = (data.messages || []).map((msg) => ({
-        id: msg.id,
-        from: { id: msg.sender || "unknown" },
-        message: msg.content || "",
-        created_time:
-          msg.createdAt ||
-          (msg.timestamp
-            ? new Date(msg.timestamp * 1000).toISOString()
-            : new Date().toISOString()),
-      }));
-
-      setMessages((prevMessages) => {
-        const localMessagesNotInBackend = prevMessages.filter(
-          (localMsg) =>
-            localMsg.id?.toString().startsWith("local-") &&
-            !backendMessages.some((bm) => bm.id === localMsg.id)
-        );
-        return [...backendMessages, ...localMessagesNotInBackend];
-      });
-    } catch (err) {
-      console.error("Error fetching WhatsApp messages", err);
-      alert("Failed to fetch WhatsApp messages.");
-    }
-    return;
-  }
     // Facebook & Instagram messages
     try {
       const token = pageAccessTokens[selectedPage.id];
@@ -334,138 +337,122 @@ export default function SocialChatDashboard() {
     }
   };
 
-const sendWhatsAppMessage = async () => {
-  if (!selectedConversation?.userNumber) {
-    alert("Select a WhatsApp user first");
-    return;
-  }
+  const sendWhatsAppMessage = async () => {
+    if (!selectedConversation?.userNumber) return alert("Select a WhatsApp user first");
 
-  // Capture selectedConversation in closure to avoid stale state
-  const conv = selectedConversation;
+    setSendingMessage(true);
+    try {
+      const payload = {
+        messaging_product: "whatsapp",
+        to: selectedConversation.userNumber,
+        type: "text",
+        text: { body: newMessage },
+      };
 
-  setSendingMessage(true);
-  try {
-    const payload = {
-      messaging_product: "whatsapp",
-      to: conv.userNumber,
-      type: "text",
-      text: { body: newMessage },
-    };
-
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await res.json();
-    console.log("WhatsApp send response", data);
-
-    // Save message in your DB backend
-    await fetch("/save-whatsapp-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: conv.userNumber,
-        from: WHATSAPP_PHONE_NUMBER_ID,
-        message: newMessage,
-        direction: "outgoing",
-      }),
-    });
-
-    // Add local message immediately
-    const localMsg = {
-      id: "local-" + Date.now().toString(),
-      displayName: "You",
-      message: newMessage,
-      created_time: new Date().toISOString(),
-      from: { id: "me" },
-    };
-
-    setMessages((prev) => [...prev, localMsg]);
-    setNewMessage("");
-
-    // Fetch fresh messages from backend for this conversation
-    await fetchMessages(conv);
-  } catch (error) {
-    alert("Failed to send WhatsApp message.");
-    console.error(error);
-  } finally {
-    setSendingMessage(false);
-  }
-};
-
-
-const sendMessage = async () => {
-  if (!newMessage.trim() || !selectedPage || !selectedConversation || sendingMessage) return;
-
-  const conv = selectedConversation; // capture conversation
-
-  if (selectedPage.type === "whatsapp") {
-    await sendWhatsAppMessage();
-    return;
-  }
-
-  setSendingMessage(true);
-  try {
-    const token = pageAccessTokens[selectedPage.id];
-
-    if (selectedPage.type === "instagram") {
-      const msgRes = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from&access_token=${token}`
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
       );
-      const msgData = await msgRes.json();
-      const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-      if (!sender) {
-        alert("Recipient not found");
-        return;
-      }
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+      const data = await res.json();
+      console.log("WhatsApp send response", data);
+
+      // Save message in your DB backend
+      await fetch("/save-whatsapp-message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messaging_product: "instagram",
-          recipient: { id: sender.from.id },
-          message: { text: newMessage },
+          to: selectedConversation.userNumber,
+          from: WHATSAPP_PHONE_NUMBER_ID,
+          message: newMessage,
+          direction: "outgoing",
         }),
       });
-    } else {
-      const participants = conv.participants?.data || [];
-      const recipient = participants.find((p) => p.name !== selectedPage.name);
-      if (!recipient) {
-        alert("Recipient not found");
-        return;
-      }
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: recipient.id },
-          message: { text: newMessage },
-          messaging_type: "MESSAGE_TAG",
-          tag: "ACCOUNT_UPDATE",
-        }),
-      });
+      // Add local message immediately
+      const localMsg = {
+        id: "local-" + Date.now().toString(),
+        displayName: "You",
+        message: newMessage,
+        created_time: new Date().toISOString(),
+        from: { id: "me" },
+      };
+
+      setMessages((prev) => [...prev, localMsg]);
+      setNewMessage("");
+
+      // Refresh messages from backend with merge of local pending messages
+      await fetchMessages(selectedConversation);
+    } catch (error) {
+      alert("Failed to send WhatsApp message.");
+      console.error(error);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedPage || !selectedConversation || sendingMessage) return;
+
+    if (selectedPage.type === "whatsapp") {
+      await sendWhatsAppMessage();
+      return;
     }
 
-    setNewMessage("");
-    await fetchMessages(conv); // fetch fresh messages for the conversation
-  } catch (error) {
-    alert("Failed to send message.");
-    console.error(error);
-  } finally {
-    setSendingMessage(false);
-  }
-};
+    setSendingMessage(true);
+    try {
+      const token = pageAccessTokens[selectedPage.id];
 
+      if (selectedPage.type === "instagram") {
+        const msgRes = await fetch(
+          `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
+        );
+        const msgData = await msgRes.json();
+        const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
+        if (!sender) return alert("Recipient not found");
+
+        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messaging_product: "instagram",
+            recipient: { id: sender.from.id },
+            message: { text: newMessage },
+          }),
+        });
+      } else {
+        const participants = selectedConversation.participants?.data || [];
+        const recipient = participants.find((p) => p.name !== selectedPage.name);
+        if (!recipient) return alert("Recipient not found");
+
+        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: { id: recipient.id },
+            message: { text: newMessage },
+            messaging_type: "MESSAGE_TAG",
+            tag: "ACCOUNT_UPDATE",
+          }),
+        });
+      }
+
+      setNewMessage("");
+      await fetchMessages(selectedConversation);
+    } catch (error) {
+      alert("Failed to send message.");
+      console.error(error);
+    } finally {
+      setSendingMessage(false);
+    }
+  };
 
   return (
     <div
