@@ -315,49 +315,43 @@ if (selectedPage.type === "whatsapp") {
     }
   };
 
-  const sendWhatsAppMessage = async () => {
-    setSendingMessage(true);
-    try {
-      const payload = {
-        messaging_product: "whatsapp",
-        to: WHATSAPP_RECIPIENT_NUMBER,
-        type: "text",
-        text: { body: newMessage },
-      };
+const sendWhatsAppMessage = async () => {
+  setSendingMessage(true);
+  try {
+    const payload = {
+      messaging_product: "whatsapp",
+      to: selectedConversation.userNumber, // Make sure you send to the current conversation user
+      type: "text",
+      text: { body: newMessage },
+    };
 
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const data = await res.json();
-      console.log("WhatsApp send response", data);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          displayName: "You",
-          message: newMessage,
-          created_time: new Date().toISOString(),
-          from: { id: "me" },
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
         },
-      ]);
-      setNewMessage("");
-    } catch (error) {
-      alert("Failed to send WhatsApp message.");
-      console.error(error);
-    } finally {
-      setSendingMessage(false);
-    }
-  };
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const data = await res.json();
+    console.log("WhatsApp send response", data);
+
+    // Instead of just adding locally, fetch messages fresh from backend
+    await fetchMessages(selectedConversation);
+
+    setNewMessage("");
+  } catch (error) {
+    alert("Failed to send WhatsApp message.");
+    console.error(error);
+  } finally {
+    setSendingMessage(false);
+  }
+};
+
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedPage || !selectedConversation || sendingMessage) return;
