@@ -278,22 +278,22 @@ const fetchMessages = async (conv) => {
             : new Date().toISOString()),
       }));
 
-      setMessages((prevMessages) => {
-        const prevConvMessages = prevMessages[conv.id] || [];
+setMessages((prevMessages) => {
+  const prevConvMessages = prevMessages[conv.id] || [];
 
-        // Filter local messages that backend hasn't returned yet
-        const localMessagesNotInBackend = prevConvMessages.filter(
-          (localMsg) =>
-            localMsg.id?.toString().startsWith("local-") &&
-            !backendMessages.some((bm) => bm.id === localMsg.id)
-        );
+  // Local messages not yet on backend
+  const localMessagesNotInBackend = prevConvMessages.filter(
+    (localMsg) =>
+      localMsg.id?.toString().startsWith("local-") &&
+      !enrichedMessages.some((bm) => bm.id === localMsg.id)
+  );
 
-        // Combine backend + local pending messages for this conversation only
-        return {
-          ...prevMessages,
-          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
-        };
-      });
+  return {
+    ...prevMessages,
+    [conv.id]: [...enrichedMessages, ...localMessagesNotInBackend],
+  };
+});
+
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
@@ -337,10 +337,22 @@ const fetchMessages = async (conv) => {
       };
     });
 
-    setMessages((prevMessages) => ({
-      ...prevMessages,
-      [conv.id]: enrichedMessages,
-    }));
+setMessages((prevMessages) => {
+  const prevConvMessages = prevMessages[conv.id] || [];
+
+  // Local messages not yet on backend
+  const localMessagesNotInBackend = prevConvMessages.filter(
+    (localMsg) =>
+      localMsg.id?.toString().startsWith("local-") &&
+      !enrichedMessages.some((bm) => bm.id === localMsg.id)
+  );
+
+  return {
+    ...prevMessages,
+    [conv.id]: [...enrichedMessages, ...localMessagesNotInBackend],
+  };
+});
+
   } catch (error) {
     alert("Error fetching messages.");
     console.error(error);
