@@ -24,57 +24,40 @@ export async function action({ request }) {
       const value = change.value;
       if (!value) return;
 
-      // ✅ Save contact name if available
-      const contacts = value.contacts || [];
-      contacts.forEach((contact) => {
-        const wa_id = contact.wa_id; // Phone number
-        const profileName = contact.profile?.name || "WhatsApp User";
-
-        if (!messageStore[wa_id]) {
-          messageStore[wa_id] = { profileName, messages: [] };
-        } else {
-          messageStore[wa_id].profileName = profileName;
-        }
-      });
-
-      // ✅ Handle incoming messages
+      // Handle incoming messages (texts etc)
       const messages = value.messages || [];
       messages.forEach((msg) => {
         const from = msg.from;
         if (!from) return;
 
         if (!messageStore[from]) {
-          messageStore[from] = { profileName: "WhatsApp User", messages: [] };
+          messageStore[from] = [];
         }
 
-        messageStore[from].messages.push({
+        messageStore[from].push({
           id: msg.id,
           from,
           message: msg.text?.body || "",
-          created_time: msg.timestamp
-            ? new Date(parseInt(msg.timestamp) * 1000).toISOString()
-            : new Date().toISOString(),
+          created_time: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
           type: "message",
         });
       });
 
-      // ✅ Handle status updates
+      // Handle status updates (read, delivered, etc)
       const statuses = value.statuses || [];
       statuses.forEach((status) => {
         const recipient = status.recipient_id;
         if (!recipient) return;
 
         if (!messageStore[recipient]) {
-          messageStore[recipient] = { profileName: "WhatsApp User", messages: [] };
+          messageStore[recipient] = [];
         }
 
-        messageStore[recipient].messages.push({
+        messageStore[recipient].push({
           id: status.id,
           from: recipient,
           status: status.status,
-          created_time: status.timestamp
-            ? new Date(parseInt(status.timestamp) * 1000).toISOString()
-            : new Date().toISOString(),
+          created_time: status.timestamp ? new Date(parseInt(status.timestamp) * 1000).toISOString() : new Date().toISOString(),
           type: "status",
         });
       });
