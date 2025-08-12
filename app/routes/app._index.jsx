@@ -99,21 +99,21 @@ export default function SocialChatDashboard() {
     );
   };
 
-const handleWhatsAppConnect = () => {
+const handleWhatsAppConnect = async () => {
   setWaConnected(true);
-  setSelectedPage({
-    id: "whatsapp",
-    name: "WhatsApp",
-    type: "whatsapp",
-  });
-  setConversations([
-    {
-      id: "wa-1",
-      userName: "WhatsApp User",
-      businessName: "You",
-      userNumber: WHATSAPP_RECIPIENT_NUMBER, // Should be "919779728764"
-    },
-  ]);
+  setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
+
+  const res = await fetch("/get-whatsapp-users");
+  const users = await res.json(); // returns [{ number: "919876543210", name: "John" }, ...]
+
+  const convs = users.map((u, index) => ({
+    id: `wa-${index}`,
+    userName: u.name || u.number,
+    businessName: "You",
+    userNumber: u.number, // THIS is the msg.from value from webhook
+  }));
+
+  setConversations(convs);
   setMessages([]);
 };
 
