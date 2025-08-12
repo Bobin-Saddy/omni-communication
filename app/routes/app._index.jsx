@@ -116,14 +116,6 @@ const handleWhatsAppConnect = async () => {
   setConversations(convs);
   setMessages([]);
 };
-setConversations([
-  {
-    id: "wa-1",
-    userName: "WhatsApp User",
-    businessName: "You",
-    userNumber: WHATSAPP_RECIPIENT_NUMBER,
-  },
-]);
 
   const fetchFacebookPages = async (accessToken) => {
     setLoadingPages(true);
