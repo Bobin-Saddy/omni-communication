@@ -257,16 +257,16 @@ const handleWhatsAppConnect = async () => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-      const backendMessages = (data.messages || []).map((msg) => ({
-        id: msg.id,
-        from: { id: msg.sender || "unknown" },
-        message: msg.content || "",
-        created_time:
-          msg.createdAt ||
-          (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
-      }));
+const backendMessages = (data.messages || []).map((msg) => ({
+  id: msg.id,
+  from: { id: msg.sender || "unknown" },
+  message: msg.content || "",
+  created_time:
+    msg.createdAt ||
+    (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
+}));
 
-      // Local messages jo abhi backend me nahi hain unhe add karo
+// Local messages jo abhi backend me nahi hain unhe add karo
 setMessages((prevMessages) => {
   const localMessagesNotInBackend = prevMessages.filter(
     (localMsg) => localMsg.id?.toString().startsWith("local-") &&
@@ -363,16 +363,17 @@ const sendWhatsAppMessage = async () => {
     });
 
     // Add local message immediately
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: "local-" + Date.now().toString(),
-        displayName: "You",
-        message: newMessage,
-        created_time: new Date().toISOString(),
-        from: { id: "me" },
-      },
-    ]);
+setMessages((prev) => [
+  ...prev,
+  {
+    id: "local-" + Date.now().toString(),
+    displayName: "You",
+    message: newMessage,
+    created_time: new Date().toISOString(),
+    from: { id: "me" },
+  },
+]);
+
     setNewMessage("");
 
     // REFRESH messages from backend after sending to sync UI
