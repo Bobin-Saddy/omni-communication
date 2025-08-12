@@ -332,17 +332,21 @@ setMessages((prev) => {
 setMessages((prevMessages) => {
   const prevConvMessages = prevMessages[conv.id] || [];
 
-  const localMessagesNotInBackend = prevConvMessages.filter(
-    (localMsg) =>
-      localMsg.id?.toString().startsWith("local-") &&
-      !backendMessages.some((bm) => bm.id === localMsg.id)
-  );
+  const localMessagesNotInBackend = prevConvMessages.filter((localMsg) => {
+    if (!localMsg.id) return false;
+    const localId = localMsg.id.toString();
+    return (
+      localId.startsWith("local-") &&
+      !backendMessages.some((bm) => bm.id.toString() === localId)
+    );
+  });
 
   return {
     ...prevMessages,
     [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
   };
 });
+
 
   } catch (error) {
     alert("Error fetching messages.");
