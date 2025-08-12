@@ -263,9 +263,9 @@ const fetchMessages = async (conv) => {
       return;
     }
     try {
-      const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+     const res = await fetch(`/get-messages?number=${conv.userNumber}`);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
+    const data = await res.json();
 
       const backendMessages = (data.messages || []).map((msg) => ({
         id: msg.id,

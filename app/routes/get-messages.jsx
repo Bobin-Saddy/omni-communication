@@ -1,30 +1,29 @@
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
+import { PrismaClient } from "@prisma/client";
 
-export async function loader({ request }) {
-  const url = new URL(request.url);
-  const phoneNumber = url.searchParams.get("number");
+const prisma = new PrismaClient();
 
-  if (!phoneNumber) {
-    return json({ error: "Phone number is required" }, { status: 400 });
+export const loader = async ({ request }) => {
+  try {
+    const url = new URL(request.url);
+    const number = url.searchParams.get("number");
+    if (!number) {
+      return json({ error: "Number parameter is required" }, { status: 400 });
+    }
+
+    // Fetch all messages where either to or from is this number
+    const messages = await prisma.customerWhatsAppMessage.findMany({
+      where: {
+        OR: [{ to: number }, { from: number }],
+      },
+      orderBy: {
+        timestamp: "asc", // or 'createdAt' if you use that field
+      },
+    });
+
+    return json({ messages });
+  } catch (error) {
+    console.error("Error fetching WhatsApp messages:", error);
+    return json({ error: "Server error" }, { status: 500 });
   }
-
-  // Find chat session by phone (phone must exist in ChatSession)
-  const session = await prisma.chatSession.findFirst({
-    where: { phone: phoneNumber },
-    select: { id: true },
-  });
-
-  if (!session) {
-    // No chat session found, return empty messages
-    return json({ messages: [] });
-  }
-
-  // Fetch all messages for this session
-  const messages = await prisma.chatMessage.findMany({
-    where: { conversationId: session.id },
-    orderBy: { createdAt: "asc" },
-  });
-
-  return json({ messages });
-}
+};
