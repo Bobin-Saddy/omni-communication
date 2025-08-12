@@ -545,40 +545,38 @@ const handleWhatsAppConnect = async () => {
                   flexDirection: "column",
                 }}
               >
-          {messages.map((msg) => {
-  const isMe = msg.sender !== "user"; // Adjust if you want to check business number
+                {messages.map((msg) => {
+                  const businessNumber = WHATSAPP_RECIPIENT_NUMBER; // Your WhatsApp recipient number
+                  const fromId = msg.from?.id || msg.from;
+                  const isMe =
+                    fromId === businessNumber ||
+                    fromId === "me" ||
+                    fromId === selectedPage?.id;
 
-  return (
-    <div
-      key={msg.id}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: isMe ? "flex-end" : "flex-start",
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-          color: "#333",
-          padding: "10px 15px",
-          borderRadius: 15,
-          marginBottom: 8,
-          maxWidth: "70%",
-          wordBreak: "break-word",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-        }}
-      >
-        <strong>{isMe ? "You" : msg.sender}</strong>
-        <div>{msg.content}</div>
-        <small style={{ fontSize: 10, color: "#666" }}>
-          {new Date(msg.createdAt).toLocaleString()}
-        </small>
-      </div>
-    </div>
-  );
-})}
+                  const bubbleStyle = {
+                    alignSelf: isMe ? "flex-end" : "flex-start",
+                    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+                    color: "#333",
+                    padding: "10px 15px",
+                    borderRadius: 15,
+                    marginBottom: 8,
+                    maxWidth: "70%",
+                    wordBreak: "break-word",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                  };
 
+                  return (
+                    <div key={msg.id} style={{ display: "flex", flexDirection: "column" }}>
+                      <div style={bubbleStyle}>
+                        <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+                        <div>{msg.message}</div>
+                        <small style={{ fontSize: 10, color: "#666" }}>
+                          {new Date(msg.created_time).toLocaleString()}
+                        </small>
+                      </div>
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
               <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
