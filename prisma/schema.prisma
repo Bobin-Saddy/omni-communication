@@ -113,12 +113,12 @@ model ChatMessage {
   conversation   ChatSession @relation(fields: [conversationId], references: [id])
 }
 
-model CustomerWhatsAppMessage {
-  id             Int      @id @default(autoincrement())
-  from           String
-  to             String
-  message        String
-  timestamp      DateTime @default(now())
-  direction      String   // "incoming" or "outgoing"
-  conversationId Int?     // optional relation to conversation
+
+model customerWhatsAppMessage {
+  id        Int      @id @default(autoincrement())
+  to        String
+  from      String     // Ye field aapke error ke hisaab se required hai
+  message   String
+  timestamp DateTime @default(now())
+  direction String   // "incoming" or "outgoing"
 }
