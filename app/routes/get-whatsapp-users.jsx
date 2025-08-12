@@ -1,14 +1,13 @@
-// app/routes/get-whatsapp-users.jsx
 import { json } from "@remix-run/node";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 export async function loader() {
-  const conversations = await prisma.conversation.findMany({
+  const conversations = await prisma.chatSession.findMany({
     include: {
       messages: {
-        orderBy: { timestamp: "desc" },
+        orderBy: { createdAt: "desc" },
         take: 1
       }
     }
@@ -19,8 +18,8 @@ export async function loader() {
     return {
       number: conv.phone,
       name: conv.userName || `User ${conv.phone}`,
-      lastMessage: last.text || "",
-      lastTime: last.timestamp || null
+      lastMessage: last.content || "",
+      lastTime: last.createdAt || null
     };
   });
 

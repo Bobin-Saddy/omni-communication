@@ -1,5 +1,3 @@
-// app/routes/webhook.whatsapp.jsx
-import { json } from "@remix-run/node";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -19,32 +17,32 @@ export async function loader({ request }) {
 
 export async function action({ request }) {
   const body = await request.json();
-
   const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
+
   if (messages && messages.length > 0) {
     const msg = messages[0];
     const from = msg.from;
     const text = msg?.text?.body || "";
     const name = msg?.profile?.name || "";
 
-    // Save to DB
-    await prisma.conversation.upsert({
+    // Save to DB with upsert
+    await prisma.chatSession.upsert({
       where: { phone: from },
       update: {
         messages: {
           create: {
-            text,
+            content: text,
             sender: "user",
           }
         }
       },
       create: {
-        userId: from, // ya koi unique ID
+        userId: from, // could also be some generated unique ID
         userName: name,
         phone: from,
         messages: {
           create: {
-            text,
+            content: text,
             sender: "user",
           }
         }
