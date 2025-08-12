@@ -332,13 +332,13 @@ setMessages((prev) => {
 setMessages((prevMessages) => {
   const prevConvMessages = prevMessages[conv.id] || [];
 
-  const localMessagesNotInBackend = prevConvMessages.filter((localMsg) => {
+  const localMessagesNotInBackend = prevConvMessages.filter(localMsg => {
     if (!localMsg.id) return false;
-    const localId = localMsg.id.toString();
-    return (
-      localId.startsWith("local-") &&
-      !backendMessages.some((bm) => bm.id.toString() === localId)
-    );
+
+    const idStr = localMsg.id.toString();
+    if (typeof idStr !== "string") return false;
+
+    return idStr.startsWith("local-") && !backendMessages.some(bm => bm.id.toString() === idStr);
   });
 
   return {
@@ -346,6 +346,7 @@ setMessages((prevMessages) => {
     [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
   };
 });
+
 
 
   } catch (error) {
