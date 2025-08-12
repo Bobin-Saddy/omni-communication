@@ -1,23 +1,32 @@
+import { json } from "@remix-run/node";
 import { PrismaClient } from "@prisma/client";
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+const prisma = new PrismaClient();
 
-  const { to, message, direction } = req.body;
-
-  if (!to || !message || !direction) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
-
+export const action = async ({ request }) => {
   try {
-    const saved = await PrismaClient.customerWhatsAppMessage.create({
-      data: { to, message, direction },
+    const formData = await request.json();
+    const { to, message, direction } = formData;
+
+    if (!to || !message || !direction) {
+      return json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    const savedMessage = await prisma.customerWhatsAppMessage.create({
+      data: {
+        to,
+        message,
+        direction,
+      },
     });
-    return res.status(201).json(saved);
+
+    return json(savedMessage, { status: 201 });
   } catch (error) {
-    console.error("DB save error:", error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error("Error saving WhatsApp message:", error);
+    return json({ error: "Server error" }, { status: 500 });
   }
+};
+
+export default function SaveWhatsAppMessage() {
+  return <div>Save WhatsApp Message Route</div>;
 }
