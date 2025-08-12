@@ -17,53 +17,25 @@ export async function loader({ request }) {
 
 export async function action({ request }) {
   const body = await request.json();
-  console.log("WhatsApp webhook POST received:", JSON.stringify(body, null, 2));
+  
+  const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
+  if (messages && messages.length > 0) {
+    const msg = messages[0];
+    const from = msg.from;
+    const text = msg?.text?.body || "";
 
-  body.entry?.forEach((entry) => {
-    entry.changes?.forEach((change) => {
-      const value = change.value;
-      if (!value) return;
-
-      // Handle incoming messages (texts etc)
-      const messages = value.messages || [];
-      messages.forEach((msg) => {
-        const from = msg.from;
-        if (!from) return;
-
-        if (!messageStore[from]) {
-          messageStore[from] = [];
-        }
-
-        messageStore[from].push({
-          id: msg.id,
-          from,
-          message: msg.text?.body || "",
-          created_time: msg.timestamp ? new Date(parseInt(msg.timestamp) * 1000).toISOString() : new Date().toISOString(),
-          type: "message",
-        });
-      });
-
-      // Handle status updates (read, delivered, etc)
-      const statuses = value.statuses || [];
-      statuses.forEach((status) => {
-        const recipient = status.recipient_id;
-        if (!recipient) return;
-
-        if (!messageStore[recipient]) {
-          messageStore[recipient] = [];
-        }
-
-        messageStore[recipient].push({
-          id: status.id,
-          from: recipient,
-          status: status.status,
-          created_time: status.timestamp ? new Date(parseInt(status.timestamp) * 1000).toISOString() : new Date().toISOString(),
-          type: "status",
-        });
-      });
+    if (!messageStore[from]) {
+      messageStore[from] = [];
+    }
+    messageStore[from].push({
+      message: text,
+      timestamp: new Date().toISOString(),
+      profile: { name: msg?.profile?.name || "" }
     });
-  });
 
-  return json({ received: true });
+    console.log("Stored message from", from, text);
+  }
+
+  return new Response("EVENT_RECEIVED", { status: 200 });
 }
 
