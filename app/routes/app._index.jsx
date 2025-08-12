@@ -633,47 +633,48 @@ const sendWhatsAppMessage = async () => {
               >
                 Chat
               </div>
-              <div
-                style={{
-                  flex: 1,
-                  padding: 12,
-                  overflowY: "auto",
-                  background: "#f9f9f9",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {messages.map((msg) => {
-                  const businessNumber = WHATSAPP_RECIPIENT_NUMBER;
-                  const fromId = msg.from?.id || msg.from;
-                  const isMe = fromId === businessNumber || fromId === "me" || fromId === selectedPage?.id;
+<div
+  style={{
+    flex: 1,
+    padding: 12,
+    overflowY: "auto",
+    background: "#f9f9f9",
+    display: "flex",
+    flexDirection: "column",
+  }}
+>
+  {(messages[selectedConversation?.id] || []).map((msg) => {
+    const businessNumber = WHATSAPP_RECIPIENT_NUMBER;
+    const fromId = msg.from?.id || msg.from;
+    const isMe = fromId === businessNumber || fromId === "me" || fromId === selectedPage?.id;
 
-                  const bubbleStyle = {
-                    alignSelf: isMe ? "flex-end" : "flex-start",
-                    backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                    color: "#333",
-                    padding: "10px 15px",
-                    borderRadius: 15,
-                    marginBottom: 8,
-                    maxWidth: "70%",
-                    wordBreak: "break-word",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                  };
+    const bubbleStyle = {
+      alignSelf: isMe ? "flex-end" : "flex-start",
+      backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+      color: "#333",
+      padding: "10px 15px",
+      borderRadius: 15,
+      marginBottom: 8,
+      maxWidth: "70%",
+      wordBreak: "break-word",
+      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+    };
 
-                  return (
-                    <div key={msg.id} style={{ display: "flex", flexDirection: "column" }}>
-                      <div style={bubbleStyle}>
-                        <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
-                        <div>{msg.message}</div>
-                        <small style={{ fontSize: 10, color: "#666" }}>
-                          {new Date(msg.created_time).toLocaleString()}
-                        </small>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </div>
+    return (
+      <div key={msg.id} style={{ display: "flex", flexDirection: "column" }}>
+        <div style={bubbleStyle}>
+          <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+          <div>{msg.message}</div>
+          <small style={{ fontSize: 10, color: "#666" }}>
+            {new Date(msg.created_time).toLocaleString()}
+          </small>
+        </div>
+      </div>
+    );
+  })}
+  <div ref={messagesEndRef} />
+</div>
+
               <div
                 style={{
                   display: "flex",
