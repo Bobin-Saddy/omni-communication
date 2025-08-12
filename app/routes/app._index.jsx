@@ -274,16 +274,22 @@ const fetchMessages = async (conv) => {
         created_time: msg.createdAt || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
       }));
 
-setMessages((prev) => {
-  const prevConvMessages = prev[conv.id] || [];
-  const localMessages = prevConvMessages.filter(
-    (m) => m.id.startsWith("local-") && !backendMessages.some((bm) => bm.id === m.id)
-  );
+setMessages((prevMessages) => {
+  const prevConvMessages = prevMessages[conv.id] || [];
+
+  const localMessagesNotInBackend = prevConvMessages.filter(localMsg => {
+    if (!localMsg.id) return false;
+
+    const idStr = localMsg.id.toString();
+    return idStr.startsWith("local-") && !backendMessages.some(bm => bm.id.toString() === idStr);
+  });
+
   return {
-    ...prev,
-    [conv.id]: [...backendMessages, ...localMessages],
+    ...prevMessages,
+    [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
   };
 });
+
 
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
@@ -332,14 +338,12 @@ setMessages((prev) => {
 setMessages((prevMessages) => {
   const prevConvMessages = prevMessages[conv.id] || [];
 
-  const localMessagesNotInBackend = prevConvMessages.filter(localMsg => {
-    if (!localMsg.id) return false;
+const localMessagesNotInBackend = prevConvMessages.filter(localMsg => {
+  if (!localMsg.id) return false;
+  const idStr = localMsg.id.toString();
+  return idStr.startsWith("local-") && !backendMessages.some(bm => bm.id.toString() === idStr);
+});
 
-    const idStr = localMsg.id.toString();
-    if (typeof idStr !== "string") return false;
-
-    return idStr.startsWith("local-") && !backendMessages.some(bm => bm.id.toString() === idStr);
-  });
 
   return {
     ...prevMessages,
