@@ -23,8 +23,8 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/whatsapp">Additional page</Link>
-         <Link to="/admin/messages">whatsapp page</Link>
-          <Link to="/admin/messages/$from">whatsapp2 page</Link>
+         {/* <Link to="/admin/messages">whatsapp page</Link>
+          <Link to="/admin/messages/$from">whatsapp2 page</Link> */}
       </NavMenu>  
       <Outlet />
     </AppProvider>
