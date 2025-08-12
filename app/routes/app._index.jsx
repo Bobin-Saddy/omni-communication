@@ -503,7 +503,7 @@ const handleWhatsAppConnect = () => {
                         ?.filter((p) => p.name !== selectedPage.name)
                         .map((p) => p.name)
                         .join(", ") || "User";
-                        console.log('Check-user-name---->', userName);
+                        console.log('Check-user-name---->', conv.userName);
                 return (
                   <div
                     key={conv.id}
