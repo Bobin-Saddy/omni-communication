@@ -274,10 +274,10 @@ const fetchMessages = async (conv) => {
         created_time: msg.createdAt || (msg.timestamp ? new Date(msg.timestamp * 1000).toISOString() : new Date().toISOString()),
       }));
 
-  setMessages(prev => {
+setMessages((prev) => {
   const prevConvMessages = prev[conv.id] || [];
   const localMessages = prevConvMessages.filter(
-    m => m.id.toString().startsWith("local-") && !backendMessages.some(bm => bm.id === m.id)
+    (m) => m.id.startsWith("local-") && !backendMessages.some((bm) => bm.id === m.id)
   );
   return {
     ...prev,
