@@ -493,32 +493,41 @@ const handleWhatsAppConnect = () => {
               {!loadingConversations && conversations.length === 0 && (
                 <div style={{ padding: 12 }}>No conversations available.</div>
               )}
-              {conversations.map((conv) => {
-        const name =
-  selectedPage?.type === "instagram"
-    ? `${conv.businessName} ↔️ ${conv.userName}`
-    : selectedPage?.type === "whatsapp"
-    ? conv.userName || conv.profile?.name || conv.wa_id || "WhatsApp User"
-    : conv.participants?.data
-        ?.filter((p) => p.name !== selectedPage.name)
-        .map((p) => p.name)
-        .join(", ") || "User";
-                        console.log('Check-user-name---->', conv.userName);
-                return (
-                  <div
-                    key={conv.id}
-                    onClick={() => fetchMessages(conv)}
-                    style={{
-                      padding: 12,
-                      cursor: "pointer",
-                      backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                      borderBottom: "1px solid #eee",
-                    }}
-                  >
-                    {name}
-                  </div>
-                );
-              })}
+{conversations.map((conv) => {
+  const name =
+    selectedPage?.type === "instagram"
+      ? `${conv.businessName} ↔️ ${conv.userName}`
+      : selectedPage?.type === "whatsapp"
+      ? conv.userName ||
+        conv.profile?.name ||
+        conv.contacts?.[0]?.profile?.name ||
+        conv.contacts?.[0]?.wa_id ||
+        conv.wa_id ||
+        "WhatsApp User"
+      : conv.participants?.data
+          ?.filter((p) => p.name !== selectedPage.name)
+          .map((p) => p.name)
+          .join(", ") || "User";
+
+  console.log("Check-user-name---->", name);
+
+  return (
+    <div
+      key={conv.id}
+      onClick={() => fetchMessages(conv)}
+      style={{
+        padding: 12,
+        cursor: "pointer",
+        backgroundColor:
+          selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
+        borderBottom: "1px solid #eee",
+      }}
+    >
+      {name}
+    </div>
+  );
+})}
+
             </div>
 
             {/* Chat Area */}
