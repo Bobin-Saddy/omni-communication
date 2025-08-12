@@ -1,6 +1,8 @@
+// app/routes/webhook.whatsapp.jsx
 import { json } from "@remix-run/node";
-import { messageStore } from "./app.messageStore";
+import { PrismaClient } from "@prisma/client";
 
+const prisma = new PrismaClient();
 const VERIFY_TOKEN = "12345";
 
 export async function loader({ request }) {
@@ -17,20 +19,36 @@ export async function loader({ request }) {
 
 export async function action({ request }) {
   const body = await request.json();
-  
+
   const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
   if (messages && messages.length > 0) {
     const msg = messages[0];
     const from = msg.from;
     const text = msg?.text?.body || "";
+    const name = msg?.profile?.name || "";
 
-    if (!messageStore[from]) {
-      messageStore[from] = [];
-    }
-    messageStore[from].push({
-      message: text,
-      timestamp: new Date().toISOString(),
-      profile: { name: msg?.profile?.name || "" }
+    // Save to DB
+    await prisma.conversation.upsert({
+      where: { phone: from },
+      update: {
+        messages: {
+          create: {
+            text,
+            sender: "user",
+          }
+        }
+      },
+      create: {
+        userId: from, // ya koi unique ID
+        userName: name,
+        phone: from,
+        messages: {
+          create: {
+            text,
+            sender: "user",
+          }
+        }
+      }
     });
 
     console.log("Stored message from", from, text);
@@ -38,4 +56,3 @@ export async function action({ request }) {
 
   return new Response("EVENT_RECEIVED", { status: 200 });
 }
-
