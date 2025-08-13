@@ -271,11 +271,11 @@ const fetchMessages = async (conv) => {
         id: msg.id,
         from: { id: msg.sender || "unknown" },
         message: msg.content || "",
-        created_time:
-          msg.createdAt ||
-          (msg.timestamp
-            ? new Date(msg.timestamp * 1000).toISOString()
-            : new Date().toISOString()),
+    created_time:
+  msg.createdAt ||
+  msg.timestamp ||
+  new Date().toISOString(),
+
       }));
 
       setMessages((prevMessages) => {
