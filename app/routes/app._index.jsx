@@ -283,13 +283,14 @@ const backendMessages = (data.messages || []).map((msg, index) => ({
         const prevConvMessages = prevMessages[conv.id] || [];
 
         // Filter local messages that backend hasn't returned yet
-  const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
-  localMsg.id?.startsWith("local-") &&
+const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
+  (localMsg.id && typeof localMsg.id === "string" && localMsg.id.startsWith("local-")) &&
   !backendMessages.some(bm =>
-    bm.message.trim() === localMsg.message.trim() &&
+    bm.message?.trim() === localMsg.message?.trim() &&
     Math.abs(new Date(bm.created_time) - new Date(localMsg.created_time)) < 5000
   )
 );
+
 
         // Combine backend + local pending messages for this conversation only
         return {
