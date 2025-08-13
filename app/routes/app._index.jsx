@@ -622,92 +622,96 @@ const sendWhatsAppMessage = async () => {
             </div>
 
             {/* Chat Area */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-              <div
-                style={{
-                  padding: 12,
-                  borderBottom: "1px solid #ddd",
-                  background: "#f7f7f7",
-                  fontWeight: "600",
-                }}
-              >
-                Chat
-              </div>
-<div
-  style={{
-    flex: 1,
-    padding: 12,
-    overflowY: "auto",
-    background: "#f9f9f9",
-    display: "flex",
-    flexDirection: "column",
-  }}
->
-  {(messages[selectedConversation?.id] || []).map((msg) => {
-    const businessNumber = WHATSAPP_RECIPIENT_NUMBER;
-    const fromId = msg.from?.id || msg.from;
-    const isMe = fromId === businessNumber || fromId === "me" || fromId === selectedPage?.id;
+       <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+  <div
+    style={{
+      padding: 12,
+      borderBottom: "1px solid #ddd",
+      background: "#f7f7f7",
+      fontWeight: "600",
+    }}
+  >
+    Chat
+  </div>
 
-    const bubbleStyle = {
-      alignSelf: isMe ? "flex-end" : "flex-start",
-      backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-      color: "#333",
-      padding: "10px 15px",
-      borderRadius: 15,
-      marginBottom: 8,
-      maxWidth: "70%",
-      wordBreak: "break-word",
-      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-    };
+  <div
+    style={{
+      flex: 1,
+      padding: 12,
+      overflowY: "auto",
+      background: "#f9f9f9",
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    {(messages[selectedConversation?.id] || []).map((msg) => {
+      // Use API-provided sender instead of guessing
+      const isMe = msg.sender === "me";
 
-    return (
-      <div key={msg.id} style={{ display: "flex", flexDirection: "column" }}>
-        <div style={bubbleStyle}>
-          <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
-          <div>{msg.message}</div>
-          <small style={{ fontSize: 10, color: "#666" }}>
-            {new Date(msg.created_time).toLocaleString()}
-          </small>
+      const bubbleStyle = {
+        alignSelf: isMe ? "flex-end" : "flex-start",
+        backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+        color: "#333",
+        padding: "10px 15px",
+        borderRadius: 15,
+        marginBottom: 8,
+        maxWidth: "70%",
+        wordBreak: "break-word",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+      };
+
+      return (
+        <div key={msg.id || msg.timestamp} style={{ display: "flex", flexDirection: "column" }}>
+          <div style={bubbleStyle}>
+            <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+            <div>{msg.message || msg.content}</div>
+            <small style={{ fontSize: 10, color: "#666" }}>
+              {msg.timestamp
+                ? new Date(msg.timestamp).toLocaleString()
+                : msg.created_time
+                ? new Date(msg.created_time).toLocaleString()
+                : ""}
+            </small>
+          </div>
         </div>
-      </div>
-    );
-  })}
-  <div ref={messagesEndRef} />
-</div>
+      );
+    })}
+    <div ref={messagesEndRef} />
+  </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  padding: 12,
-                  borderTop: "1px solid #ddd",
-                }}
-              >
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message"
-                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                  disabled={sendingMessage}
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={sendingMessage || !newMessage.trim()}
-                  style={{
-                    marginLeft: 10,
-                    padding: "10px 20px",
-                    backgroundColor: sendingMessage ? "#6c757d" : "#007bff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 5,
-                    cursor: sendingMessage ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {sendingMessage ? "Sending..." : "Send"}
-                </button>
-              </div>
-            </div>
+  <div
+    style={{
+      display: "flex",
+      padding: 12,
+      borderTop: "1px solid #ddd",
+    }}
+  >
+    <input
+      type="text"
+      value={newMessage}
+      onChange={(e) => setNewMessage(e.target.value)}
+      placeholder="Type a message"
+      style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+      onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+      disabled={sendingMessage}
+    />
+    <button
+      onClick={sendMessage}
+      disabled={sendingMessage || !newMessage.trim()}
+      style={{
+        marginLeft: 10,
+        padding: "10px 20px",
+        backgroundColor: sendingMessage ? "#6c757d" : "#007bff",
+        color: "white",
+        border: "none",
+        borderRadius: 5,
+        cursor: sendingMessage ? "not-allowed" : "pointer",
+      }}
+    >
+      {sendingMessage ? "Sending..." : "Send"}
+    </button>
+  </div>
+</div>
           </div>
         )}
       </div>
