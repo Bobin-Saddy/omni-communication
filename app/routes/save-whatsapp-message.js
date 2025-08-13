@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const normalize = num => String(num).replace(/\D/g, ""); // remove all non-digits
+
 
 export const action = async ({ request }) => {
   try {
@@ -16,15 +16,18 @@ export const action = async ({ request }) => {
       return json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const savedMessage = await prisma.customerWhatsAppMessage.create({
-      data: {
-        to: normalize(to),
-        from: normalize(from),
-        message,
-        direction,
-        timestamp: new Date(),
-      },
-    });
+const normalize = num => String(num).replace(/\D/g, "");
+
+const savedMessage = await prisma.customerWhatsAppMessage.create({
+  data: {
+    to: normalize(to),
+    from: normalize(from),
+    message,
+    direction,
+    timestamp: new Date(),
+  },
+});
+
 
     console.log("Saved message---->:", savedMessage);
     return json(savedMessage, { status: 201 });
