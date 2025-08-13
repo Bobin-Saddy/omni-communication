@@ -682,30 +682,41 @@ const sendWhatsAppMessage = async () => {
                   borderTop: "1px solid #ddd",
                 }}
               >
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message"
-                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                  disabled={sendingMessage}
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={sendingMessage || !newMessage.trim()}
-                  style={{
-                    marginLeft: 10,
-                    padding: "10px 20px",
-                    backgroundColor: sendingMessage ? "#6c757d" : "#007bff",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 5,
-                    cursor: sendingMessage ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {sendingMessage ? "Sending..." : "Send"}
-                </button>
+         <input
+  type="text"
+  value={newMessage}
+  onChange={(e) => setNewMessage(e.target.value)}
+  placeholder="Type a message"
+  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // stop implicit form submit
+      sendMessage();
+    }
+  }}
+  disabled={sendingMessage}
+/>
+
+<button
+  onClick={() => {
+    if (!sendingMessage && newMessage.trim()) {
+      sendMessage();
+    }
+  }}
+  disabled={sendingMessage || !newMessage.trim()}
+  style={{
+    marginLeft: 10,
+    padding: "10px 20px",
+    backgroundColor: sendingMessage ? "#6c757d" : "#007bff",
+    color: "white",
+    border: "none",
+    borderRadius: 5,
+    cursor: sendingMessage ? "not-allowed" : "pointer",
+  }}
+>
+  {sendingMessage ? "Sending..." : "Send"}
+</button>
+
               </div>
             </div>
           </div>
