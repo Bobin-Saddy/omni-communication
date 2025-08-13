@@ -2,6 +2,9 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const VERIFY_TOKEN = "12345";
+const BUSINESS_NUMBER = "106660072463312"; // your business WhatsApp number
+
+const normalize = num => String(num).replace(/\D/g, "");
 
 export async function loader({ request }) {
   const url = new URL(request.url);
@@ -21,13 +24,24 @@ export async function action({ request }) {
 
   if (messages && messages.length > 0) {
     const msg = messages[0];
-    const from = msg.from;
+    const from = normalize(msg.from);
     const text = msg?.text?.body || "";
     const name = msg?.profile?.name || "";
 
-    // Upsert chat session and create message
+    // Save to customerWhatsAppMessage
+    await prisma.customerWhatsAppMessage.create({
+      data: {
+        to: BUSINESS_NUMBER,
+        from: from,
+        message: text,
+        direction: "incoming",
+        timestamp: new Date(),
+      },
+    });
+
+    // (Optional) still maintain chatSession + chatMessage if needed by other parts of app
     await prisma.chatSession.upsert({
-      where: { phone: from },  // phone must be unique in schema
+      where: { phone: from },
       update: {
         messages: {
           create: {
@@ -49,7 +63,7 @@ export async function action({ request }) {
       },
     });
 
-    console.log("Stored message from", from, text);
+    console.log("Stored incoming WhatsApp message from", from, text);
   }
 
   return new Response("EVENT_RECEIVED", { status: 200 });
