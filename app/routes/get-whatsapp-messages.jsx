@@ -5,42 +5,40 @@ const normalize = num => String(num).replace(/\D/g, "");
 
 export async function loader({ request }) {
   const url = new URL(request.url);
+  const normalize = num => String(num).replace(/\D/g, "");
   const phoneNumber = normalize(url.searchParams.get("number"));
 
-  const outgoingMessages = await prisma.customerWhatsAppMessage.findMany({
+  // 1. Fetch from customerWhatsAppMessage
+  const waMessages = await prisma.customerWhatsAppMessage.findMany({
     where: {
-      OR: [{ to: phoneNumber }, { from: phoneNumber }]
+      OR: [
+        { to: phoneNumber },
+        { from: phoneNumber }
+      ]
     },
-    select: {
-      message: true,
-      timestamp: true,
-      from: true,
-      to: true,
-      direction: true,
-    }
+    orderBy: { timestamp: "asc" }
   });
 
-  const incomingMessages = await prisma.chatMessage.findMany({
+  // 2. Fetch from chatMessage (agar use kar rahe ho)
+  const chatMessages = await prisma.chatMessage.findMany({
     where: { conversation: { phone: phoneNumber } },
-    select: {
-      content: true,
-      createdAt: true,
-      sender: true,
-    }
+    orderBy: { createdAt: "asc" }
   });
 
+  // 3. Merge both
   const messages = [
-    ...outgoingMessages.map(m => ({
+    ...waMessages.map(m => ({
       message: m.message,
       timestamp: m.timestamp,
       sender: m.direction === "incoming" ? "user" : "me"
     })),
-    ...incomingMessages.map(m => ({
+    ...chatMessages.map(m => ({
       message: m.content,
       timestamp: m.createdAt,
       sender: m.sender
     }))
-  ].sort((a, b) => a.timestamp - b.timestamp);
+  ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
   return json({ messages });
 }
+
