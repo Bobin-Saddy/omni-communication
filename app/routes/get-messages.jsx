@@ -1,30 +1,34 @@
 import { json } from "@remix-run/node";
-import prisma from "../db.server";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 export async function loader({ request }) {
   const url = new URL(request.url);
-  const phoneNumber = url.searchParams.get("number");
+  const number = url.searchParams.get("number");
 
-  if (!phoneNumber) {
-    return json({ error: "Phone number is required" }, { status: 400 });
-  }
-
-  // Find chat session by phone (phone must exist in ChatSession)
-  const session = await prisma.chatSession.findFirst({
-    where: { phone: phoneNumber },
-    select: { id: true },
-  });
-
-  if (!session) {
-    // No chat session found, return empty messages
+  if (!number) {
     return json({ messages: [] });
   }
 
-  // Fetch all messages for this session
-  const messages = await prisma.chatMessage.findMany({
-    where: { conversationId: session.id },
-    orderBy: { createdAt: "asc" },
+  // Normalize number (remove + or spaces)
+  const phoneNumber = number.replace(/\D/g, "");
+
+  const whatsappMessages = await prisma.customerWhatsAppMessage.findMany({
+    where: {
+      OR: [
+        { to: phoneNumber },
+        { from: phoneNumber }
+      ]
+    },
+    orderBy: { timestamp: "asc" }
   });
+
+  // Convert to UI format
+  const messages = whatsappMessages.map(m => ({
+    content: m.message,
+    sender: m.direction === "incoming" ? "user" : "me",
+    timestamp: m.timestamp
+  }));
 
   return json({ messages });
 }
