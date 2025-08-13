@@ -28,53 +28,64 @@ export async function loader({ request }) {
     });
 
     if (session) {
-chatSessionMessages = await prisma.chatMessage.findMany({
-  where: { conversationId: session.id },
-  orderBy: { createdAt: "asc" },
-  select: {
-    id: true,             // <-- Add this
-    content: true,
-    createdAt: true,
-    sender: true,
-  },
-});
+      chatSessionMessages = await prisma.chatMessage.findMany({
+        where: { conversationId: session.id },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          sender: true,
+        },
+      });
     }
 
     // ---- 2️⃣ WhatsApp messages ----
-  
-const whatsappMessages = await prisma.customerWhatsAppMessage.findMany({
-  where: {
-    OR: [{ to: phoneNumber }, { from: phoneNumber }]
-  },
-  orderBy: { timestamp: "asc" },
-  select: {
-    id: true,              // <-- Add this
-    message: true,
-    timestamp: true,
-    direction: true,
-  }
-});
+    const whatsappMessages = await prisma.customerWhatsAppMessage.findMany({
+      where: {
+        OR: [{ to: phoneNumber }, { from: phoneNumber }],
+      },
+      orderBy: { timestamp: "asc" },
+      select: {
+        id: true,
+        message: true,
+        timestamp: true,
+        direction: true,
+      },
+    });
+
     // ---- 3️⃣ Format both sources ----
     const formattedWhatsApp = whatsappMessages.map((m) => ({
+      id: m.id,
       content: m.message,
       sender: m.direction === "incoming" ? "user" : "me",
-      timestamp: m.timestamp,
+      timestamp:
+        typeof m.timestamp === "number"
+          ? new Date(m.timestamp * 1000).toISOString()
+          : new Date(m.timestamp).toISOString(),
     }));
 
     const formattedChatSession = chatSessionMessages.map((m) => ({
+      id: m.id,
       content: m.content,
       sender: m.sender,
-      timestamp: m.createdAt,
+      timestamp: new Date(m.createdAt).toISOString(),
     }));
 
-    // ---- 4️⃣ Merge & sort ----
-    const allMessages = [...formattedWhatsApp, ...formattedChatSession].sort(
-      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-    );
+    // ---- 4️⃣ Merge, deduplicate & sort ----
+    const allMessages = [...formattedWhatsApp, ...formattedChatSession]
+      .filter(
+        (msg, index, self) =>
+          index === self.findIndex((m) => m.id === msg.id) // deduplicate by id
+      )
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
     return json({ messages: allMessages });
   } catch (error) {
     console.error("Error fetching messages:", error);
-    return json({ error: "Failed to fetch WhatsApp messages" }, { status: 500 });
+    return json(
+      { error: "Failed to fetch WhatsApp messages" },
+      { status: 500 }
+    );
   }
 }
