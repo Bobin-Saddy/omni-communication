@@ -8,10 +8,12 @@ export async function loader({ request }) {
     return json({ error: "Phone number is required" }, { status: 400 });
   }
 
-  // Fetch messages where either 'to' or 'from' matches the number
   const messages = await prisma.customerWhatsAppMessage.findMany({
     where: {
-      OR: [{ to: phoneNumber }, { from: phoneNumber }],
+      OR: [
+        { to: phoneNumber }, // outgoing messages
+        { from: phoneNumber } // incoming messages
+      ]
     },
     orderBy: { timestamp: "asc" },
   });
