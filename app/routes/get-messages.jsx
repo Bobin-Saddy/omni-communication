@@ -28,33 +28,32 @@ export async function loader({ request }) {
     });
 
     if (session) {
-      chatSessionMessages = await prisma.chatMessage.findMany({
-        where: { conversationId: session.id },
-        orderBy: { createdAt: "asc" },
-        select: {
-          content: true,
-          createdAt: true,
-          sender: true,
-        },
-      });
+chatSessionMessages = await prisma.chatMessage.findMany({
+  where: { conversationId: session.id },
+  orderBy: { createdAt: "asc" },
+  select: {
+    id: true,             // <-- Add this
+    content: true,
+    createdAt: true,
+    sender: true,
+  },
+});
     }
 
     // ---- 2️⃣ WhatsApp messages ----
-    const whatsappMessages = await prisma.customerWhatsAppMessage.findMany({
-      where: {
-        OR: [
-          { to: phoneNumber },
-          { from: phoneNumber },
-        ],
-      },
-      orderBy: { timestamp: "asc" },
-      select: {
-        message: true,
-        timestamp: true,
-        direction: true,
-      },
-    });
-
+  
+const whatsappMessages = await prisma.customerWhatsAppMessage.findMany({
+  where: {
+    OR: [{ to: phoneNumber }, { from: phoneNumber }]
+  },
+  orderBy: { timestamp: "asc" },
+  select: {
+    id: true,              // <-- Add this
+    message: true,
+    timestamp: true,
+    direction: true,
+  }
+});
     // ---- 3️⃣ Format both sources ----
     const formattedWhatsApp = whatsappMessages.map((m) => ({
       content: m.message,
