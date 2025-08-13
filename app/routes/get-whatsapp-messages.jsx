@@ -9,12 +9,13 @@ const phoneNumber = normalize(url.searchParams.get("number"));
 const messages = await prisma.customerWhatsAppMessage.findMany({
   where: {
     OR: [
-      { to: normalize(phoneNumber) },
-      { from: normalize(phoneNumber) }
+      { to: phoneNumber },
+      { from: phoneNumber }
     ]
   },
   orderBy: { timestamp: "asc" }
 });
+
 
   return json({ messages });
 }
