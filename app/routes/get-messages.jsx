@@ -6,6 +6,8 @@ const normalize = num => String(num).replace(/\D/g, "");
 export async function loader({ request }) {
   const url = new URL(request.url);
   const phoneNumber = normalize(url.searchParams.get("number"));
+console.log("Incoming raw number:", url.searchParams.get("number"));
+console.log("Normalized number:", phoneNumber);
 
   if (!phoneNumber) {
     return json({ error: "Phone number is required" }, { status: 400 });
