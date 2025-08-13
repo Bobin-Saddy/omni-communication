@@ -3,39 +3,33 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const normalize = num => String(num).replace(/\D/g, ""); // remove all non-digits
+
 export const action = async ({ request }) => {
   try {
     const formData = await request.json();
-    console.log("Received formData:", formData);   // Add this line
+    console.log("Received formData:", formData);
+
     const { to, from, message, direction } = formData;
 
     if (!to || !from || !message || !direction) {
       return json({ error: "Missing fields" }, { status: 400 });
     }
 
-const savedMessage = await prisma.customerWhatsAppMessage.create({
-  data: {
-    to,
-    from,
-    message,
-    direction,
-    timestamp: new Date(),  // Add this line
-  },
-});
+    const savedMessage = await prisma.customerWhatsAppMessage.create({
+      data: {
+        to: normalize(to),
+        from: normalize(from),
+        message,
+        direction,
+        timestamp: new Date(),
+      },
+    });
 
-
-    console.log("Saved message---->:", savedMessage);  // Add this line
-
+    console.log("Saved message---->:", savedMessage);
     return json(savedMessage, { status: 201 });
   } catch (error) {
     console.error("Error saving WhatsApp message:", error);
     return json({ error: "Server error" }, { status: 500 });
   }
 };
-
-
-
-// React component hata dein ya comment kar dein agar ye sirf API route hai
-// export default function SaveWhatsAppMessage() {
-//   return <div>Save WhatsApp Message Route</div>;
-// }
