@@ -267,16 +267,17 @@ const fetchMessages = async (conv) => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-      const backendMessages = (data.messages || []).map((msg) => ({
-        id: msg.id,
-        from: { id: msg.sender || "unknown" },
-        message: msg.content || "",
-    created_time:
-  msg.createdAt ||
-  msg.timestamp ||
-  new Date().toISOString(),
+const backendMessages = (data.messages || []).map((msg, index) => ({
+  id: msg.id || `local-${index}`, // fallback id
+  from: { id: msg.sender || "unknown" },
+  message: msg.content || "",
+  created_time: msg.timestamp
+    ? new Date(msg.timestamp).toISOString()
+    : msg.createdAt
+    ? new Date(msg.createdAt).toISOString()
+    : new Date().toISOString(),
+}));
 
-      }));
 
       setMessages((prevMessages) => {
         const prevConvMessages = prevMessages[conv.id] || [];
