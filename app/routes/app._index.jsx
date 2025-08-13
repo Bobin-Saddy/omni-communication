@@ -22,7 +22,7 @@ export default function SocialChatDashboard() {
 
   const FACEBOOK_APP_ID = "544704651303656";
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPOCZCBcveT93y6zH4RCNHt8h6biLC85YZBZCKAZAd4B6FkiWwN7I796TrcMc7G6b89TNwk5ilzV2MBC36zoluqz3q65UayK3ebXPFQwysEpQLUwZCedMw9Xbf08dgu18TZA5hJj02nVX7iVr8JcpDTM087ow5jZCZBhKXlV3ZACsTZCHpyHupFpZCciD2lzx7OUkBhhfjfiv6xUrWiGWRO2swdrK4rgyODTngZDZD";
+    "EAAHvZAZB8ZCmugBPBXoZBZBjZCo9iIeGinLLOkdC3oKwWdg5OnXd0EeKjHeSueZCIs0Dg0hf7wZA6kefsklIUTZCnDB3ZBZA5yirJSloxClWfVEgWeZCONNKjNH8Xbq6XZCqnHaOZBMXYzlOzZAHxErLuDasv5AZCZBS4U3dyaewR8v8LGVu8ZAcrHPLujO64KzOrwMo74o8W31S6eZCpoPcwCgM3rAgusSA3u8WuTxo2IRY81r1ioqSAZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
@@ -283,11 +283,13 @@ const backendMessages = (data.messages || []).map((msg, index) => ({
         const prevConvMessages = prevMessages[conv.id] || [];
 
         // Filter local messages that backend hasn't returned yet
-        const localMessagesNotInBackend = prevConvMessages.filter(
-          (localMsg) =>
-            localMsg.id?.toString().startsWith("local-") &&
-            !backendMessages.some((bm) => bm.id === localMsg.id)
-        );
+  const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
+  localMsg.id?.startsWith("local-") &&
+  !backendMessages.some(bm =>
+    bm.message.trim() === localMsg.message.trim() &&
+    Math.abs(new Date(bm.created_time) - new Date(localMsg.created_time)) < 5000
+  )
+);
 
         // Combine backend + local pending messages for this conversation only
         return {
