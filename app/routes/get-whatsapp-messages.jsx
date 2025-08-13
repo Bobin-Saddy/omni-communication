@@ -1,33 +1,38 @@
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
 
-const normalize = num => String(num).replace(/\D/g, "");
-
 export async function loader({ request }) {
   const url = new URL(request.url);
   const normalize = num => String(num).replace(/\D/g, "");
   const phoneNumber = normalize(url.searchParams.get("number"));
 
-  // 1. Fetch from customerWhatsAppMessage
-  const waMessages = await prisma.customerWhatsAppMessage.findMany({
+  // WhatsApp table se messages (incoming + outgoing)
+  const whatsappMessages = await prisma.customerWhatsAppMessage.findMany({
     where: {
-      OR: [
-        { to: phoneNumber },
-        { from: phoneNumber }
-      ]
+      OR: [{ to: phoneNumber }, { from: phoneNumber }]
     },
-    orderBy: { timestamp: "asc" }
+    select: {
+      message: true,
+      timestamp: true,
+      from: true,
+      to: true,
+      direction: true,
+    }
   });
 
-  // 2. Fetch from chatMessage (agar use kar rahe ho)
+  // Chat messages table se incoming messages
   const chatMessages = await prisma.chatMessage.findMany({
     where: { conversation: { phone: phoneNumber } },
-    orderBy: { createdAt: "asc" }
+    select: {
+      content: true,
+      createdAt: true,
+      sender: true,
+    }
   });
 
-  // 3. Merge both
+  // Merge and sort
   const messages = [
-    ...waMessages.map(m => ({
+    ...whatsappMessages.map(m => ({
       message: m.message,
       timestamp: m.timestamp,
       sender: m.direction === "incoming" ? "user" : "me"
@@ -37,8 +42,7 @@ export async function loader({ request }) {
       timestamp: m.createdAt,
       sender: m.sender
     }))
-  ].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  ].sort((a, b) => a.timestamp - b.timestamp);
 
   return json({ messages });
 }
-
