@@ -1,14 +1,38 @@
-// server.js (or app.server.js)
 import express from "express";
-import bodyParser from "body-parser";
-import chatRoutes from "./admin.chat";
+import { PrismaClient } from "@prisma/client";
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
 
-app.use("/admin/chat", chatRoutes);
+// 📌 WhatsApp webhook route here...
 
-app.get("/", (req, res) => res.send(`OK: ${process.env.APP_NAME || "omni-communication"}`));
+// 📌 Add the /get-messages route here
+app.get("/get-messages", async (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ error: "Phone number is required" });
+    }
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server on ${port}`));
+    const session = await PrismaClient.chatSession.findUnique({
+      where: { phone },
+      select: { id: true }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: "No chat session found for this phone number" });
+    }
+
+    const messages = await PrismaClient.chatMessage.findMany({
+      where: { conversationId: session.id },
+      orderBy: { createdAt: "asc" }
+    });
+
+    res.json(messages);
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
