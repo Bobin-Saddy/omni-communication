@@ -542,21 +542,22 @@ const sendWhatsAppMessage = async () => {
       setSendingMessage(false);
     }
   };
+// When fetching messages
 const fetchWidgetUserMessages = async (user) => {
   try {
-    // Fetch all messages for this user
     const res = await fetch(`/admin/chat/list?userId=${user.id}`);
     const data = await res.json();
 
-    // Assuming data.messages contains an array of messages
+    // Use user.id as string key
     setMessages((prev) => ({
       ...prev,
-      [user.id]: data.messages,
+      [String(user.id)]: data.messages,
     }));
   } catch (err) {
     console.error("Failed to fetch widget user messages:", err);
   }
 };
+
 
 
 return (
@@ -745,33 +746,33 @@ return (
             Chat
           </div>
 
-          <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
-            {selectedConversation ? (
-              (messages[selectedConversation.id] || []).map((msg) => {
-                const isMe = msg.from === "me";
-                return (
-                  <div key={msg.id} style={{ display: "flex", flexDirection: "column", marginBottom: 8 }}>
-                    <div style={{
-                      alignSelf: isMe ? "flex-end" : "flex-start",
-                      backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                      padding: "10px 15px",
-                      borderRadius: 15,
-                      maxWidth: "70%",
-                    }}>
-                      <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
-                      <div>{msg.message}</div>
-                      <small style={{ fontSize: 10, color: "#666" }}>
-                        {new Date(msg.created_time).toLocaleString()}
-                      </small>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div style={{ padding: 12, color: "#888" }}>Select a conversation to start chatting.</div>
-            )}
-            <div ref={messagesEndRef} />
+<div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
+  {selectedConversation ? (
+    (messages[String(selectedConversation.id)] || []).map((msg) => {
+      const isMe = msg.from === "me";
+      return (
+        <div key={msg.id} style={{ display: "flex", flexDirection: "column", marginBottom: 8 }}>
+          <div style={{
+            alignSelf: isMe ? "flex-end" : "flex-start",
+            backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+            padding: "10px 15px",
+            borderRadius: 15,
+            maxWidth: "70%",
+          }}>
+            <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+            <div>{msg.message}</div>
+            <small style={{ fontSize: 10, color: "#666" }}>
+              {new Date(msg.created_time).toLocaleString()}
+            </small>
           </div>
+        </div>
+      );
+    })
+  ) : (
+    <div style={{ padding: 12, color: "#888" }}>Select a conversation to start chatting.</div>
+  )}
+  <div ref={messagesEndRef} />
+</div>
 
           {selectedConversation && (
             <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
