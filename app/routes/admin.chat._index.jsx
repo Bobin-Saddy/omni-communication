@@ -5,33 +5,26 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export async function loader({ request }) {
-  // Get the current store from the Referer header (Shopify passes this when embedded in admin)
-  const referer = request.headers.get("Referer") || "";
-  let storeName = "";
+  // 🔹 Get the store identifier from the URL (e.g., seo-partner)
+  const url = new URL(request.url);
+  const pathnameParts = url.pathname.split("/");
+  const storeDomain = pathnameParts[2]; // "seo-partner" from /store/seo-partner/apps/...
 
-  // Match /store/<storeName>/ inside the Shopify admin URL
-  const match = referer.match(/\/store\/([^/]+)/);
-  if (match) {
-    storeName = match[1]; // e.g. "seo-partner"
-  }
+  // 🔹 Fetch only sessions for this store
+  const sessions = await prisma.storeChatSession.findMany({
+    where: { storeDomain },
+    orderBy: { lastSeenAt: "desc" },
+  });
 
-  let sessions = [];
-  if (storeName) {
-    sessions = await prisma.storeChatSession.findMany({
-      where: { storeDomain: storeName },
-      orderBy: { lastSeenAt: "desc" },
-    });
-  }
-
-  return json({ sessions, storeName });
+  return json({ sessions, storeDomain });
 }
 
 export default function ChatList() {
-  const { sessions, storeName } = useLoaderData();
+  const { sessions, storeDomain } = useLoaderData();
 
   return (
     <div>
-      <h1>Chat Sessions for {storeName || "Unknown Store"}</h1>
+      <h1>Chat Sessions for {storeDomain}</h1>
       {sessions.length === 0 ? (
         <p>No chat sessions found for this store.</p>
       ) : (
