@@ -7,18 +7,27 @@ const prisma = new PrismaClient();
 function getCorsHeaders(request) {
   const origin = request.headers.get("Origin") || "";
 
-  if (origin.endsWith(".myshopify.com")) {
+  // Allow all *.myshopify.com domains
+  if (origin && origin.endsWith(".myshopify.com")) {
     return {
-      "Access-Control-Allow-Origin": origin, // allow that specific shop
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Credentials": "true", // if using cookies/sessions
     };
   }
 
-  // ❌ default: block if not Shopify
-  return {
-    "Access-Control-Allow-Origin": "null",
-  };
+  // For development: allow localhost too
+  if (origin.includes("localhost")) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    };
+  }
+
+  // Block everything else
+  return {};
 }
 
 // ✅ Helper to normalize Shopify domains
