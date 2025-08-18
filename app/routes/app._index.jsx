@@ -592,194 +592,151 @@ const sendWhatsAppMessage = async () => {
 
         <div style={{ display: "flex", height: 650, border: "1px solid #ccc", borderRadius: 8, overflow: "hidden" }}>
           {/* Pages Sidebar */}
-          <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
-              Pages
-            </div>
+{/* Pages Sidebar */}
+<div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+  <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
+    Pages
+  </div>
 
-            {[...fbPages, ...igPages].map((page) => (
-              <div
-                key={page.id}
-                onClick={() => fetchConversations(page)}
-                style={{
-                  padding: 12,
-                  cursor: "pointer",
-                  backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                {page.name} <small style={{ color: "#888" }}>({page.type})</small>
-              </div>
-            ))}
+  {[...fbPages, ...igPages].map((page) => (
+    <div
+      key={page.id}
+      onClick={() => fetchConversations(page)}
+      style={{
+        padding: 12,
+        cursor: "pointer",
+        backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white",
+        borderBottom: "1px solid #eee",
+      }}
+    >
+      {page.name} <small style={{ color: "#888" }}>({page.type})</small>
+    </div>
+  ))}
 
-            {waConnected && (
-              <div
-                onClick={handleWhatsAppConnect}
-                style={{
-                  padding: 12,
-                  cursor: "pointer",
-                  backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                WhatsApp
-              </div>
-            )}
+  {waConnected && (
+    <div
+      onClick={() => fetchConversations({ type: "whatsapp" })}
+      style={{
+        padding: 12,
+        cursor: "pointer",
+        backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
+        borderBottom: "1px solid #eee",
+      }}
+    >
+      WhatsApp
+    </div>
+  )}
 
-            {/* Shopify Pages */}
-            {shopifySessions.length > 0 && (
-              <>
-                <div
-                  style={{
-                    padding: 12,
-                    borderBottom: "1px solid #ddd",
-                    background: "#f7f7f7",
-                    fontWeight: "600",
-                    marginTop: 10,
-                  }}
-                >
-                  Shopify
-                </div>
-                {shopifySessions.map((s) => (
-                  <div
-                    key={s.sessionId}
-                    onClick={() => openShopifyConversation(s)}
-                    style={{
-                      padding: 12,
-                      cursor: "pointer",
-                      backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
-                      borderBottom: "1px solid #eee",
-                    }}
-                  >
-                    👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
+  {shopifySessions.length > 0 && (
+    <>
+      <div
+        style={{
+          padding: 12,
+          borderBottom: "1px solid #ddd",
+          background: "#f7f7f7",
+          fontWeight: "600",
+          marginTop: 10,
+        }}
+      >
+        Shopify
+      </div>
+      {shopifySessions.map((s) => (
+        <div
+          key={s.sessionId}
+          onClick={() => fetchConversations({ ...s, type: "shopify" })}
+          style={{
+            padding: 12,
+            cursor: "pointer",
+            backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
+            borderBottom: "1px solid #eee",
+          }}
+        >
+          👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
+        </div>
+      ))}
+    </>
+  )}
+</div>
 
-          {/* Conversations List */}
-          <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
-              Conversations
-            </div>
+{/* Conversations List */}
+<div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+  <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
+    Conversations
+  </div>
 
-            {loadingPages && <div style={{ padding: 12 }}>Loading...</div>}
+  {(!selectedPage || conversations.length === 0) && (
+    <div style={{ padding: 12 }}>Select a page to see conversations.</div>
+  )}
 
-            {(conversations.length === 0) && <div style={{ padding: 12 }}>No conversations available.</div>}
+  {conversations.map((conv) => {
+    let name = conv.userName || conv.sessionId || "User";
+    return (
+      <div
+        key={conv.id || conv.sessionId}
+        onClick={() => fetchMessages(conv)}
+        style={{
+          padding: 12,
+          cursor: "pointer",
+          backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        {name}
+      </div>
+    );
+  })}
+</div>
 
-            {conversations.map((conv) => {
-              let name;
-              if (selectedPage?.type === "shopify") {
-                name = conv.userName || conv.sessionId || "Shopify User";
-              } else if (selectedPage?.type === "instagram") {
-                name = `${conv.businessName} ↔️ ${conv.userName}`;
-              } else if (selectedPage?.type === "whatsapp") {
-                name =
-                  conv.userName ||
-                  conv.profile?.name ||
-                  conv.contacts?.[0]?.profile?.name ||
-                  conv.contacts?.[0]?.wa_id ||
-                  conv.wa_id ||
-                  "WhatsApp User";
-              } else {
-                name =
-                  conv.participants?.data
-                    ?.filter((p) => p.name !== selectedPage.name)
-                    .map((p) => p.name)
-                    .join(", ") || "User";
-              }
+{/* Chat Box */}
+<div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+  <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
+    Chat
+  </div>
 
-              return (
-                <div
-                  key={conv.id || conv.sessionId}
-                  onClick={() => {
-                    selectedPage?.type === "shopify"
-                      ? openShopifyConversation(conv)
-                      : fetchMessages(conv);
-                  }}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {name}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Chat Area */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
-              Chat
-            </div>
-
-            <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
-              {(messages[selectedConversation?.id || selectedConversation?.sessionId] || []).map((msg) => {
-                const isMe =
-                  selectedPage?.type === "shopify"
-                    ? msg.displayName === "You"
-                    : msg.from === "me";
-
-                return (
-                  <div key={msg.id} style={{ display: "flex", flexDirection: "column", marginBottom: 8 }}>
-                    <div
-                      style={{
-                        alignSelf: isMe ? "flex-end" : "flex-start",
-                        backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                        color: "#333",
-                        padding: "10px 15px",
-                        borderRadius: 15,
-                        maxWidth: "70%",
-                        wordBreak: "break-word",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                      }}
-                    >
-                      <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
-                      <div>{msg.message}</div>
-                      <small style={{ fontSize: 10, color: "#666" }}>
-                        {new Date(msg.created_time).toLocaleString()}
-                      </small>
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message"
-                style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    selectedPage?.type === "shopify" ? sendShopifyMessage() : sendMessage();
-                  }
-                }}
-              />
-              <button
-                onClick={() => (selectedPage?.type === "shopify" ? sendShopifyMessage() : sendMessage())}
-                style={{
-                  marginLeft: 10,
-                  padding: "10px 20px",
-                  backgroundColor: "#007bff",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 5,
-                  cursor: "pointer",
-                }}
-              >
-                Send
-              </button>
+  <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
+    {selectedConversation ? (
+      (messages[selectedConversation?.id || selectedConversation?.sessionId] || []).map((msg) => {
+        const isMe = msg.from === "me";
+        return (
+          <div key={msg.id} style={{ display: "flex", flexDirection: "column", marginBottom: 8 }}>
+            <div style={{
+              alignSelf: isMe ? "flex-end" : "flex-start",
+              backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+              padding: "10px 15px",
+              borderRadius: 15,
+              maxWidth: "70%",
+            }}>
+              <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+              <div>{msg.message}</div>
+              <small style={{ fontSize: 10, color: "#666" }}>
+                {new Date(msg.created_time).toLocaleString()}
+              </small>
             </div>
           </div>
+        );
+      })
+    ) : (
+      <div style={{ padding: 12, color: "#888" }}>Select a conversation to start chatting.</div>
+    )}
+    <div ref={messagesEndRef} />
+  </div>
+
+  {selectedConversation && (
+    <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
+      <input
+        type="text"
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+        placeholder="Type a message"
+        style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+        onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
+      />
+      <button onClick={sendMessage} style={{ marginLeft: 10, padding: "10px 20px", backgroundColor: "#007bff", color: "#fff", border: "none", borderRadius: 5 }}>Send</button>
+    </div>
+  )}
+
+        </div>
+
         </div>
       </div>
 
