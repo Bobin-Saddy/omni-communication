@@ -6,543 +6,85 @@ export default function SocialChatDashboard() {
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
   const [waConnected, setWaConnected] = useState(false);
+  const [loadingPages, setLoadingPages] = useState(false);
+
   const [selectedPage, setSelectedPage] = useState(null);
-  const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState({});
   const [newMessage, setNewMessage] = useState("");
-  const [shopifySessions, setShopifySessions] = useState([]);
-  const [showShopifyWidget, setShowShopifyWidget] = useState(false);
-  const [loadingShopify, setLoadingShopify] = useState(false);
-
-  // Loading states
-  const [loadingPages, setLoadingPages] = useState(false);
-  const [loadingConversations, setLoadingConversations] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+
+  // Shopify
+  const [shopifySessions, setShopifySessions] = useState([]);
+  const [loadingShopify, setLoadingShopify] = useState(false);
+  const [showShopifyWidget, setShowShopifyWidget] = useState(false);
 
   const messagesEndRef = useRef(null);
 
-  const FACEBOOK_APP_ID = "544704651303656";
-  const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPBXoZBZBjZCo9iIeGinLLOkdC3oKwWdg5OnXd0EeKjHeSueZCIs0Dg0hf7wZA6kefsklIUTZCnDB3ZBZA5yirJSloxClWfVEgWeZCONNKjNH8Xbq6XZCqnHaOZBMXYzlOzZAHxErLuDasv5AZCZBS4U3dyaewR8v8LGVu8ZAcrHPLujO64KzOrwMo74o8W31S6eZCpoPcwCgM3rAgusSA3u8WuTxo2IRY81r1ioqSAZDZD";
-  const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
-  const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
-
-  // Initialize Facebook SDK
   useEffect(() => {
-    window.fbAsyncInit = function () {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: true,
-        version: "v18.0",
-      });
-    };
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, selectedConversation]);
 
-    if (!document.getElementById("facebook-jssdk")) {
-      const js = document.createElement("script");
-      js.id = "facebook-jssdk";
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      document.body.appendChild(js);
-    }
-  }, []);
+  // === Dummy Handlers for FB, IG, WA ===
+  const handleFacebookLogin = async () => { setFbConnected(true); /* Fetch pages */ };
+  const handleInstagramLogin = async () => { setIgConnected(true); /* Fetch pages */ };
+  const handleWhatsAppConnect = async () => { setWaConnected(true); /* Fetch WA sessions */ };
 
-  // Scroll chat to bottom when messages update
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-  
-    useEffect(() => {
-    const interval = setInterval(fetchShopifySessions, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-
-  const resetFbData = () => {
-    setFbPages([]);
-    setFbConnected(false);
-    if (selectedPage?.type === "facebook") {
-      setSelectedPage(null);
-      setConversations([]);
-      setMessages([]);
-    }
-  };
-const fetchShopifySessions = async () => {
-    setLoadingShopify(true);
-    try {
-      const url = new URL(window.location.href);
-      const shop = url.searchParams.get("shop");
-      if (!shop) return;
-
-      const res = await fetch(`/admin/chat/list?shop=${shop}`);
-      const data = await res.json();
-      setShopifySessions(data.sessions || []);
-    } catch (err) {
-      console.error("Error fetching Shopify sessions:", err);
-    } finally {
-      setLoadingShopify(false);
-    }
+  const fetchConversations = (page) => {
+    setSelectedPage(page);
+    setConversations([
+      // Replace with actual API response
+      { id: "1", participants: { data: [{ name: "User 1" }] } },
+      { id: "2", participants: { data: [{ name: "User 2" }] } },
+    ]);
+    setSelectedConversation(null);
   };
 
-  /** Open Shopify conversation in dashboard */
-  const openShopifyConversation = async (session) => {
-    setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
+  const fetchMessages = (conv) => {
+    setSelectedConversation(conv);
+    setMessages((prev) => ({
+      ...prev,
+      [conv.id]: [
+        { id: "m1", message: "Hello", created_time: Date.now(), from: "me" },
+        { id: "m2", message: "Hi there", created_time: Date.now(), from: "user" },
+      ],
+    }));
+  };
+
+  // === Shopify handlers ===
+  const openShopifyConversation = (session) => {
+    setSelectedPage({ ...session, type: "shopify" });
     setSelectedConversation(session);
 
-    try {
-      const res = await fetch(`/admin/chat/messages?sessionId=${session.sessionId}`);
-      const data = await res.json();
-      setMessages({ [session.sessionId]: data.messages || [] });
-    } catch (err) {
-      console.error("Error fetching session messages:", err);
-    }
-  };
-
-  /** Send message for Shopify session */
-  const sendShopifyMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
-    try {
-      const sessionId = selectedConversation.sessionId;
-      await fetch("/admin/chat/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: newMessage }),
-      });
-
-      const localMsg = {
-        id: "local-" + Date.now(),
-        displayName: "You",
-        message: newMessage,
-        created_time: new Date().toISOString(),
-      };
-
-      setMessages((prev) => ({
-        ...prev,
-        [sessionId]: [...(prev[sessionId] || []), localMsg],
-      }));
-
-      setNewMessage("");
-    } catch (err) {
-      console.error("Failed to send Shopify message", err);
-    }
-  };
-  const resetIgData = () => {
-    setIgPages([]);
-    setIgConnected(false);
-    if (selectedPage?.type === "instagram") {
-      setSelectedPage(null);
-      setConversations([]);
-      setMessages([]);
-    }
-  };
-
-  const handleFacebookLogin = () => {
-    window.FB.login(
-      (res) => {
-        if (res.authResponse) {
-          resetIgData();
-          fetchFacebookPages(res.authResponse.accessToken);
-        }
-      },
-      {
-        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
-      }
-    );
-  };
-
-  const handleInstagramLogin = () => {
-    window.FB.login(
-      (res) => {
-        if (res.authResponse) {
-          resetFbData();
-          fetchInstagramPages(res.authResponse.accessToken);
-        }
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
-    );
-  };
-
-  const handleWhatsAppConnect = async () => {
-    setWaConnected(true);
-    setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
-
-    try {
-      const res = await fetch("/get-whatsapp-users");
-      const users = await res.json(); // [{ number: "919876543210", name: "John" }, ...]
-
-      const convs = users.map((u, index) => ({
-        id: `wa-${index}`,
-        userName: u.name || u.number,
-        businessName: "You",
-        userNumber: u.number,
-      }));
-
-      setConversations(convs);
-      setMessages([]);
-      setSelectedConversation(null);
-    } catch (error) {
-      alert("Failed to fetch WhatsApp users.");
-      console.error(error);
-    }
-  };
-
-  const fetchFacebookPages = async (accessToken) => {
-    setLoadingPages(true);
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
-      );
-      const data = await res.json();
-
-      if (!Array.isArray(data?.data) || data.data.length === 0) {
-        alert("No Facebook pages found.");
-        setLoadingPages(false);
-        return;
-      }
-
-      const tokens = {};
-      const pages = data.data.map((page) => {
-        tokens[page.id] = page.access_token;
-        return { ...page, type: "facebook" };
-      });
-
-      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-      setFbPages(pages);
-      setFbConnected(true);
-      setSelectedPage(pages[0]);
-      await fetchConversations(pages[0]);
-    } catch (error) {
-      alert("Error fetching Facebook pages.");
-      console.error(error);
-    } finally {
-      setLoadingPages(false);
-    }
-  };
-
-  const fetchInstagramPages = async (accessToken) => {
-    setLoadingPages(true);
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
-      );
-      const data = await res.json();
-
-      if (!Array.isArray(data?.data)) {
-        alert("Instagram account response is invalid.");
-        setLoadingPages(false);
-        return;
-      }
-
-      const igPages = data.data.filter((p) => p.instagram_business_account);
-      if (igPages.length === 0) {
-        alert("No Instagram business accounts found.");
-        setLoadingPages(false);
-        return;
-      }
-
-      const tokens = {};
-      const enriched = igPages.map((page) => {
-        tokens[page.id] = page.access_token;
-        return {
-          ...page,
-          type: "instagram",
-          igId: page.instagram_business_account.id,
-        };
-      });
-
-      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-      setIgPages(enriched);
-      setIgConnected(true);
-      setSelectedPage(enriched[0]);
-      setConversations([]);
-    } catch (error) {
-      alert("Error fetching Instagram pages.");
-      console.error(error);
-    } finally {
-      setLoadingPages(false);
-    }
-  };
-
-  const fetchConversations = async (page) => {
-    setLoadingConversations(true);
-    try {
-      const token = pageAccessTokens[page.id];
-      setSelectedPage(page);
-      setSelectedConversation(null);
-      setMessages([]);
-
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      const urlWithPlatform =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : url;
-
-      const res = await fetch(urlWithPlatform);
-      const data = await res.json();
-
-      if (page.type === "instagram") {
-        const enriched = await Promise.all(
-          (data.data || []).map(async (conv) => {
-            const msgRes = await fetch(
-              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
-            );
-            const msgData = await msgRes.json();
-            const messages = msgData?.data || [];
-            const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-            let userName = "Instagram User";
-            if (otherMsg) {
-              userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-            }
-
-            return {
-              ...conv,
-              userName,
-              businessName: page.name,
-            };
-          })
-        );
-        setConversations(enriched);
-      } else {
-        setConversations(data.data || []);
-      }
-    } catch (error) {
-      alert("Error fetching conversations.");
-      console.error(error);
-    } finally {
-      setLoadingConversations(false);
-    }
-  };
-
-const fetchMessages = async (conv) => {
-  if (!selectedPage) return;
-
-  setSelectedConversation(conv);
-
-  if (selectedPage.type === "whatsapp") {
-    if (!conv.userNumber) {
-      console.error("WhatsApp conversation missing userNumber");
-      return;
-    }
-    try {
-      const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-
-const backendMessages = (data.messages || []).map((msg, index) => ({
-  id: msg.id || `local-${index}`, // fallback id
-  from: { id: msg.sender || "unknown" },
-  message: msg.content || "",
-  created_time: msg.timestamp
-    ? new Date(msg.timestamp).toISOString()
-    : msg.createdAt
-    ? new Date(msg.createdAt).toISOString()
-    : new Date().toISOString(),
-}));
-
-
-      setMessages((prevMessages) => {
-        const prevConvMessages = prevMessages[conv.id] || [];
-
-        // Filter local messages that backend hasn't returned yet
-const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
-  (localMsg.id && typeof localMsg.id === "string" && localMsg.id.startsWith("local-")) &&
-  !backendMessages.some(bm =>
-    bm.message?.trim() === localMsg.message?.trim() &&
-    Math.abs(new Date(bm.created_time) - new Date(localMsg.created_time)) < 5000
-  )
-);
-
-
-        // Combine backend + local pending messages for this conversation only
-        return {
-          ...prevMessages,
-          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
-        };
-      });
-    } catch (err) {
-      console.error("Error fetching WhatsApp messages", err);
-      alert("Failed to fetch WhatsApp messages.");
-    }
-    return;
-  }
-
-  // Facebook & Instagram messages
-  try {
-    const token = pageAccessTokens[selectedPage.id];
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-    );
-    const data = await res.json();
-    const rawMessages = data?.data?.reverse() || [];
-
-    const enrichedMessages = rawMessages.map((msg) => {
-      let displayName = "User";
-
-      if (selectedPage.type === "instagram") {
-        if (msg.from?.id === selectedPage.igId) {
-          displayName = selectedPage.name;
-        } else {
-          displayName =
-            conv.userName ||
-            msg.from?.name ||
-            msg.from?.username ||
-            `Instagram User #${msg.from?.id?.slice(-4)}`;
-        }
-      } else {
-        if (msg.from?.name === selectedPage.name) {
-          displayName = selectedPage.name;
-        } else {
-          displayName = msg.from?.name || "User";
-        }
-      }
-
-      return {
-        ...msg,
-        displayName,
-      };
-    });
-
-    setMessages((prevMessages) => ({
-      ...prevMessages,
-      [conv.id]: enrichedMessages,
+    setMessages((prev) => ({
+      ...prev,
+      [session.sessionId]: [
+        { id: "s1", message: "Hello from Shopify user", created_time: Date.now(), displayName: session.sessionId },
+      ],
     }));
-  } catch (error) {
-    alert("Error fetching messages.");
-    console.error(error);
-  }
-};
-
-
-const sendWhatsAppMessage = async () => {
-  if (!selectedConversation?.userNumber) return alert("Select a WhatsApp user first");
-
-  setSendingMessage(true);
-  try {
-    const payload = {
-      messaging_product: "whatsapp",
-      to: selectedConversation.userNumber,
-      type: "text",
-      text: { body: newMessage },
-    };
-
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await res.json();
-    console.log("WhatsApp send response", data);
-
-    // Save message in your DB backend
-    await fetch("/save-whatsapp-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: selectedConversation.userNumber,
-        from: WHATSAPP_PHONE_NUMBER_ID,
-        message: newMessage,
-        direction: "outgoing",
-      }),
-    });
-
-    // Add local message immediately only for current conversation
-    const localMsg = {
-      id: "local-" + Date.now().toString(),
-      displayName: "You",
-      message: newMessage,
-      created_time: new Date().toISOString(),
-      from: { id: "me" },
-    };
-
-    setMessages((prev) => {
-      const prevConvMessages = prev[selectedConversation.id] || [];
-      return {
-        ...prev,
-        [selectedConversation.id]: [...prevConvMessages, localMsg],
-      };
-    });
-
-    setNewMessage("");
-
-    // Refresh messages for the current conversation
-    await fetchMessages(selectedConversation);
-  } catch (error) {
-    alert("Failed to send WhatsApp message.");
-    console.error(error);
-  } finally {
-    setSendingMessage(false);
-  }
-};
+  };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedPage || !selectedConversation || sendingMessage) return;
-
-    if (selectedPage.type === "whatsapp") {
-      await sendWhatsAppMessage();
-      return;
-    }
-
+    if (!newMessage.trim() || !selectedConversation) return;
     setSendingMessage(true);
-    try {
-      const token = pageAccessTokens[selectedPage.id];
 
-      if (selectedPage.type === "instagram") {
-        const msgRes = await fetch(
-          `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
-        );
-        const msgData = await msgRes.json();
-        const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-        if (!sender) return alert("Recipient not found");
-
-        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messaging_product: "instagram",
-            recipient: { id: sender.from.id },
-            message: { text: newMessage },
-          }),
-        });
-      } else {
-        const participants = selectedConversation.participants?.data || [];
-        const recipient = participants.find((p) => p.name !== selectedPage.name);
-        if (!recipient) return alert("Recipient not found");
-
-        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipient: { id: recipient.id },
-            message: { text: newMessage },
-            messaging_type: "MESSAGE_TAG",
-            tag: "ACCOUNT_UPDATE",
-          }),
-        });
-      }
-
-      setNewMessage("");
-      await fetchMessages(selectedConversation);
-    } catch (error) {
-      alert("Failed to send message.");
-      console.error(error);
-    } finally {
-      setSendingMessage(false);
-    }
+    // Dummy sending
+    const convId = selectedConversation.id || selectedConversation.sessionId;
+    setMessages((prev) => ({
+      ...prev,
+      [convId]: [
+        ...(prev[convId] || []),
+        { id: Date.now().toString(), message: newMessage, created_time: Date.now(), from: "me" },
+      ],
+    }));
+    setNewMessage("");
+    setSendingMessage(false);
   };
 
+  const sendShopifyMessage = async () => {
+    await sendMessage(); // For demo, same as normal send
+  };
 
   return (
     <div
