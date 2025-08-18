@@ -4,17 +4,34 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function loader({ request }) {
-  // 🔹 Get the store identifier from the URL (e.g., seo-partner)
-  const url = new URL(request.url);
-  const pathnameParts = url.pathname.split("/");
-  const storeDomain = pathnameParts[2]; // "seo-partner" from /store/seo-partner/apps/...
+function extractStoreName(request) {
+  const referer = request.headers.get("Referer") || "";
 
-  // 🔹 Fetch only sessions for this store
-  const sessions = await prisma.storeChatSession.findMany({
-    where: { storeDomain },
-    orderBy: { lastSeenAt: "desc" },
-  });
+  // case: admin.shopify.com/store/seo-partner/...
+  const match = referer.match(/\/store\/([^/]+)/);
+  if (match) {
+    return match[1]; // "seo-partner"
+  }
+
+  // case: seo-partner.myshopify.com
+  try {
+    const url = new URL(referer);
+    return url.hostname.split(".")[0]; // "seo-partner"
+  } catch {
+    return null;
+  }
+}
+
+export async function loader({ request }) {
+  const storeDomain = extractStoreName(request);
+
+  let sessions = [];
+  if (storeDomain) {
+    sessions = await prisma.storeChatSession.findMany({
+      where: { storeDomain },
+      orderBy: { lastSeenAt: "desc" },
+    });
+  }
 
   return json({ sessions, storeDomain });
 }
@@ -24,7 +41,7 @@ export default function ChatList() {
 
   return (
     <div>
-      <h1>Chat Sessions for {storeDomain}</h1>
+      <h1>Chat Sessions for {storeDomain || "Unknown Store"}</h1>
       {sessions.length === 0 ? (
         <p>No chat sessions found for this store.</p>
       ) : (
