@@ -25,8 +25,7 @@ export default function SocialChatDashboard() {
     "EAAHvZAZB8ZCmugBPBXoZBZBjZCo9iIeGinLLOkdC3oKwWdg5OnXd0EeKjHeSueZCIs0Dg0hf7wZA6kefsklIUTZCnDB3ZBZA5yirJSloxClWfVEgWeZCONNKjNH8Xbq6XZCqnHaOZBMXYzlOzZAHxErLuDasv5AZCZBS4U3dyaewR8v8LGVu8ZAcrHPLujO64KzOrwMo74o8W31S6eZCpoPcwCgM3rAgusSA3u8WuTxo2IRY81r1ioqSAZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
-  const data = useLoaderData() || { sessions: [] };  // ✅ safe fallback
-  const [sessions, setSessions] = useState(data.sessions);
+
   // Initialize Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
@@ -476,23 +475,7 @@ const sendWhatsAppMessage = async () => {
       setSendingMessage(false);
     }
   };
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const url = new URL(window.location.href);
-        const shop = url.searchParams.get("shop");
-        if (!shop) return;
 
-        const res = await fetch(`/admin/chat/list?shop=${shop}`);
-        const data = await res.json();
-        setSessions(data.sessions || []);
-      } catch (err) {
-        console.error("Polling error", err);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
   return (
     <div
       className="social-chat-dashboard"
