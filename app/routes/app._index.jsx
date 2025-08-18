@@ -30,19 +30,7 @@ export default function SocialChatDashboard() {
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
   // Initialize Facebook SDK
-  const fetchWidgetUserMessages = async (user) => {
-  try {
-    const res = await fetch(`/admin/chat/list?userId=${user.id}`);
-    const data = await res.json();
 
-    setMessages((prev) => ({
-      ...prev,
-      [String(user.id)]: data.messages || [],
-    }));
-  } catch (err) {
-    console.error("Failed to fetch widget user messages:", err);
-  }
-};
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -99,7 +87,19 @@ const fetchShopifySessions = async () => {
       setLoadingShopify(false);
     }
   };
+  const fetchWidgetUserMessages = async (user) => {
+  try {
+    const res = await fetch(`/admin/chat/list?userId=${user.id}`);
+    const data = await res.json();
 
+    setMessages((prev) => ({
+      ...prev,
+      [String(user.id)]: data.messages || [],
+    }));
+  } catch (err) {
+    console.error("Failed to fetch widget user messages:", err);
+  }
+};
   /** Open Shopify conversation in dashboard */
   const openShopifyConversation = async (session) => {
     setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
