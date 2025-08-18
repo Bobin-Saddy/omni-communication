@@ -72,21 +72,31 @@ export default function SocialChatDashboard() {
     }
   };
 const fetchShopifySessions = async () => {
-    setLoadingShopify(true);
-    try {
-      const url = new URL(window.location.href);
-      const shop = url.searchParams.get("shop");
-      if (!shop) return;
+  setLoadingShopify(true);
+  try {
+    const url = new URL(window.location.href);
+    const shop = url.searchParams.get("shop");
+    if (!shop) return;
 
-      const res = await fetch(`/admin/chat/list?shop=${shop}`);
-      const data = await res.json();
-      setShopifySessions(data.sessions || []);
-    } catch (err) {
-      console.error("Error fetching Shopify sessions:", err);
-    } finally {
-      setLoadingShopify(false);
+    const res = await fetch(`/admin/chat/list?shop=${shop}`);
+
+    // Check if the response is JSON
+    const contentType = res.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      const text = await res.text();
+      console.error("Expected JSON but got:", text);
+      return;
     }
-  };
+
+    const data = await res.json();
+    setShopifySessions(data.sessions || []);
+  } catch (err) {
+    console.error("Error fetching Shopify sessions:", err);
+  } finally {
+    setLoadingShopify(false);
+  }
+};
+
   const fetchWidgetUserMessages = async (user) => {
   try {
     const res = await fetch(`/admin/chat/list?userId=${user.id}`);
@@ -101,18 +111,30 @@ const fetchShopifySessions = async () => {
   }
 };
   /** Open Shopify conversation in dashboard */
-  const openShopifyConversation = async (session) => {
-    setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
-    setSelectedConversation(session);
+const openShopifyConversation = async (session) => {
+  setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
+  setSelectedConversation(session);
 
-    try {
-      const res = await fetch(`/admin/chat/list?sessionId=${session.sessionId}`);
-      const data = await res.json();
-      setMessages({ [session.sessionId]: data.messages || [] });
-    } catch (err) {
-      console.error("Error fetching session messages:", err);
+  try {
+    // Correct endpoint for fetching messages
+    const res = await fetch(`/admin/chat/messages?sessionId=${session.sessionId}`);
+    
+    // Optional: check content-type
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const contentType = res.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      const text = await res.text();
+      console.error("Expected JSON but got:", text);
+      return;
     }
-  };
+
+    const data = await res.json();
+    setMessages({ [session.sessionId]: data.messages || [] });
+  } catch (err) {
+    console.error("Error fetching session messages:", err);
+  }
+};
+
 
   /** Send message for Shopify session */
   const sendShopifyMessage = async () => {
