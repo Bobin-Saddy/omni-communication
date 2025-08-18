@@ -21,6 +21,12 @@ function getCorsHeaders(request) {
   };
 }
 
+// ✅ Helper to normalize Shopify domains
+function normalizeStoreDomain(domain) {
+  if (!domain) return "";
+  return domain.replace(".myshopify.com", "").trim();
+}
+
 // ---------------- Loader ----------------
 export async function loader({ request }) {
   const corsHeaders = getCorsHeaders(request);
@@ -92,4 +98,3 @@ export async function action({ request }) {
 
   return json({ ok: true }, { headers: corsHeaders });
 }
-
