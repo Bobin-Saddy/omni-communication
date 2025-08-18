@@ -30,6 +30,19 @@ export default function SocialChatDashboard() {
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
   // Initialize Facebook SDK
+  const fetchWidgetUserMessages = async (user) => {
+  try {
+    const res = await fetch(`/admin/chat/list?userId=${user.id}`);
+    const data = await res.json();
+
+    setMessages((prev) => ({
+      ...prev,
+      [String(user.id)]: data.messages || [],
+    }));
+  } catch (err) {
+    console.error("Failed to fetch widget user messages:", err);
+  }
+};
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -543,21 +556,8 @@ const sendWhatsAppMessage = async () => {
     }
   };
 // When fetching messages
-const fetchWidgetUserMessages = async (user) => {
-  try {
-    const res = await fetch(`/admin/chat/list?userId=${user.id}`);
-    const data = await res.json();
 
-    // always use string key for consistency
-    setMessages((prev) => ({
-      ...prev,
-      [String(user.id)]: data.messages || [],
-    }));
-    console.log('user-message--->', data.message);
-  } catch (err) {
-    console.error("Failed to fetch widget user messages:", err);
-  }
-};
+
 
 
 
@@ -611,7 +611,6 @@ return (
 
       {/* Main Grid */}
       <div style={{ display: "flex", height: 650, border: "1px solid #ccc", borderRadius: 8, overflow: "hidden" }}>
-
         {/* Pages Sidebar */}
         <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
           <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
@@ -664,7 +663,7 @@ return (
               {shopifySessions.map((s) => (
                 <div
                   key={s.sessionId}
-                  onClick={() => fetchConversations({ ...s, type: "shopify" })}
+                  onClick={() => openShopifyConversation(s)}
                   style={{
                     padding: 12,
                     cursor: "pointer",
@@ -692,28 +691,24 @@ return (
               >
                 Widget Users
               </div>
-      {widgetUsers.map((user) => (
-  <div
-    key={user.id}
-    onClick={async () => {
-      // fetch messages first
-      await fetchWidgetUserMessages(user);
-
-      // then set selected conversation
-      setSelectedConversation(user);
-    }}
-    style={{
-      padding: 12,
-      cursor: "pointer",
-      backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
-      borderBottom: "1px solid #eee",
-    }}
-  >
-    {user.name || "User"} <br />
-    <small>{user.email || user.sessionId}</small>
-  </div>
-))}
-
+              {widgetUsers.map((user) => (
+                <div
+                  key={user.id}
+                  onClick={async () => {
+                    await fetchWidgetUserMessages(user);
+                    setSelectedConversation(user);
+                  }}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  {user.name || "User"} <br />
+                  <small>{user.email || user.sessionId}</small>
+                </div>
+              ))}
             </>
           )}
         </div>
@@ -729,7 +724,7 @@ return (
           )}
 
           {conversations.map((conv) => {
-            let name = conv.userName || conv.sessionId || "User";
+            const name = conv.userName || conv.sessionId || "User";
             return (
               <div
                 key={conv.id || conv.sessionId}
@@ -753,34 +748,33 @@ return (
             Chat
           </div>
 
-<div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
-  {selectedConversation ? (
-    (messages[String(selectedConversation.id)] || []).map((msg) => {
-      const isMe = msg.from === "me";
-      return (
-        <div key={msg.id} style={{ display: "flex", flexDirection: "column", marginBottom: 8 }}>
-          <div style={{
-            alignSelf: isMe ? "flex-end" : "flex-start",
-            backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-            padding: "10px 15px",
-            borderRadius: 15,
-            maxWidth: "70%",
-          }}>
-            <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
-            <div>{msg.message}</div>
-            <small style={{ fontSize: 10, color: "#666" }}>
-              {new Date(msg.created_time).toLocaleString()}
-            </small>
+          <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
+            {selectedConversation ? (
+              (messages[String(selectedConversation.id)] || []).map((msg) => {
+                const isMe = msg.from === "me";
+                return (
+                  <div key={msg.id} style={{ display: "flex", flexDirection: "column", marginBottom: 8 }}>
+                    <div style={{
+                      alignSelf: isMe ? "flex-end" : "flex-start",
+                      backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+                      padding: "10px 15px",
+                      borderRadius: 15,
+                      maxWidth: "70%",
+                    }}>
+                      <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+                      <div>{msg.message}</div>
+                      <small style={{ fontSize: 10, color: "#666" }}>
+                        {new Date(msg.created_time).toLocaleString()}
+                      </small>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div style={{ padding: 12, color: "#888" }}>Select a conversation to start chatting.</div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        </div>
-      );
-    })
-  ) : (
-    <div style={{ padding: 12, color: "#888" }}>Select a conversation to start chatting.</div>
-  )}
-  <div ref={messagesEndRef} />
-</div>
-
 
           {selectedConversation && (
             <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
@@ -822,6 +816,7 @@ return (
     `}</style>
   </div>
 );
+
 
 
 }
