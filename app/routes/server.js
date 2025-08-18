@@ -3,19 +3,27 @@ import cors from "cors";
 
 const app = express();
 
-// enable CORS for your Shopify store
+app.use(express.json());
+
+// ✅ allow all OPTIONS preflight requests
 app.use(cors({
   origin: "https://seo-partner.myshopify.com",
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // include OPTIONS
   credentials: true
 }));
 
-app.use(express.json()); // parse JSON body
+// ✅ explicitly handle OPTIONS for all routes
+app.options("*", cors());
 
-// API endpoint
+// Example chat endpoint
 app.post("/api/chat", (req, res) => {
   res.json({ message: "Chat received!" });
 });
 
-// start server
-app.listen(3000, () => console.log("Server running on port 3000"));
+app.get("/api/chat", (req, res) => {
+  res.json({ ok: true, messages: [] });
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running");
+});
