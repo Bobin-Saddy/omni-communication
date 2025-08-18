@@ -22,41 +22,24 @@ function getCorsHeaders(request) {
 }
 
 // ✅ Helper to normalize Shopify domains
+// helper (put in utils/domain.js or top of file)
 function normalizeStoreDomain(domain) {
   if (!domain) return "";
   return domain.replace(".myshopify.com", "").trim();
 }
 
-// ---------------- Loader ----------------
 export async function loader({ request }) {
-  const corsHeaders = getCorsHeaders(request);
-
-  if (request.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
   const url = new URL(request.url);
-  const storeDomainRaw = url.searchParams.get("store_domain");
-  const sessionId = url.searchParams.get("session_id");
-  const since = url.searchParams.get("since");
+  const host = url.searchParams.get("shop"); // e.g. seo-partner.myshopify.com
 
-  if (!storeDomainRaw || !sessionId) {
-    return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
-  }
+  const storeName = host ? normalizeStoreDomain(host) : null;
 
-  const storeDomain = normalizeStoreDomain(storeDomainRaw);
-
-  const where = { storeDomain, sessionId };
-  if (since) {
-    where.createdAt = { gt: new Date(since) };
-  }
-
-  const messages = await prisma.storeChatMessage.findMany({
-    where,
-    orderBy: { createdAt: "asc" },
+  const sessions = await prisma.storeChatSession.findMany({
+    where: storeName ? { storeDomain: storeName } : {},
+    orderBy: { lastSeenAt: "desc" },
   });
 
-  return json({ ok: true, messages }, { headers: corsHeaders });
+  return json({ sessions, storeName });
 }
 
 // ---------------- Action ----------------
