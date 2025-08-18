@@ -25,87 +25,6 @@ export default function SocialChatDashboard() {
     "EAAHvZAZB8ZCmugBPBXoZBZBjZCo9iIeGinLLOkdC3oKwWdg5OnXd0EeKjHeSueZCIs0Dg0hf7wZA6kefsklIUTZCnDB3ZBZA5yirJSloxClWfVEgWeZCONNKjNH8Xbq6XZCqnHaOZBMXYzlOzZAHxErLuDasv5AZCZBS4U3dyaewR8v8LGVu8ZAcrHPLujO64KzOrwMo74o8W31S6eZCpoPcwCgM3rAgusSA3u8WuTxo2IRY81r1ioqSAZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
-  const [widgetOpen, setWidgetOpen] = useState(false);
-const [widgetMessages, setWidgetMessages] = useState([]);
-const [widgetNewMessage, setWidgetNewMessage] = useState("");
-const [widgetLoading, setWidgetLoading] = useState(false);
-const [widgetSelectedConversation, setWidgetSelectedConversation] = useState(null);
-
-const handleChatWidgetOpen = async () => {
-  setWidgetOpen(true);
-  await fetchWidgetConversations();
-};
-
-const fetchWidgetConversations = async () => {
-  setWidgetLoading(true);
-  try {
-    const res = await fetch("/get-shopify-conversations"); // your backend endpoint
-    const data = await res.json(); // [{ id, userName, messages: [...] }, ...]
-
-    if (data.length === 0) {
-      alert("No conversations for your store yet.");
-      setWidgetMessages([]);
-      setWidgetSelectedConversation(null);
-      setWidgetLoading(false);
-      return;
-    }
-
-    setWidgetSelectedConversation(data[0]);
-    setWidgetMessages(data[0].messages || []);
-  } catch (err) {
-    console.error("Failed to fetch widget conversations", err);
-    alert("Failed to load chat widget conversations.");
-  } finally {
-    setWidgetLoading(false);
-  }
-};
-
-const fetchWidgetMessages = async (conv) => {
-  setWidgetSelectedConversation(conv);
-  setWidgetLoading(true);
-
-  try {
-    const res = await fetch(`/get-shopify-messages?conversationId=${conv.id}`);
-    const data = await res.json();
-    setWidgetMessages(data.messages || []);
-  } catch (err) {
-    console.error("Failed to fetch messages", err);
-  } finally {
-    setWidgetLoading(false);
-  }
-};
-
-const sendWidgetMessage = async () => {
-  if (!widgetSelectedConversation || !widgetNewMessage.trim()) return;
-
-  setWidgetLoading(true);
-  try {
-    await fetch("/send-shopify-message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        conversationId: widgetSelectedConversation.id,
-        message: widgetNewMessage,
-      }),
-    });
-
-    const localMsg = {
-      id: "local-" + Date.now(),
-      message: widgetNewMessage,
-      displayName: "You",
-      created_time: new Date().toISOString(),
-    };
-
-    setWidgetMessages((prev) => [...prev, localMsg]);
-    setWidgetNewMessage("");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to send message.");
-  } finally {
-    setWidgetLoading(false);
-  }
-};
-
 
   // Initialize Facebook SDK
   useEffect(() => {
@@ -592,14 +511,6 @@ const sendWhatsAppMessage = async () => {
               {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
             </button>
           </div>
-          <div style={{ marginTop: 10 }}>
-  <button
-    onClick={handleChatWidgetOpen}
-    className="btn-primary"
-  >
-    Open Chat Widget
-  </button>
-</div>
         </div>
 
         {selectedPage && (
@@ -814,99 +725,6 @@ const sendWhatsAppMessage = async () => {
             </div>
           </div>
         )}
-        {widgetOpen && (
-  <div
-    style={{
-      position: "fixed",
-      bottom: 20,
-      right: 20,
-      width: 350,
-      maxHeight: 500,
-      border: "1px solid #ccc",
-      borderRadius: 8,
-      backgroundColor: "#fff",
-      display: "flex",
-      flexDirection: "column",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-    }}
-  >
-    <div
-      style={{
-        padding: 10,
-        background: "#007bff",
-        color: "#fff",
-        fontWeight: 600,
-        textAlign: "center",
-        borderTopLeftRadius: 8,
-        borderTopRightRadius: 8,
-      }}
-    >
-      Chat Widget
-    </div>
-
-    <div
-      style={{
-        flex: 1,
-        padding: 10,
-        overflowY: "auto",
-        background: "#f9f9f9",
-      }}
-    >
-      {widgetLoading && <div>Loading messages...</div>}
-      {(widgetMessages || []).map((msg) => {
-        const isMe = msg.displayName === "You";
-        return (
-          <div
-            key={msg.id}
-            style={{
-              alignSelf: isMe ? "flex-end" : "flex-start",
-              backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-              padding: "8px 12px",
-              borderRadius: 12,
-              marginBottom: 6,
-              maxWidth: "70%",
-              wordBreak: "break-word",
-            }}
-          >
-            <strong>{msg.displayName}</strong>
-            <div>{msg.message}</div>
-            <small style={{ fontSize: 10, color: "#666" }}>
-              {new Date(msg.created_time).toLocaleTimeString()}
-            </small>
-          </div>
-        );
-      })}
-    </div>
-
-    <div style={{ display: "flex", padding: 10, borderTop: "1px solid #ddd" }}>
-      <input
-        value={widgetNewMessage}
-        onChange={(e) => setWidgetNewMessage(e.target.value)}
-        placeholder="Type a message"
-        style={{ flex: 1, padding: 8, borderRadius: 5, border: "1px solid #ccc" }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") sendWidgetMessage();
-        }}
-      />
-      <button
-        onClick={sendWidgetMessage}
-        disabled={widgetLoading || !widgetNewMessage.trim()}
-        style={{
-          marginLeft: 8,
-          padding: "8px 12px",
-          borderRadius: 5,
-          border: "none",
-          backgroundColor: "#007bff",
-          color: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        Send
-      </button>
-    </div>
-  </div>
-)}
-
       </div>
 
       <style>{`
