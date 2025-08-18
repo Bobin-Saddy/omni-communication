@@ -1,9 +1,9 @@
-import { useLoaderData } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
 import { useEffect, useState } from "react";
 
 export default function ChatList() {
-  const { sessions: initialSessions } = useLoaderData();
-  const [sessions, setSessions] = useState(initialSessions);
+  const data = useLoaderData() || { sessions: [] };  // ✅ safe fallback
+  const [sessions, setSessions] = useState(data.sessions);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -11,13 +11,15 @@ export default function ChatList() {
         const url = new URL(window.location.href);
         const shop = url.searchParams.get("shop");
         if (!shop) return;
+
         const res = await fetch(`/admin/chat/list?shop=${shop}`);
         const data = await res.json();
-        setSessions(data.sessions);
+        setSessions(data.sessions || []);
       } catch (err) {
         console.error("Polling error", err);
       }
-    }, 5000); // poll every 5 sec
+    }, 5000);
+
     return () => clearInterval(interval);
   }, []);
 
