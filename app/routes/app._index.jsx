@@ -629,35 +629,7 @@ return (
             </div>
           )}
 
-          {shopifySessions.length > 0 && (
-            <>
-              <div
-                style={{
-                  padding: 12,
-                  borderBottom: "1px solid #ddd",
-                  background: "#f7f7f7",
-                  fontWeight: "600",
-                  marginTop: 10,
-                }}
-              >
-                Shopify
-              </div>
-              {shopifySessions.map((s) => (
-                <div
-                  key={s.sessionId}
-                  onClick={() => fetchConversations({ ...s, type: "shopify" })}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
-                </div>
-              ))}
-            </>
-          )}
+      
 
           {/* Widget Users Section */}
           {showShopifyWidget && widgetUsers.length > 0 && (
@@ -696,7 +668,35 @@ return (
           <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
             Conversations
           </div>
-
+    {shopifySessions.length > 0 && (
+            <>
+              <div
+                style={{
+                  padding: 12,
+                  borderBottom: "1px solid #ddd",
+                  background: "#f7f7f7",
+                  fontWeight: "600",
+                  marginTop: 10,
+                }}
+              >
+                Shopify
+              </div>
+              {shopifySessions.map((s) => (
+                <div
+                  key={s.sessionId}
+                  onClick={() => fetchConversations({ ...s, type: "shopify" })}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
+                </div>
+              ))}
+            </>
+          )}
           {(!selectedPage && !selectedConversation) && (
             <div style={{ padding: 12 }}>Select a page or widget user to see conversations.</div>
           )}
