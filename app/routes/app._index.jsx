@@ -542,6 +542,21 @@ const sendWhatsAppMessage = async () => {
       setSendingMessage(false);
     }
   };
+const fetchWidgetUserMessages = async (user) => {
+  try {
+    // Fetch all messages for this user
+    const res = await fetch(`/admin/chat/list?userId=${user.id}`);
+    const data = await res.json();
+
+    // Assuming data.messages contains an array of messages
+    setMessages((prev) => ({
+      ...prev,
+      [user.id]: data.messages,
+    }));
+  } catch (err) {
+    console.error("Failed to fetch widget user messages:", err);
+  }
+};
 
 
 return (
@@ -555,8 +570,8 @@ return (
       className="card for-box"
       style={{ padding: 20, boxShadow: "0 2px 6px rgba(0,0,0,0.15)", borderRadius: 8 }}
     >
+      {/* Connect Buttons */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        {/* Connect Buttons */}
         <button onClick={handleFacebookLogin} disabled={fbConnected || loadingPages} className="btn-primary">
           {loadingPages && !fbConnected
             ? "Loading..."
@@ -591,9 +606,9 @@ return (
         </div>
       </div>
 
-      {/* Main Dashboard Grid */}
+      {/* Main Grid */}
       <div style={{ display: "flex", height: 650, border: "1px solid #ccc", borderRadius: 8, overflow: "hidden" }}>
-        
+
         {/* Pages Sidebar */}
         <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
           <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
@@ -629,46 +644,8 @@ return (
             </div>
           )}
 
-      
-
-          {/* Widget Users Section */}
-          {showShopifyWidget && widgetUsers.length > 0 && (
-            <>
-              <div
-                style={{
-                  padding: 12,
-                  borderBottom: "1px solid #ddd",
-                  background: "#f7f7f7",
-                  fontWeight: "600",
-                  marginTop: 10,
-                }}
-              >
-                Widget Users
-              </div>
-              {widgetUsers.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => setSelectedConversation(user)}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {user.name || "User"} <br /> <small>{user.email || user.sessionId}</small>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-
-        {/* Conversations List */}
-        <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
-          <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
-            Conversations
-          </div>
-    {shopifySessions.length > 0 && (
+          {/* Shopify Sessions */}
+          {shopifySessions.length > 0 && (
             <>
               <div
                 style={{
@@ -697,6 +674,48 @@ return (
               ))}
             </>
           )}
+
+          {/* Widget Users Section */}
+          {showShopifyWidget && widgetUsers.length > 0 && (
+            <>
+              <div
+                style={{
+                  padding: 12,
+                  borderBottom: "1px solid #ddd",
+                  background: "#f7f7f7",
+                  fontWeight: "600",
+                  marginTop: 10,
+                }}
+              >
+                Widget Users
+              </div>
+              {widgetUsers.map((user) => (
+                <div
+                  key={user.id}
+                  onClick={async () => {
+                    setSelectedConversation(user);
+                    await fetchWidgetUserMessages(user); // fetch messages from /admin/chat/list
+                  }}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  {user.name || "User"} <br /> <small>{user.email || user.sessionId}</small>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Conversations List */}
+        <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+          <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>
+            Conversations
+          </div>
+
           {(!selectedPage && !selectedConversation) && (
             <div style={{ padding: 12 }}>Select a page or widget user to see conversations.</div>
           )}
@@ -728,7 +747,7 @@ return (
 
           <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
             {selectedConversation ? (
-              (messages[selectedConversation?.id || selectedConversation?.sessionId] || []).map((msg) => {
+              (messages[selectedConversation.id] || []).map((msg) => {
                 const isMe = msg.from === "me";
                 return (
                   <div key={msg.id} style={{ display: "flex", flexDirection: "column", marginBottom: 8 }}>
@@ -794,5 +813,6 @@ return (
     `}</style>
   </div>
 );
+
 
 }
