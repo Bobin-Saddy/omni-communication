@@ -548,15 +548,17 @@ const fetchWidgetUserMessages = async (user) => {
     const res = await fetch(`/admin/chat/list?userId=${user.id}`);
     const data = await res.json();
 
-    // Use user.id as string key
+    // always use string key for consistency
     setMessages((prev) => ({
       ...prev,
-      [String(user.id)]: data.messages,
+      [String(user.id)]: data.messages || [],
     }));
+    console.log('user-message--->', data.message);
   } catch (err) {
     console.error("Failed to fetch widget user messages:", err);
   }
 };
+
 
 
 
@@ -690,23 +692,28 @@ return (
               >
                 Widget Users
               </div>
-              {widgetUsers.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={async () => {
-                    setSelectedConversation(user);
-                    await fetchWidgetUserMessages(user); // fetch messages from /admin/chat/list
-                  }}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {user.name || "User"} <br /> <small>{user.email || user.sessionId}</small>
-                </div>
-              ))}
+      {widgetUsers.map((user) => (
+  <div
+    key={user.id}
+    onClick={async () => {
+      // fetch messages first
+      await fetchWidgetUserMessages(user);
+
+      // then set selected conversation
+      setSelectedConversation(user);
+    }}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
+      borderBottom: "1px solid #eee",
+    }}
+  >
+    {user.name || "User"} <br />
+    <small>{user.email || user.sessionId}</small>
+  </div>
+))}
+
             </>
           )}
         </div>
@@ -773,6 +780,7 @@ return (
   )}
   <div ref={messagesEndRef} />
 </div>
+
 
           {selectedConversation && (
             <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
