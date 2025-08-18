@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, Link } from "react-router-dom";
 
 export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
@@ -7,13 +7,13 @@ export default function SocialChatDashboard() {
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
   const [waConnected, setWaConnected] = useState(false);
-  const [customConnected, setCustomConnected] = useState(false);
   const [selectedPage, setSelectedPage] = useState(null);
   const [pageAccessTokens, setPageAccessTokens] = useState({});
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState({});
+  const [messages, setMessages] = useState({}); // ✅ always an object keyed by conv.id
   const [newMessage, setNewMessage] = useState("");
+
   const data = useLoaderData() || { sessions: [] }; // ✅ safe fallback
   const [sessions, setSessions] = useState(data.sessions);
 
@@ -35,6 +35,7 @@ export default function SocialChatDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -42,10 +43,11 @@ export default function SocialChatDashboard() {
   const messagesEndRef = useRef(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
-  const WHATSAPP_TOKEN = "YOUR_WHATSAPP_TOKEN";
+  const WHATSAPP_TOKEN = "YOUR_WHATSAPP_TOKEN"; // ⚠️ replace with env variable
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
+  // Initialize Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -64,11 +66,12 @@ export default function SocialChatDashboard() {
     }
   }, []);
 
+  // Scroll chat to bottom when messages update
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, selectedConversation]);
 
   const resetFbData = () => {
     setFbPages([]);
@@ -90,25 +93,17 @@ export default function SocialChatDashboard() {
     }
   };
 
-  const resetCustomData = () => {
-    setCustomConnected(false);
-    if (selectedPage?.type === "custom") {
-      setSelectedPage(null);
-      setConversations([]);
-      setMessages({});
-    }
-  };
-
   const handleFacebookLogin = () => {
     window.FB.login(
       (res) => {
         if (res.authResponse) {
           resetIgData();
-          resetCustomData();
           fetchFacebookPages(res.authResponse.accessToken);
         }
       },
-      { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
+      {
+        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
+      }
     );
   };
 
@@ -117,11 +112,13 @@ export default function SocialChatDashboard() {
       (res) => {
         if (res.authResponse) {
           resetFbData();
-          resetCustomData();
           fetchInstagramPages(res.authResponse.accessToken);
         }
       },
-      { scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata" }
+      {
+        scope:
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+      }
     );
   };
 
@@ -149,89 +146,163 @@ export default function SocialChatDashboard() {
     }
   };
 
-  const handleCustomConnect = () => {
-    setCustomConnected(true);
-    setSelectedPage({ id: "custom", name: "Custom Chat", type: "custom" });
-
-    const convs = [
-      { id: "c1", userName: "Alice", businessName: "Custom Chat" },
-      { id: "c2", userName: "Bob", businessName: "Custom Chat" },
-    ];
-
-    setConversations(convs);
-    setMessages({});
-    setSelectedConversation(null);
-  };
-
-  // ... keep fetchFacebookPages, fetchInstagramPages, fetchConversations, fetchMessages, sendWhatsAppMessage, sendMessage (no changes except messages state is an object)
+  /**
+   * Other functions: fetchFacebookPages, fetchInstagramPages,
+   * fetchConversations, fetchMessages, sendWhatsAppMessage,
+   * sendMessage — remain same with `setMessages` always working as object
+   */
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <div className="w-64 bg-gray-100 p-4 overflow-y-auto">
-        <h2 className="text-lg font-bold mb-4">Channels</h2>
+    <div
+      className="social-chat-dashboard"
+      style={{ fontFamily: "Arial, sans-serif", maxWidth: 1200, margin: "auto" }}
+    >
+      <h1 style={{ textAlign: "center", margin: "20px 0" }}>📱 Social Chat Dashboard</h1>
 
-        <button onClick={handleFacebookLogin} className="w-full bg-blue-600 text-white p-2 rounded mb-2">
-          {fbConnected ? "Reconnect Facebook" : "Connect Facebook"}
-        </button>
+      {/* 🔹 Connection Buttons */}
+      <div className="card for-box" style={{ padding: 20, boxShadow: "0 2px 6px rgba(0,0,0,0.15)", borderRadius: 8 }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <button onClick={handleFacebookLogin} disabled={fbConnected || loadingPages} className="btn-primary">
+            {loadingPages && !fbConnected ? "Loading..." : fbConnected ? "Facebook Connected" : "Connect Facebook"}
+          </button>
 
-        <button onClick={handleInstagramLogin} className="w-full bg-pink-600 text-white p-2 rounded mb-2">
-          {igConnected ? "Reconnect Instagram" : "Connect Instagram"}
-        </button>
-
-        <button onClick={handleWhatsAppConnect} className="w-full bg-green-600 text-white p-2 rounded mb-2">
-          {waConnected ? "Reconnect WhatsApp" : "Connect WhatsApp"}
-        </button>
-
-        <button onClick={handleCustomConnect} className="w-full bg-purple-600 text-white p-2 rounded mb-2">
-          {customConnected ? "Reconnect Custom" : "Connect Custom"}
-        </button>
-
-        <h3 className="text-md font-semibold mt-4 mb-2">Conversations</h3>
-        <ul>
-          {conversations.map((conv) => (
-            <li
-              key={conv.id}
-              className={`p-2 cursor-pointer rounded ${
-                selectedConversation?.id === conv.id ? "bg-gray-300" : "hover:bg-gray-200"
-              }`}
-              onClick={() => fetchMessages(conv)}
-            >
-              {conv.userName || conv.id}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4">
-          {(messages[selectedConversation?.id] || []).map((msg, i) => (
-            <div key={i} className="mb-2">
-              <strong>{msg.displayName || msg.from?.id || "User"}:</strong> {msg.message}
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-        {selectedConversation && (
-          <div className="p-4 border-t flex">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              className="flex-1 border rounded p-2 mr-2"
-              placeholder="Type a message..."
-            />
-            <button
-              onClick={sendMessage}
-              disabled={sendingMessage}
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-            >
-              Send
+          <div style={{ marginTop: 10 }}>
+            <button onClick={handleInstagramLogin} disabled={igConnected || loadingPages} className="btn-primary">
+              {loadingPages && !igConnected ? "Loading..." : igConnected ? "Instagram Connected" : "Connect Instagram"}
             </button>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <button onClick={handleWhatsAppConnect} disabled={waConnected} className="btn-primary">
+              {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
+            </button>
+          </div>
+        </div>
+
+        {/* 🔹 Main Chat Layout */}
+        {selectedPage && (
+          <div style={{ display: "flex", height: 650, border: "1px solid #ccc", borderRadius: 8, overflow: "hidden" }}>
+
+            {/* Sidebar - Pages */}
+            <div style={{ width: "22%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+              <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>Pages</div>
+              {[...fbPages, ...igPages].map((page) => (
+                <div key={page.id} onClick={() => fetchConversations(page)}
+                  style={{ padding: 12, cursor: "pointer", backgroundColor: selectedPage?.id === page.id ? "#e3f2fd" : "white", borderBottom: "1px solid #eee" }}>
+                  {page.name} <small style={{ color: "#888" }}>({page.type})</small>
+                </div>
+              ))}
+              {waConnected && (
+                <div onClick={handleWhatsAppConnect} style={{ padding: 12, cursor: "pointer", backgroundColor: selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white", borderBottom: "1px solid #eee" }}>
+                  WhatsApp
+                </div>
+              )}
+            </div>
+
+            {/* Sidebar - Conversations */}
+            <div style={{ width: "28%", borderRight: "1px solid #eee", overflowY: "auto" }}>
+              <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>Conversations</div>
+
+              <div>
+                <h1>Chat Sessions for this Store</h1>
+                {sessions.length === 0 ? (
+                  <p>No active sessions</p>
+                ) : (
+                  <ul>
+                    {sessions.map((s) => (
+                      <li key={s.id}>
+                        <Link to={`/admin/chat/${s.sessionId}`}>
+                          👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {loadingConversations && <div style={{ padding: 12 }}>Loading conversations...</div>}
+              {!loadingConversations && conversations.length === 0 && <div style={{ padding: 12 }}>No conversations available.</div>}
+
+              {conversations.map((conv) => {
+                const name = selectedPage?.type === "instagram"
+                  ? `${conv.businessName} ↔️ ${conv.userName}`
+                  : selectedPage?.type === "whatsapp"
+                    ? conv.userName || conv.profile?.name || conv.contacts?.[0]?.profile?.name || conv.contacts?.[0]?.wa_id || conv.wa_id || "WhatsApp User"
+                    : conv.participants?.data?.filter((p) => p.name !== selectedPage.name).map((p) => p.name).join(", ") || "User";
+
+                return (
+                  <div key={conv.id} onClick={() => fetchMessages(conv)}
+                    style={{ padding: 12, cursor: "pointer", backgroundColor: selectedConversation?.id === conv.id ? "#e7f1ff" : "white", borderBottom: "1px solid #eee" }}>
+                    {name}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Chat Window */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: 12, borderBottom: "1px solid #ddd", background: "#f7f7f7", fontWeight: "600" }}>Chat</div>
+
+              {/* Messages */}
+              <div style={{ flex: 1, padding: 12, overflowY: "auto", background: "#f9f9f9", display: "flex", flexDirection: "column" }}>
+                {(messages[selectedConversation?.id] || []).map((msg) => {
+                  const businessNumber = WHATSAPP_RECIPIENT_NUMBER;
+                  const fromId = msg.from?.id || msg.from;
+                  const isMe = fromId === businessNumber || fromId === "me" || fromId === selectedPage?.id;
+
+                  return (
+                    <div key={msg.id} style={{ display: "flex", flexDirection: "column" }}>
+                      <div style={{ alignSelf: isMe ? "flex-end" : "flex-start", backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0", color: "#333", padding: "10px 15px", borderRadius: 15, marginBottom: 8, maxWidth: "70%", wordBreak: "break-word", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }}>
+                        <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+                        <div>{msg.message}</div>
+                        <small style={{ fontSize: 10, color: "#666" }}>{new Date(msg.created_time).toLocaleString()}</small>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div style={{ display: "flex", padding: 12, borderTop: "1px solid #ddd" }}>
+                <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message"
+                  style={{ flex: 1, padding: 10, borderRadius: 5, border: "1px solid #ccc" }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendMessage(); } }}
+                  disabled={sendingMessage}
+                />
+
+                <button onClick={() => { if (!sendingMessage && newMessage.trim()) sendMessage(); }}
+                  disabled={sendingMessage || !newMessage.trim()}
+                  style={{ marginLeft: 10, padding: "10px 20px", backgroundColor: sendingMessage ? "#6c757d" : "#007bff", color: "white", border: "none", borderRadius: 5, cursor: sendingMessage ? "not-allowed" : "pointer" }}>
+                  {sendingMessage ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* 🔹 Button Styles */}
+      <style>{`
+        .btn-primary {
+          background-color: #000000;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          font-size: 16px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+        }
+        .btn-primary:disabled {
+          background-color: #555555;
+          cursor: not-allowed;
+        }
+        .btn-primary:not(:disabled):hover {
+          background-color: #222222;
+        }
+      `}</style>
     </div>
   );
 }
