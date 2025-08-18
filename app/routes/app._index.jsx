@@ -106,7 +106,7 @@ const fetchShopifySessions = async () => {
     setSelectedConversation(session);
 
     try {
-      const res = await fetch(`/admin/chat/messages?sessionId=${session.sessionId}`);
+      const res = await fetch(`/admin/chat/list?sessionId=${session.sessionId}`);
       const data = await res.json();
       setMessages({ [session.sessionId]: data.messages || [] });
     } catch (err) {
