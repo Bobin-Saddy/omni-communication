@@ -30,13 +30,15 @@ export async function loader({ request }) {
   }
 
   const url = new URL(request.url);
-  const storeDomain = url.searchParams.get("store_domain");
+  const storeDomainRaw = url.searchParams.get("store_domain");
   const sessionId = url.searchParams.get("session_id");
   const since = url.searchParams.get("since");
 
-  if (!storeDomain || !sessionId) {
+  if (!storeDomainRaw || !sessionId) {
     return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
   }
+
+  const storeDomain = normalizeStoreDomain(storeDomainRaw);
 
   const where = { storeDomain, sessionId };
   if (since) {
@@ -66,12 +68,14 @@ export async function action({ request }) {
     return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
   }
 
+  const storeDomain = normalizeStoreDomain(store_domain);
+
   // Create session if not exists
   await prisma.storeChatSession.upsert({
     where: { sessionId: session_id },
     update: {},
     create: {
-      storeDomain: store_domain,
+      storeDomain,
       sessionId: session_id,
     },
   });
@@ -79,7 +83,7 @@ export async function action({ request }) {
   // Save message
   await prisma.storeChatMessage.create({
     data: {
-      storeDomain: store_domain,
+      storeDomain,
       sessionId: session_id,
       sender,
       text: message,
@@ -88,3 +92,4 @@ export async function action({ request }) {
 
   return json({ ok: true }, { headers: corsHeaders });
 }
+
