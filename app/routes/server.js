@@ -1,14 +1,21 @@
-import { PrismaClient } from "@prisma/client";
+import express from "express";
+import cors from "cors";
 
-let prisma;
+const app = express();
 
-if (process.env.NODE_ENV === "production") {
-  prisma = new PrismaClient();
-} else {
-  if (!global.__db) {
-    global.__db = new PrismaClient();
-  }
-  prisma = global.__db;
-}
+// enable CORS for your Shopify store
+app.use(cors({
+  origin: "https://seo-partner.myshopify.com",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
-export default prisma;
+app.use(express.json()); // parse JSON body
+
+// API endpoint
+app.post("/api/chat", (req, res) => {
+  res.json({ message: "Chat received!" });
+});
+
+// start server
+app.listen(3000, () => console.log("Server running on port 3000"));
