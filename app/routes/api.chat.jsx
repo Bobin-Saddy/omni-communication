@@ -3,15 +3,28 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// ✅ Shared CORS headers
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://seo-partner.myshopify.com", // your Shopify domain
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
+// ✅ Function to build dynamic CORS headers
+function getCorsHeaders(request) {
+  const origin = request.headers.get("Origin") || "";
 
-// Handle CORS preflight
+  if (origin.endsWith(".myshopify.com")) {
+    return {
+      "Access-Control-Allow-Origin": origin, // allow that specific shop
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
+  }
+
+  // ❌ default: block if not Shopify
+  return {
+    "Access-Control-Allow-Origin": "null",
+  };
+}
+
+// ---------------- Loader ----------------
 export async function loader({ request }) {
+  const corsHeaders = getCorsHeaders(request);
+
   if (request.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -38,7 +51,10 @@ export async function loader({ request }) {
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
 
+// ---------------- Action ----------------
 export async function action({ request }) {
+  const corsHeaders = getCorsHeaders(request);
+
   if (request.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
