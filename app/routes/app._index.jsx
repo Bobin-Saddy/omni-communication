@@ -12,6 +12,9 @@ export default function SocialChatDashboard() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+  const [shopifySessions, setShopifySessions] = useState([]);
+  const [showShopifyWidget, setShowShopifyWidget] = useState(false);
+  const [loadingShopify, setLoadingShopify] = useState(false);
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -61,7 +64,65 @@ export default function SocialChatDashboard() {
       setMessages([]);
     }
   };
+const fetchShopifySessions = async () => {
+    setLoadingShopify(true);
+    try {
+      const url = new URL(window.location.href);
+      const shop = url.searchParams.get("shop");
+      if (!shop) return;
 
+      const res = await fetch(`/admin/chat/list?shop=${shop}`);
+      const data = await res.json();
+      setShopifySessions(data.sessions || []);
+    } catch (err) {
+      console.error("Error fetching Shopify sessions:", err);
+    } finally {
+      setLoadingShopify(false);
+    }
+  };
+
+  /** Open Shopify conversation in dashboard */
+  const openShopifyConversation = async (session) => {
+    setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
+    setSelectedConversation(session);
+
+    try {
+      const res = await fetch(`/admin/chat/messages?sessionId=${session.sessionId}`);
+      const data = await res.json();
+      setMessages({ [session.sessionId]: data.messages || [] });
+    } catch (err) {
+      console.error("Error fetching session messages:", err);
+    }
+  };
+
+  /** Send message for Shopify session */
+  const sendShopifyMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+    try {
+      const sessionId = selectedConversation.sessionId;
+      await fetch("/admin/chat/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, message: newMessage }),
+      });
+
+      const localMsg = {
+        id: "local-" + Date.now(),
+        displayName: "You",
+        message: newMessage,
+        created_time: new Date().toISOString(),
+      };
+
+      setMessages((prev) => ({
+        ...prev,
+        [sessionId]: [...(prev[sessionId] || []), localMsg],
+      }));
+
+      setNewMessage("");
+    } catch (err) {
+      console.error("Failed to send Shopify message", err);
+    }
+  };
   const resetIgData = () => {
     setIgPages([]);
     setIgConnected(false);
@@ -511,8 +572,51 @@ const sendWhatsAppMessage = async () => {
               {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
             </button>
           </div>
-        </div>
 
+          <div style={{ marginTop: 10 }}>
+                    <button
+            onClick={() => setShowShopifyWidget((prev) => !prev)}
+            className="btn-primary"
+            style={{ marginLeft: 10 }}
+          >
+            {showShopifyWidget ? "Hide Shopify Widget" : "Show Shopify Widget"}
+          </button>
+          </div>
+        </div>
+      {/* Shopify Chat Widget */}
+        {showShopifyWidget && (
+          <div
+            style={{
+              maxHeight: 400,
+              overflowY: "auto",
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              marginBottom: 20,
+              padding: 10,
+            }}
+          >
+            <h3>Active Shopify Conversations</h3>
+            {loadingShopify && <p>Loading...</p>}
+            {!loadingShopify && shopifySessions.length === 0 && <p>No active sessions</p>}
+            <ul>
+              {shopifySessions.map((s) => (
+                <li
+                  key={s.sessionId}
+                  onClick={() => openShopifyConversation(s)}
+                  style={{
+                    cursor: "pointer",
+                    padding: 8,
+                    background: selectedConversation?.sessionId === s.sessionId ? "#e3f2fd" : "white",
+                    marginBottom: 4,
+                    borderRadius: 4,
+                  }}
+                >
+                  👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {selectedPage && (
           <div
             style={{
