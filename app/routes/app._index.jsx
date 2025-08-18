@@ -511,23 +511,6 @@ const sendWhatsAppMessage = async () => {
               {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
             </button>
           </div>
-             <div>
-                <h1>Chat Sessions for this Store</h1>
-                {sessions.length === 0 ? (
-                  <p>No active sessions</p>
-                ) : (
-                  <ul>
-                    {sessions.map((s) => (
-                      <li key={s.id}>
-                        <Link to={`/admin/chat/${s.sessionId}`}>
-                          👤 {s.sessionId} <br />
-                          🏬 {s.storeDomain}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
         </div>
 
         {selectedPage && (
