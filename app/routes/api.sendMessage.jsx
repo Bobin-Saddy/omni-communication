@@ -1,5 +1,6 @@
-import { json } from "@remix-run/node";
 import { prisma } from "../db.server";
+import { json } from "@remix-run/node";
+
 
 export const action = async ({ request }) => {
   const data = await request.json();
