@@ -13,7 +13,8 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [selectedCustomer, setSelectedCustomer] = useState(null);
-
+const url = new URL(window.location.href);
+const currentStoreDomain = url.searchParams.get("shop"); 
 // Set it when a user is selected in the widget
 
   // Loading states
@@ -580,6 +581,7 @@ await fetch("/api/sendMessage", {
     message: newMessage,
   }),
 });
+
 
 
     const result = await response.json();
