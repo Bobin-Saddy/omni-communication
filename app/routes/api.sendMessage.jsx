@@ -8,23 +8,23 @@ export const action = async ({ request }) => {
     const data = await request.json();
     const { conversationId, customerId, message } = data;
 
-    if (!message || (!conversationId && !customerId)) {
-      return json({ error: "Message or customerId is missing" }, { status: 400 });
+    if (!message) {
+      return json({ error: "Message is required" }, { status: 400 });
     }
 
     let session = null;
 
-    // If conversationId exists, find it
+    // Try to find existing conversation
     if (conversationId) {
       session = await prisma.chatSession.findUnique({
         where: { id: parseInt(conversationId, 10) },
       });
     }
 
-    // If no session, create new one using customerId
+    // If no session, create a new one using customerId
     if (!session) {
       if (!customerId) {
-        return json({ error: "CustomerId is required to create a conversation" }, { status: 400 });
+        return json({ error: "CustomerId is required for new conversation" }, { status: 400 });
       }
 
       session = await prisma.chatSession.create({
@@ -32,6 +32,7 @@ export const action = async ({ request }) => {
       });
     }
 
+    // Save chat message
     const savedMessage = await prisma.chatMessage.create({
       data: {
         conversationId: session.id,
