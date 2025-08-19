@@ -347,17 +347,19 @@ const fetchMessages = async (conv) => {
       setMessages((prevMessages) => {
         const prevConvMessages = prevMessages[conv.id] || [];
 
-        const localMessagesNotInBackend = prevConvMessages.filter(
-          (localMsg) =>
-            localMsg.id?.startsWith("local-") &&
-            !backendMessages.some(
-              (bm) =>
-                bm.message?.trim() === localMsg.message?.trim() &&
-                Math.abs(
-                  new Date(bm.created_time) - new Date(localMsg.created_time)
-                ) < 5000
-            )
-        );
+const localMessagesNotInBackend = prevConvMessages.filter(
+  (localMsg) =>
+    localMsg.id &&
+    typeof localMsg.id === "string" &&
+    localMsg.id.startsWith("local-") &&
+    !backendMessages.some(
+      (bm) =>
+        bm.message?.trim() === localMsg.message?.trim() &&
+        Math.abs(
+          new Date(bm.created_time) - new Date(localMsg.created_time)
+        ) < 5000
+    )
+);
 
         return {
           ...prevMessages,
