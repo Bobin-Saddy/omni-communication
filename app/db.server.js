@@ -6,11 +6,11 @@ let prisma;
 if (process.env.NODE_ENV === "production") {
   prisma = new PrismaClient();
 } else {
-  // Prevent multiple instances in dev (HMR)
   if (!global.prismaGlobal) {
     global.prismaGlobal = new PrismaClient();
   }
   prisma = global.prismaGlobal;
 }
 
-export { prisma }; // ✅ Named export
+// Use named export
+export { prisma };

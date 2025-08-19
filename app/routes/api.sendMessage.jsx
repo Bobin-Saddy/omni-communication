@@ -1,6 +1,5 @@
-// app/routes/api.sendMessage.jsx
 import { json } from "@remix-run/node";
-import { prisma } from "../db.server"; // Import the named export
+import { prisma } from "../db.server"; // ✅ matches named export
 
 export const action = async ({ request }) => {
   try {
