@@ -3,25 +3,19 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// ✅ Function to build dynamic CORS headers
 function getCorsHeaders(request) {
   const origin = request.headers.get("Origin") || "";
-
   if (origin.endsWith(".myshopify.com")) {
     return {
-      "Access-Control-Allow-Origin": origin, // allow that specific shop
+      "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };
   }
-
-  // ❌ default: block if not Shopify
-  return {
-    "Access-Control-Allow-Origin": "null",
-  };
+  return { "Access-Control-Allow-Origin": "null" };
 }
 
-// ---------------- Loader ----------------
+// GET all widget sessions
 export async function loader({ request }) {
   const corsHeaders = getCorsHeaders(request);
 
@@ -30,60 +24,50 @@ export async function loader({ request }) {
   }
 
   const url = new URL(request.url);
+
+  // If fetching all widget sessions
+  if (url.searchParams.get("widget") === "true") {
+    const sessions = await prisma.storeChatSession.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return json({ ok: true, sessions }, { headers: corsHeaders });
+  }
+
   const storeDomain = url.searchParams.get("store_domain");
   const sessionId = url.searchParams.get("session_id");
-  const since = url.searchParams.get("since");
 
   if (!storeDomain || !sessionId) {
     return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
   }
 
-  const where = { storeDomain, sessionId };
-  if (since) {
-    where.createdAt = { gt: new Date(since) };
-  }
-
   const messages = await prisma.storeChatMessage.findMany({
-    where,
+    where: { storeDomain, sessionId },
     orderBy: { createdAt: "asc" },
   });
 
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
 
-// ---------------- Action ----------------
+
 export async function action({ request }) {
   const corsHeaders = getCorsHeaders(request);
-
-  if (request.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const body = await request.json();
-  const { store_domain, session_id, message, sender } = body;
+  const { session_id, message, sender, store_domain } = body;
 
-  if (!store_domain || !session_id || !message || !sender) {
+  if (!session_id || !message || !sender || !store_domain) {
     return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
   }
 
-  // Create session if not exists
   await prisma.storeChatSession.upsert({
     where: { sessionId: session_id },
     update: {},
-    create: {
-      storeDomain: store_domain,
-      sessionId: session_id,
-    },
+    create: { sessionId: session_id, storeDomain: store_domain },
   });
 
-  // Save message
   await prisma.storeChatMessage.create({
-    data: {
-      storeDomain: store_domain,
-      sessionId: session_id,
-      sender,
-      text: message,
-    },
+    data: { sessionId: session_id, storeDomain: store_domain, sender, text: message },
   });
 
   return json({ ok: true }, { headers: corsHeaders });
