@@ -12,6 +12,7 @@ export default function SocialChatDashboard() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+const [selectedCustomer, setSelectedCustomer] = useState(null);
 
 // Set it when a user is selected in the widget
 
