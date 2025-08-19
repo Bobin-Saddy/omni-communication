@@ -279,8 +279,38 @@ const fetchMessages = async (conv) => {
   if (!selectedPage) return;
 
   // Determine message key (for widget use sessionId, otherwise use conversation id)
-  const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
+   const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
   setSelectedConversation({ ...conv, messageKey });
+
+  if (selectedPage.type === "widget") {
+    if (!conv.sessionId || !conv.storeDomain) return;
+
+    try {
+      const url = `/api/chat?session_id=${encodeURIComponent(
+        conv.sessionId
+      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+
+      const backendMessages = (data.messages || []).map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: msg.sender || "unknown",
+        message: msg.text || msg.content || "",
+        created_time: msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
+
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [messageKey]: backendMessages,
+      }));
+    } catch (err) {
+      console.error("Widget fetch failed:", err);
+    }
+    return;
+  }
 
   // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
@@ -836,43 +866,37 @@ return (
                 flexDirection: "column",
               }}
             >
-              {(messages[selectedConversation?.id] || []).map((msg) => {
-                const businessNumber = WHATSAPP_RECIPIENT_NUMBER;
-                const fromId = msg.from?.id || msg.from;
-                const isMe =
-                  fromId === businessNumber ||
-                  fromId === "me" ||
-                  fromId === selectedPage?.id;
+    {(messages[selectedConversation?.messageKey || selectedConversation?.id] || []).map(
+  (msg) => {
+    const fromId = msg.from?.id || msg.from;
+    const isMe =
+      fromId === WHATSAPP_RECIPIENT_NUMBER ||
+      fromId === "me" ||
+      fromId === selectedPage?.id;
 
-                const bubbleStyle = {
-                  alignSelf: isMe ? "flex-end" : "flex-start",
-                  backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
-                  color: "#333",
-                  padding: "10px 15px",
-                  borderRadius: 15,
-                  marginBottom: 8,
-                  maxWidth: "70%",
-                  wordBreak: "break-word",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                };
+    return (
+      <div key={msg.id} style={{ display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            alignSelf: isMe ? "flex-end" : "flex-start",
+            backgroundColor: isMe ? "#d1e7dd" : "#f0f0f0",
+            padding: "10px 15px",
+            borderRadius: 15,
+            marginBottom: 8,
+            maxWidth: "70%",
+          }}
+        >
+          <strong>{isMe ? "You" : msg.displayName || "User"}</strong>
+          <div>{msg.message}</div>
+          <small style={{ fontSize: 10, color: "#666" }}>
+            {new Date(msg.created_time).toLocaleString()}
+          </small>
+        </div>
+      </div>
+    );
+  }
+)}
 
-                return (
-                  <div
-                    key={msg.id}
-                    style={{ display: "flex", flexDirection: "column" }}
-                  >
-                    <div style={bubbleStyle}>
-                      <strong>
-                        {isMe ? "You" : msg.displayName || "User"}
-                      </strong>
-                      <div>{msg.message}</div>
-                      <small style={{ fontSize: 10, color: "#666" }}>
-                        {new Date(msg.created_time).toLocaleString()}
-                      </small>
-                    </div>
-                  </div>
-                );
-              })}
               <div ref={messagesEndRef} />
             </div>
 
