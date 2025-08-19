@@ -88,46 +88,46 @@ const fetchShopifySessions = async () => {
   }
 };
 
-const fetchWidgetUserMessages = async (user) => {
+const fetchWidgetUserMessages = async (userId) => {
   try {
-    const res = await fetch(`/admin/chat/list?userId=${user.id}`); // matches loader
+    const res = await fetch(`/admin/chat/list?userId=${userId}`);
+    if (!res.ok) throw new Error("Failed to fetch widget user messages");
     const data = await res.json();
-
-    setMessages((prev) => ({
-      ...prev,
-      [String(user.id)]: data.messages || [],
-    }));
+    return data.messages || [];
   } catch (err) {
-    console.error("Failed to fetch widget user messages:", err);
+    console.error("Error fetching widget user messages:", err);
+    return [];
   }
 };
+
 
   /** Open Shopify conversation in dashboard */
 const openShopifyConversation = async (session) => {
-  setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
+  setSelectedPage({
+    id: session.sessionId,
+    name: session.storeDomain,
+    type: "shopify",
+  });
   setSelectedConversation(session);
 
-  try {
-    // ✅ Match your Remix route filename: admin.chat.list.jsx
-    const res = await fetch(`/admin/chat/list?sessionId=${session.sessionId}`);
-    
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const contentType = res.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      const text = await res.text();
-      console.error("Expected JSON but got:", text);
-      return;
-    }
-
-    const data = await res.json();
-    setMessages({ [session.sessionId]: data.messages || [] });
-  } catch (err) {
-    console.error("Error fetching session messages:", err);
-  }
+  const msgs = await fetchMessages(session.sessionId);
+  setMessages((prev) => ({
+    ...prev,
+    [session.sessionId]: msgs,
+  }));
 };
 
 
+const openWidgetConversation = async (user) => {
+  setSelectedPage({ id: user.id, name: user.name || "User", type: "widget" });
+  setSelectedConversation(user);
 
+  const msgs = await fetchWidgetUserMessages(user.id);
+  setMessages((prev) => ({
+    ...prev,
+    [user.id]: msgs,
+  }));
+};
 
 
   /** Send message for Shopify session */
@@ -354,6 +354,7 @@ const fetchMessages = async (conv) => {
 
   setSelectedConversation(conv);
 
+  // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
     if (!conv.userNumber) {
       console.error("WhatsApp conversation missing userNumber");
@@ -364,32 +365,30 @@ const fetchMessages = async (conv) => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-const backendMessages = (data.messages || []).map((msg, index) => ({
-  id: msg.id || `local-${index}`, // fallback id
-  from: { id: msg.sender || "unknown" },
-  message: msg.content || "",
-  created_time: msg.timestamp
-    ? new Date(msg.timestamp).toISOString()
-    : msg.createdAt
-    ? new Date(msg.createdAt).toISOString()
-    : new Date().toISOString(),
-}));
-
+      const backendMessages = (data.messages || []).map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: { id: msg.sender || "unknown" },
+        message: msg.content || "",
+        created_time: msg.timestamp
+          ? new Date(msg.timestamp).toISOString()
+          : msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
 
       setMessages((prevMessages) => {
         const prevConvMessages = prevMessages[conv.id] || [];
-
-        // Filter local messages that backend hasn't returned yet
-const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
-  (localMsg.id && typeof localMsg.id === "string" && localMsg.id.startsWith("local-")) &&
-  !backendMessages.some(bm =>
-    bm.message?.trim() === localMsg.message?.trim() &&
-    Math.abs(new Date(bm.created_time) - new Date(localMsg.created_time)) < 5000
-  )
-);
-
-
-        // Combine backend + local pending messages for this conversation only
+        const localMessagesNotInBackend = prevConvMessages.filter(
+          (localMsg) =>
+            localMsg.id?.startsWith("local-") &&
+            !backendMessages.some(
+              (bm) =>
+                bm.message?.trim() === localMsg.message?.trim() &&
+                Math.abs(
+                  new Date(bm.created_time) - new Date(localMsg.created_time)
+                ) < 5000
+            )
+        );
         return {
           ...prevMessages,
           [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
@@ -402,7 +401,57 @@ const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
     return;
   }
 
-  // Facebook & Instagram messages
+  // ✅ Shopify session messages (from Remix loader)
+  if (selectedPage.type === "shopify") {
+    try {
+      const res = await fetch(`/admin/chat/list?sessionId=${conv.sessionId}`);
+      if (!res.ok) throw new Error("Failed to fetch Shopify messages");
+      const data = await res.json();
+
+      const shopifyMessages = (data.messages || []).map((msg) => ({
+        id: msg.id,
+        from: { id: msg.sender },
+        message: msg.content,
+        created_time: new Date(msg.createdAt).toISOString(),
+        displayName: msg.sender === "admin" ? "You" : "Customer",
+      }));
+
+      setMessages((prev) => ({
+        ...prev,
+        [conv.sessionId]: shopifyMessages,
+      }));
+    } catch (err) {
+      console.error("Error fetching Shopify messages:", err);
+    }
+    return;
+  }
+
+  // ✅ Widget user messages (from Remix loader)
+  if (selectedPage.type === "widget") {
+    try {
+      const res = await fetch(`/admin/chat/list?userId=${conv.id}`);
+      if (!res.ok) throw new Error("Failed to fetch widget user messages");
+      const data = await res.json();
+
+      const widgetMessages = (data.messages || []).map((msg) => ({
+        id: msg.id,
+        from: { id: msg.sender },
+        message: msg.content,
+        created_time: new Date(msg.createdAt).toISOString(),
+        displayName: msg.sender === "admin" ? "You" : conv.name || "User",
+      }));
+
+      setMessages((prev) => ({
+        ...prev,
+        [conv.id]: widgetMessages,
+      }));
+    } catch (err) {
+      console.error("Error fetching widget messages:", err);
+    }
+    return;
+  }
+
+  // ✅ Facebook & Instagram
   try {
     const token = pageAccessTokens[selectedPage.id];
     const res = await fetch(
@@ -413,33 +462,25 @@ const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
 
     const enrichedMessages = rawMessages.map((msg) => {
       let displayName = "User";
-
       if (selectedPage.type === "instagram") {
-        if (msg.from?.id === selectedPage.igId) {
-          displayName = selectedPage.name;
-        } else {
-          displayName =
-            conv.userName ||
-            msg.from?.name ||
-            msg.from?.username ||
-            `Instagram User #${msg.from?.id?.slice(-4)}`;
-        }
+        displayName =
+          msg.from?.id === selectedPage.igId
+            ? selectedPage.name
+            : conv.userName ||
+              msg.from?.name ||
+              msg.from?.username ||
+              `IG User #${msg.from?.id?.slice(-4)}`;
       } else {
-        if (msg.from?.name === selectedPage.name) {
-          displayName = selectedPage.name;
-        } else {
-          displayName = msg.from?.name || "User";
-        }
+        displayName =
+          msg.from?.name === selectedPage.name
+            ? selectedPage.name
+            : msg.from?.name || "User";
       }
-
-      return {
-        ...msg,
-        displayName,
-      };
+      return { ...msg, displayName };
     });
 
-    setMessages((prevMessages) => ({
-      ...prevMessages,
+    setMessages((prev) => ({
+      ...prev,
       [conv.id]: enrichedMessages,
     }));
   } catch (error) {
@@ -447,6 +488,7 @@ const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
     console.error(error);
   }
 };
+
 
 
 const sendWhatsAppMessage = async () => {
@@ -677,20 +719,39 @@ return (
               >
                 Shopify
               </div>
-              {shopifySessions.map((s) => (
-                <div
-                  key={s.sessionId}
-                  onClick={() => openShopifyConversation(s)}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
-                </div>
-              ))}
+         {/* Shopify Sessions */}
+{shopifySessions.map((s) => (
+  <div
+    key={s.sessionId}
+    onClick={() => openShopifyConversation(s)}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
+      borderBottom: "1px solid #eee",
+    }}
+  >
+    👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
+  </div>
+))}
+
+{/* Widget Users */}
+{widgetUsers.map((user) => (
+  <div
+    key={user.id}
+    onClick={() => openWidgetConversation(user)}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
+      borderBottom: "1px solid #eee",
+    }}
+  >
+    {user.name || "User"} <br />
+    <small>{user.email || user.sessionId}</small>
+  </div>
+))}
+
             </>
           )}
 
@@ -708,26 +769,21 @@ return (
               >
                 Widget Users
               </div>
-              {widgetUsers.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={async () => {
-                    // Fetch messages first, then set selected conversation
-                    const messagesData = await fetchWidgetUserMessages(user.id);
-                    setMessages(prev => ({ ...prev, [user.id]: messagesData }));
-                    setSelectedConversation(user);
-                  }}
-                  style={{
-                    padding: 12,
-                    cursor: "pointer",
-                    backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
-                    borderBottom: "1px solid #eee",
-                  }}
-                >
-                  {user.name || "User"} <br />
-                  <small>{user.email || user.sessionId}</small>
-                </div>
-              ))}
+            {widgetUsers.map((user) => (
+  <div
+    key={user.id}
+    onClick={() => openWidgetConversation(user)}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
+      borderBottom: "1px solid #eee",
+    }}
+  >
+    {user.name || "User"} <br />
+    <small>{user.email || user.sessionId}</small>
+  </div>
+))}
             </>
           )}
         </div>
