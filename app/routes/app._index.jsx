@@ -105,20 +105,19 @@ const handleWidgetConnect = async () => {
   setLoadingConversations(true);
 
   try {
-    const res = await fetch(`/api/chat?userId=widget`); // You can use a special identifier for all widget sessions
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const res = await fetch(`/api/chat/widget-sessions`);
+    if (!res.ok) throw new Error("Failed to fetch widget sessions");
 
     const data = await res.json();
-    const sessions = Array.isArray(data.sessions) ? data.sessions : [];
-
-    setConversations(sessions);
+    setConversations(data.sessions || []); // array of sessions
   } catch (err) {
-    console.error("Widget connect error:", err);
+    console.error("Widget session fetch failed:", err);
     setConversations([]);
   } finally {
     setLoadingConversations(false);
   }
 };
+
 
 
 
@@ -278,6 +277,7 @@ const handleWidgetConnect = async () => {
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
 
+  
   setSelectedConversation(conv);
 
   // ✅ WhatsApp
@@ -329,51 +329,46 @@ const fetchMessages = async (conv) => {
     return;
   }
 
-  // ✅ Widget
- // ✅ Widget
-  // For Widget, fetch messages from your API using sessionId
-  if (selectedPage?.type === "widget") {
-    try {
-      let url = "";
 
-      if (conv.sessionId) {
-        // fetch messages using sessionId
-        url = `/api/chat?sessionId=${encodeURIComponent(conv.sessionId)}`;
-      } else {
-        // fallback to conversationId if sessionId is not available
-        url = `/api/chat?conversationId=${encodeURIComponent(conv.id)}`;
-      }
-
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-
-      let backendMessages = [];
-
-      if (data.messages) {
-        backendMessages = data.messages.map((msg, index) => ({
-          id: msg.id || `local-${index}`,
-          from: msg.sender || "unknown",
-          message: msg.text || msg.content || "",
-          created_time: msg.createdAt
-            ? new Date(msg.createdAt).toISOString()
-            : new Date().toISOString(),
-        }));
-      }
-
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [conv.sessionId || conv.id]: backendMessages,
-      }));
-
-      setSelectedConversation(conv); // select conversation in UI
-    } catch (err) {
-      console.error("Error fetching Widget messages", err);
-      alert("Failed to fetch Widget messages.");
-    }
-
+if (selectedPage?.type === "widget") {
+  if (!conv.sessionId || !conv.storeDomain) {
+    console.error("Widget conversation missing sessionId or storeDomain");
     return;
   }
+
+  try {
+    const url = `/api/chat?session_id=${encodeURIComponent(conv.sessionId)}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+
+    let backendMessages = [];
+
+    if (data.messages) {
+      backendMessages = data.messages.map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: msg.sender || "unknown",
+        message: msg.text || msg.content || "",
+        created_time: msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
+    }
+
+    setMessages((prevMessages) => ({
+      ...prevMessages,
+      [conv.sessionId]: backendMessages,
+    }));
+
+    setSelectedConversation(conv); 
+  } catch (err) {
+    console.error("Error fetching Widget messages", err);
+    alert("Failed to fetch Widget messages.");
+  }
+
+  return;
+}
+
 
   // --- Other platform logic (Facebook, Instagram, WhatsApp) ---
   // Example for Instagram / FB messages (your previous code)
