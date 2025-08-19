@@ -14,10 +14,11 @@ export default function SocialChatDashboard() {
   const [newMessage, setNewMessage] = useState("");
 const [selectedCustomer, setSelectedCustomer] = useState(null);
 const [currentStoreDomain, setCurrentStoreDomain] = useState("");
-
 useEffect(() => {
-  const url = new URL(window.location.href);
-  setCurrentStoreDomain(url.searchParams.get("shop") || "");
+  if (typeof window !== "undefined") {
+    const url = new URL(window.location.href);
+    setCurrentStoreDomain(url.searchParams.get("shop") || "");
+  }
 }, []);
 
 // Set it when a user is selected in the widget
@@ -669,6 +670,46 @@ await fetch("/api/sendMessage", {
 };
 
 
+const sendWidgetMessage = async () => {
+  if (!newMessage.trim() || sendingMessage) return;
+
+  if (!selectedConversation?.id && !selectedCustomer?.id) {
+    alert("Please select a customer to start a new conversation");
+    return;
+  }
+
+  setSendingMessage(true);
+
+  try {
+    const response = await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: selectedConversation?.sessionId, // optional if new
+        customerId: selectedConversation?.id ? undefined : selectedCustomer?.id,
+        message: newMessage,
+        sender: "me",
+        store_domain: currentStoreDomain,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      console.error(result.error);
+      alert("Failed to send widget message: " + result.error);
+      return;
+    }
+
+    setNewMessage("");
+    await fetchMessages(selectedConversation || result.conversation);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to send widget message. Check console for details.");
+  } finally {
+    setSendingMessage(false);
+  }
+};
 
   
 return (
