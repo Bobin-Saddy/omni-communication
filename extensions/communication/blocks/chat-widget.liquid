@@ -35,18 +35,19 @@
     const input = root.querySelector('.oc-chat-input input');
     const sendBtn = root.querySelector('.oc-chat-input button');
 
-    // session id for this browser
+    // Generate session id for this browser
     const sidKey = 'oc_chat_sid';
     function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8); return v.toString(16); }); }
     let SID = localStorage.getItem(sidKey);
     if (!SID) { SID = uuid(); localStorage.setItem(sidKey, SID); }
 
-    // UI
+    // Toggle chat panel
     btnToggle.addEventListener('click', ()=> {
       panel.classList.toggle('oc-hidden');
       btnToggle.classList.toggle('oc-hidden');
     });
 
+    // Append bubble to chat
     function appendBubble(text, who){
       const b = document.createElement('div');
       b.className = 'oc-bubble ' + (who === 'customer' ? 'oc-me' : 'oc-them');
@@ -59,7 +60,7 @@
     async function sendMessage(){
       const msg = (input.value || '').trim();
       if (!msg) return;
-      appendBubble(msg, 'customer');
+      appendBubble(msg, 'customer'); // right side
       input.value = '';
       try {
         await fetch(endpoint, {
@@ -77,7 +78,7 @@
     sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') sendMessage(); });
 
-    // Polling
+    // Poll messages
     let lastISO = null;
     async function poll(){
       try {
@@ -89,16 +90,14 @@
         const data = await r.json();
         if (data && data.ok && Array.isArray(data.messages)) {
           data.messages.forEach(m => {
-            // Only render owner messages or older messages on first load
-            if (!lastISO || m.sender === 'owner') {
-              if (m.sender === 'owner') appendBubble(m.text, 'owner');
-            }
+            if (m.sender === 'owner') appendBubble(m.text, 'owner'); // left side
             lastISO = m.createdAt;
           });
         }
-      } catch(e) { /* ignore */ }
+      } catch(e) { console.warn('poll error', e); }
     }
-    // initial load: get history
+
+    // Initial load: get history
     (async function init(){
       const url = new URL(endpoint);
       url.searchParams.set('store_domain', store);
@@ -111,9 +110,11 @@
       }
       setInterval(poll, 3000);
     })();
+
   })();
   </script>
 </div>
+
 
 {% schema %}
 {
