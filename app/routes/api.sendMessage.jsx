@@ -1,5 +1,8 @@
 import { json } from "@remix-run/node";
-import { prisma } from "../db.server"; // ✅ matches named export
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
 
 export const action = async ({ request }) => {
   try {
