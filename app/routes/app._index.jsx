@@ -719,39 +719,20 @@ return (
               >
                 Shopify
               </div>
-         {/* Shopify Sessions */}
-{shopifySessions.map((s) => (
-  <div
-    key={s.sessionId}
-    onClick={() => openShopifyConversation(s)}
-    style={{
-      padding: 12,
-      cursor: "pointer",
-      backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
-      borderBottom: "1px solid #eee",
-    }}
-  >
-    👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
-  </div>
-))}
-
-{/* Widget Users */}
-{widgetUsers.map((user) => (
-  <div
-    key={user.id}
-    onClick={() => openWidgetConversation(user)}
-    style={{
-      padding: 12,
-      cursor: "pointer",
-      backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
-      borderBottom: "1px solid #eee",
-    }}
-  >
-    {user.name || "User"} <br />
-    <small>{user.email || user.sessionId}</small>
-  </div>
-))}
-
+              {shopifySessions.map((s) => (
+                <div
+                  key={s.sessionId}
+                  onClick={() => openShopifyConversation(s)}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedPage?.id === s.sessionId ? "#e3f2fd" : "white",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  👤 {s.sessionId} <br /> 🏬 {s.storeDomain}
+                </div>
+              ))}
             </>
           )}
 
@@ -769,21 +750,26 @@ return (
               >
                 Widget Users
               </div>
-            {widgetUsers.map((user) => (
-  <div
-    key={user.id}
-    onClick={() => openWidgetConversation(user)}
-    style={{
-      padding: 12,
-      cursor: "pointer",
-      backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
-      borderBottom: "1px solid #eee",
-    }}
-  >
-    {user.name || "User"} <br />
-    <small>{user.email || user.sessionId}</small>
-  </div>
-))}
+              {widgetUsers.map((user) => (
+                <div
+                  key={user.id}
+                  onClick={async () => {
+                    // Fetch messages first, then set selected conversation
+                    const messagesData = await fetchWidgetUserMessages(user.id);
+                    setMessages(prev => ({ ...prev, [user.id]: messagesData }));
+                    setSelectedConversation(user);
+                  }}
+                  style={{
+                    padding: 12,
+                    cursor: "pointer",
+                    backgroundColor: selectedConversation?.id === user.id ? "#e3f2fd" : "white",
+                    borderBottom: "1px solid #eee",
+                  }}
+                >
+                  {user.name || "User"} <br />
+                  <small>{user.email || user.sessionId}</small>
+                </div>
+              ))}
             </>
           )}
         </div>
