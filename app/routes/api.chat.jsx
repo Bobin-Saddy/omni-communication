@@ -15,17 +15,14 @@ function getCorsHeaders(request) {
   return { "Access-Control-Allow-Origin": "null" };
 }
 
-// GET all widget sessions
+// GET messages or sessions
 export async function loader({ request }) {
   const corsHeaders = getCorsHeaders(request);
-
-  if (request.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = new URL(request.url);
 
-  // If fetching all widget sessions
+  // Fetch all widget sessions
   if (url.searchParams.get("widget") === "true") {
     const sessions = await prisma.storeChatSession.findMany({
       orderBy: { createdAt: "desc" },
@@ -33,8 +30,8 @@ export async function loader({ request }) {
     return json({ ok: true, sessions }, { headers: corsHeaders });
   }
 
-  const storeDomain = url.searchParams.get("store_domain");
-  const sessionId = url.searchParams.get("session_id");
+  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
+  const sessionId = url.searchParams.get("session_id") || url.searchParams.get("sessionId");
 
   if (!storeDomain || !sessionId) {
     return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
@@ -48,27 +45,38 @@ export async function loader({ request }) {
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
 
-
+// POST message
 export async function action({ request }) {
   const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const body = await request.json();
-  const { session_id, message, sender, store_domain } = body;
 
-  if (!session_id || !message || !sender || !store_domain) {
+  // Accept both frontend and backend field names
+  const sessionId = body.sessionId || body.session_id;
+  const storeDomain = body.storeDomain || body.store_domain;
+  const message = body.message;
+  let sender = body.sender;
+
+  if (!sessionId || !storeDomain || !message) {
     return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
   }
 
+  // Map sender to standardized values
+  if (!sender) sender = "me"; // default from backend
+  sender = sender === "customer" ? "customer" : "me"; // frontend = customer, backend = me
+
+  // Ensure session exists
   await prisma.storeChatSession.upsert({
-    where: { sessionId: session_id },
+    where: { sessionId },
     update: {},
-    create: { sessionId: session_id, storeDomain: store_domain },
+    create: { sessionId, storeDomain },
   });
 
-  await prisma.storeChatMessage.create({
-    data: { sessionId: session_id, storeDomain: store_domain, sender, text: message },
+  // Save the message
+  const savedMessage = await prisma.storeChatMessage.create({
+    data: { sessionId, storeDomain, sender, text: message },
   });
 
-  return json({ ok: true }, { headers: corsHeaders });
+  return json({ ok: true, message: savedMessage }, { headers: corsHeaders });
 }
