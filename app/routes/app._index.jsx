@@ -553,96 +553,108 @@ const sendWhatsAppMessage = async () => {
   }
 };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedPage || !selectedConversation || sendingMessage) return;
+const sendMessage = async () => {
+  if (!newMessage.trim() || !selectedPage || sendingMessage) return;
 
+  setSendingMessage(true);
+
+  try {
+    // --- Widget messages ---
+    if (selectedPage.type === "widget") {
+      if (!selectedConversation?.id && !selectedCustomer?.id) {
+        alert("Select a user to start conversation");
+        setSendingMessage(false);
+        return;
+      }
+
+      const payload = {
+        message: newMessage,
+        store_domain: currentStoreDomain,
+      };
+
+      if (selectedConversation?.id) {
+        payload.session_id = selectedConversation.sessionId;
+      } else if (selectedCustomer?.id) {
+        payload.customerId = selectedCustomer.id;
+      }
+
+      const response = await fetch("/api/sendMessage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        console.error(result.error);
+        alert("Failed to send widget message: " + (result.error || "Unknown error"));
+        return;
+      }
+
+      setNewMessage("");
+      await fetchMessages(selectedConversation || result.conversation);
+      return;
+    }
+
+    // --- WhatsApp messages ---
     if (selectedPage.type === "whatsapp") {
       await sendWhatsAppMessage();
       return;
     }
 
-    setSendingMessage(true);
-    try {
-      const token = pageAccessTokens[selectedPage.id];
+    // --- Instagram & Facebook ---
+    const token = pageAccessTokens[selectedPage.id];
+    if (!token) return alert("Page token missing");
 
-      if (selectedPage.type === "instagram") {
-        const msgRes = await fetch(
-          `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
-        );
-        const msgData = await msgRes.json();
-        const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-        if (!sender) return alert("Recipient not found");
+    let recipientId;
 
-        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messaging_product: "instagram",
-            recipient: { id: sender.from.id },
-            message: { text: newMessage },
-          }),
-        });
-      } else {
-        const participants = selectedConversation.participants?.data || [];
-        const recipient = participants.find((p) => p.name !== selectedPage.name);
-        if (!recipient) return alert("Recipient not found");
+    if (selectedPage.type === "instagram") {
+      const msgRes = await fetch(
+        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
+      );
+      const msgData = await msgRes.json();
+      const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
+      if (!sender) return alert("Recipient not found for Instagram");
+      recipientId = sender.from.id;
 
-        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipient: { id: recipient.id },
-            message: { text: newMessage },
-            messaging_type: "MESSAGE_TAG",
-            tag: "ACCOUNT_UPDATE",
-          }),
-        });
-      }
-
-      setNewMessage("");
-      await fetchMessages(selectedConversation);
-    } catch (error) {
-      alert("Failed to send message.");
-      console.error(error);
-    } finally {
-      setSendingMessage(false);
-    }
-
-      if (selectedPage.type === "widget") {
-    setSendingMessage(true);
-    try {
-      await fetch("/api/sendMessage", {
+      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: selectedConversation.userId, // comes from conv
-          message: newMessage,
+          messaging_product: "instagram",
+          recipient: { id: recipientId },
+          message: { text: newMessage },
         }),
       });
+    } else {
+      const participants = selectedConversation.participants?.data || [];
+      const recipient = participants.find((p) => p.name !== selectedPage.name);
+      if (!recipient) return alert("Recipient not found for Facebook");
+      recipientId = recipient.id;
 
-      setNewMessage("");
-      await fetchMessages(selectedConversation); // reload messages
-    } catch (error) {
-      alert("Failed to send widget message.");
-      console.error(error);
-    } finally {
-      setSendingMessage(false);
+      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: { text: newMessage },
+          messaging_type: "MESSAGE_TAG",
+          tag: "ACCOUNT_UPDATE",
+        }),
+      });
     }
-    return;
-  }
 
-  // 🟢 Instagram & Facebook
-  setSendingMessage(true);
-  try {
-    // ... your existing IG/FB sending logic unchanged ...
-  } catch (error) {
-    alert("Failed to send message.");
-    console.error(error);
+    setNewMessage("");
+    await fetchMessages(selectedConversation);
+  } catch (err) {
+    console.error(err);
+    alert("Failed to send message. Check console for details.");
   } finally {
     setSendingMessage(false);
   }
+};
 
-  };
 
 
 
