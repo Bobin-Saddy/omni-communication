@@ -105,38 +105,16 @@ const handleWidgetConnect = async () => {
   setLoadingConversations(true);
 
   try {
-    // ✅ Example: get userId dynamically
-    // Option 1: from URL
-    const url = new URL(window.location.href);
-    const userId = url.searchParams.get("userId");
+    // 👇 assume you have userId stored in state/context
+    const userId = currentUser?.id || selectedUser?.id;
 
-    // Option 2: from localStorage (if you saved user info there)
-    // const userId = localStorage.getItem("userId");
+    if (!userId) throw new Error("UserId is missing!");
 
-    // Option 3: from logged in session (props, context, etc.)
-    // const userId = currentUser?.id;
-
-    if (!userId) {
-      throw new Error("UserId is missing!");
-    }
-
-    // ✅ Pass userId dynamically
-    const res = await fetch(`/admin/chat/list?userId=${encodeURIComponent(userId)}`);
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch widget conversations: ${res.status}`);
-    }
+    const res = await fetch(`/admin/chat/list?userId=${userId}`);
+    if (!res.ok) throw new Error(`Failed to fetch widget conversations: ${res.status}`);
 
     const data = await res.json();
-
-    // ✅ Adjust depending on your API response
-    if (data.sessions) {
-      setConversations(data.sessions);
-    } else if (data.messages) {
-      setConversations(data.messages);
-    } else {
-      setConversations([]);
-    }
+    setConversations(data.sessions || data.messages || []);
   } catch (err) {
     console.error("Widget fetch error:", err);
     setConversations([]);
@@ -144,6 +122,7 @@ const handleWidgetConnect = async () => {
     setLoadingConversations(false);
   }
 };
+
 
 
 
