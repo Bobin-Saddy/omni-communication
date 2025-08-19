@@ -570,42 +570,45 @@ const sendMessage = async () => {
 
   try {
     // --- Widget messages ---
-    if (selectedPage.type === "widget") {
-      if (!selectedConversation?.id && !selectedCustomer?.id) {
-        alert("Select a user to start conversation");
-        setSendingMessage(false);
-        return;
-      }
+if (selectedPage.type === "widget") {
+  setSendingMessage(true);
+  try {
+    const payload = { message: newMessage };
 
-      const payload = {
-        message: newMessage,
-        store_domain: currentStoreDomain,
-      };
-
-      if (selectedConversation?.id) {
-        payload.session_id = selectedConversation.sessionId;
-      } else if (selectedCustomer?.id) {
-        payload.customerId = selectedCustomer.id;
-      }
-
-      const response = await fetch("/api/sendMessage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || result.error) {
-        console.error(result.error);
-        alert("Failed to send widget message: " + (result.error || "Unknown error"));
-        return;
-      }
-
-      setNewMessage("");
-      await fetchMessages(selectedConversation || result.conversation);
+    if (selectedConversation?.id) {
+      payload.conversationId = selectedConversation.id;
+    } else if (selectedCustomer?.id) {
+      payload.customerId = selectedCustomer.id; // mandatory for new conversation
+    } else {
+      alert("Customer must be selected to start a new conversation");
+      setSendingMessage(false);
       return;
     }
+
+    const response = await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      console.error(result.error);
+      alert("Failed to send widget message: " + result.error);
+      return;
+    }
+
+    setNewMessage("");
+    await fetchMessages(selectedConversation || result.conversation);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to send widget message. Check console for details.");
+  } finally {
+    setSendingMessage(false);
+  }
+  return;
+}
+
 
     // --- WhatsApp messages ---
     if (selectedPage.type === "whatsapp") {
