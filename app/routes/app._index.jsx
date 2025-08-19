@@ -105,7 +105,7 @@ const handleWidgetConnect = async () => {
   setLoadingConversations(true);
 
   try {
-    const res = await fetch(`/api/chat`);
+    const res = await fetch(`/api/chat?widget=true`);
     if (!res.ok) throw new Error("Failed to fetch widget sessions");
 
     const data = await res.json();
@@ -117,6 +117,7 @@ const handleWidgetConnect = async () => {
     setLoadingConversations(false);
   }
 };
+
 
 
 
