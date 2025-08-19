@@ -4,35 +4,51 @@ import db from "../db.server"; // adjust path to your Prisma instance
 
 // Loader function to fetch messages
 export async function loader({ request }) {
-  const url = new URL(request.url);
-  const conversationId = url.searchParams.get("conversationId");
+  try {
+    const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
+    const sessionId = url.searchParams.get("sessionId");
+    const shop = url.searchParams.get("shop");
 
-  if (!conversationId) {
-    return json({ error: "conversationId is required" }, { status: 400 });
+    let messages = [];
+    let sessions = [];
+
+    if (userId && userId !== "undefined") {
+      messages = await prisma.chatMessage.findMany({
+        where: { userId: parseInt(userId) },
+        orderBy: { createdAt: "asc" },
+      });
+    } else if (sessionId && sessionId !== "undefined") {
+      messages = await prisma.chatMessage.findMany({
+        where: { sessionId: parseInt(sessionId) },
+        orderBy: { createdAt: "asc" },
+      });
+    } else if (shop) {
+      sessions = await prisma.storeChatSession.findMany({
+        where: { storeDomain: shop },
+        orderBy: { lastSeenAt: "desc" },
+      });
+    } else {
+      sessions = await prisma.storeChatSession.findMany({
+        orderBy: { lastSeenAt: "desc" },
+      });
+    }
+
+    return json({ messages, sessions });
+  } catch (err) {
+    console.error("Loader error:", err);
+    return json({ messages: [], sessions: [] });
   }
-
-  // Fetch messages with conversation relation
-  const messages = await db.chatMessage.findMany({
-    where: { conversationId: Number(conversationId) },
-    orderBy: { createdAt: "asc" }, // oldest to newest
-    include: {
-      conversation: true,
-    },
-  });
-
-  return json({ messages });
 }
 
 // React component
 export default function ChatMessages() {
-  const { messages } = useLoaderData();
+  const { messages = [], sessions = [] } = useLoaderData();
 
-  return (
-    <div style={{ padding: "20px" }}>
-      <h2>Chat Messages</h2>
-      {messages.length === 0 ? (
-        <p>No messages found.</p>
-      ) : (
+  if (messages.length > 0) {
+    return (
+      <div>
+        <h2>Messages</h2>
         <ul>
           {messages.map((msg) => (
             <li key={msg.id}>
@@ -42,7 +58,22 @@ export default function ChatMessages() {
             </li>
           ))}
         </ul>
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  if (sessions.length > 0) {
+    return (
+      <div>
+        <h2>Sessions</h2>
+        <ul>
+          {sessions.map((s) => (
+            <li key={s.id}>{s.storeDomain} (last seen {new Date(s.lastSeenAt).toLocaleString()})</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  return <p>No messages or sessions found.</p>;
 }
