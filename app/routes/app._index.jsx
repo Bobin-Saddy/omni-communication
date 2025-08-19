@@ -285,37 +285,34 @@ const fetchMessages = async (conv) => {
   setSelectedConversation({ ...conv, messageKey });
 
   if (selectedPage.type === "widget") {
-  if (!newMessage.trim() || !selectedConversation?.id) return;
+    if (!conv.sessionId || !conv.storeDomain) return;
 
-  setSendingMessage(true);
-  try {
-    const response = await fetch("/api/sendMessage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        conversationId: selectedConversation.id, // only use existing conversation
-        message: newMessage,
-      }),
-    });
+    try {
+      const url = `/api/chat?session_id=${encodeURIComponent(
+        conv.sessionId
+      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
 
-    const result = await response.json();
-    if (!response.ok) {
-      console.error(result.error);
-      alert("Failed to send widget message: " + result.error);
-      return;
+      const backendMessages = (data.messages || []).map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: msg.sender || "unknown",
+        message: msg.text || msg.content || "",
+        created_time: msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
+
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [messageKey]: backendMessages,
+      }));
+    } catch (err) {
+      console.error("Widget fetch failed:", err);
     }
-
-    setNewMessage("");
-    await fetchMessages(selectedConversation);
-  } catch (error) {
-    console.error(error);
-    alert("Failed to send widget message. Check console for details.");
-  } finally {
-    setSendingMessage(false);
+    return;
   }
-
-  return;
-}
 
   // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
@@ -367,46 +364,38 @@ const fetchMessages = async (conv) => {
   }
 
   // ✅ Widget
-  if (selectedPage.type === "widget") {
-    if (!conv.sessionId || !conv.storeDomain) {
-      console.error("Widget conversation missing sessionId or storeDomain");
+if (selectedPage.type === "widget") {
+  if (!newMessage.trim() || !selectedConversation?.id) return;
+
+  setSendingMessage(true);
+  try {
+    const response = await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: selectedConversation.id, // only use existing conversation
+        message: newMessage,
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      console.error(result.error);
+      alert("Failed to send widget message: " + result.error);
       return;
     }
 
-    try {
-      const url = `/api/chat?session_id=${encodeURIComponent(
-        conv.sessionId
-      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-
-      let backendMessages = [];
-
-      if (data.messages) {
-        backendMessages = data.messages.map((msg, index) => ({
-          id: msg.id || `local-${index}`,
-          from: msg.sender || "unknown",
-          message: msg.text || msg.content || "",
-          created_time: msg.createdAt
-            ? new Date(msg.createdAt).toISOString()
-            : new Date().toISOString(),
-        }));
-      }
-
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [messageKey]: backendMessages, // use messageKey here
-      }));
-
-      // selectedConversation already set with messageKey above
-    } catch (err) {
-      console.error("Error fetching Widget messages", err);
-      alert("Failed to fetch Widget messages.");
-    }
-
-    return;
+    setNewMessage("");
+    await fetchMessages(selectedConversation);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to send widget message. Check console for details.");
+  } finally {
+    setSendingMessage(false);
   }
+
+  return;
+}
 
   // --- Other platform logic (Facebook, Instagram, etc.) ---
   try {
