@@ -365,17 +365,30 @@ const fetchMessages = async (conv) => {
 
   // ✅ Widget
 if (selectedPage.type === "widget") {
-  if (!newMessage.trim() || !selectedConversation?.id) return;
+  if (!newMessage.trim()) return;
 
   setSendingMessage(true);
   try {
+    const payload = {
+      message: newMessage,
+    };
+
+    // If conversation exists, send conversationId
+    if (selectedConversation?.id) {
+      payload.conversationId = selectedConversation.id;
+    } else if (selectedCustomer?.id) {
+      // Otherwise send customerId to create new conversation
+      payload.customerId = selectedCustomer.id;
+    } else {
+      alert("Customer must be selected to start a new conversation");
+      setSendingMessage(false);
+      return;
+    }
+
     const response = await fetch("/api/sendMessage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        conversationId: selectedConversation.id, // only use existing conversation
-        message: newMessage,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const result = await response.json();
@@ -386,16 +399,16 @@ if (selectedPage.type === "widget") {
     }
 
     setNewMessage("");
-    await fetchMessages(selectedConversation);
+    await fetchMessages(selectedConversation || result.conversation); // reload messages
   } catch (error) {
     console.error(error);
     alert("Failed to send widget message. Check console for details.");
   } finally {
     setSendingMessage(false);
   }
-
   return;
 }
+
 
   // --- Other platform logic (Facebook, Instagram, etc.) ---
   try {
