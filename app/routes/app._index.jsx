@@ -108,23 +108,24 @@ const openShopifyConversation = async (session) => {
   setSelectedConversation(session);
 
   try {
-    // Fetch the sessions again from your existing loader
-    const url = new URL(window.location.href);
-    const shop = url.searchParams.get("shop");
-    if (!shop) return;
+    // ✅ Match your Remix route filename: admin.chat.list.jsx
+    const res = await fetch(`/admin/chat/list?sessionId=${session.sessionId}`);
+    
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const contentType = res.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      const text = await res.text();
+      console.error("Expected JSON but got:", text);
+      return;
+    }
 
-    const res = await fetch(`/admin/chat/list?shop=${shop}`);
     const data = await res.json();
-
-    // Find the session we want
-    const currentSession = data.sessions.find(s => s.sessionId === session.sessionId);
-
-    // Set messages for this session
-    setMessages({ [session.sessionId]: currentSession?.messages || [] });
+    setMessages({ [session.sessionId]: data.messages || [] });
   } catch (err) {
     console.error("Error fetching session messages:", err);
   }
 };
+
 
 
 
