@@ -577,28 +577,29 @@ if (selectedPage.type === "widget") {
 
   setSendingMessage(true);
   try {
-await fetch("/api/sendMessage", {
+const response = await fetch("/api/sendMessage", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    session_id: selectedConversation.sessionId,
-    store_domain: currentStoreDomain,
-    sender: "me",
+    session_id: selectedConversation?.sessionId, // if exists
+    customerId: selectedConversation?.id ? undefined : selectedCustomer?.id,
     message: newMessage,
+    sender: "me",
+    store_domain: currentStoreDomain,
   }),
 });
 
+const result = await response.json();
 
+if (!response.ok || !result.ok) {
+  console.error(result.error);
+  alert("Failed to send widget message: " + result.error);
+  return;
+}
 
-    const result = await response.json();
-    if (!response.ok) {
-      console.error(result.error);
-      alert("Failed to send widget message: " + result.error);
-      return;
-    }
+setNewMessage("");
+await fetchMessages(selectedConversation || result.conversation);
 
-    setNewMessage("");
-    await fetchMessages(selectedConversation);
   } catch (error) {
     console.error(error);
     alert("Failed to send widget message. Check console for details.");
