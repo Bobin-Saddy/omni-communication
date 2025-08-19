@@ -26,6 +26,16 @@ export default function SocialChatDashboard() {
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
+  const [currentStoreDomain, setCurrentStoreDomain] = useState(null);
+
+// set it when user selects a store or on mount
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const shop = urlParams.get("shop");
+  if (shop) setCurrentStoreDomain(shop);
+}, []);
+
+
   // Initialize Facebook SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
