@@ -574,12 +574,13 @@ await fetch("/api/sendMessage", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    session_id: selectedConversation.sessionId, // required
-    store_domain: currentStoreDomain,          // required
+    session_id: selectedConversation.sessionId,
+    store_domain: currentStoreDomain,
     sender: "me",
     message: newMessage,
   }),
 });
+
 
     const result = await response.json();
     if (!response.ok) {
