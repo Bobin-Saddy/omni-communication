@@ -285,34 +285,37 @@ const fetchMessages = async (conv) => {
   setSelectedConversation({ ...conv, messageKey });
 
   if (selectedPage.type === "widget") {
-    if (!conv.sessionId || !conv.storeDomain) return;
+  if (!newMessage.trim() || !selectedConversation?.id) return;
 
-    try {
-      const url = `/api/chat?session_id=${encodeURIComponent(
-        conv.sessionId
-      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
+  setSendingMessage(true);
+  try {
+    const response = await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: selectedConversation.id, // only use existing conversation
+        message: newMessage,
+      }),
+    });
 
-      const backendMessages = (data.messages || []).map((msg, index) => ({
-        id: msg.id || `local-${index}`,
-        from: msg.sender || "unknown",
-        message: msg.text || msg.content || "",
-        created_time: msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
-
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [messageKey]: backendMessages,
-      }));
-    } catch (err) {
-      console.error("Widget fetch failed:", err);
+    const result = await response.json();
+    if (!response.ok) {
+      console.error(result.error);
+      alert("Failed to send widget message: " + result.error);
+      return;
     }
-    return;
+
+    setNewMessage("");
+    await fetchMessages(selectedConversation);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to send widget message. Check console for details.");
+  } finally {
+    setSendingMessage(false);
   }
+
+  return;
+}
 
   // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
