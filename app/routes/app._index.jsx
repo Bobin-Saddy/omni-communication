@@ -105,15 +105,29 @@ const handleWidgetConnect = async (userId) => {
   setLoadingConversations(true);
 
   try {
-    if (!userId) throw new Error("UserId is missing!");
+    if (!userId) {
+      console.error("❌ Widget connect failed: userId is missing");
+      setConversations([]);
+      return;
+    }
 
     const res = await fetch(`/admin/chat/list?userId=${encodeURIComponent(userId)}`);
-    if (!res.ok) throw new Error(`Failed to fetch widget conversations: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch widget conversations: ${res.status} ${res.statusText}`);
+    }
 
     const data = await res.json();
-    setConversations(data.sessions || data.messages || []);
+
+    // Normalize data so UI always receives an array
+    const normalized = Array.isArray(data.sessions)
+      ? data.sessions
+      : Array.isArray(data.messages)
+      ? data.messages
+      : [];
+
+    setConversations(normalized);
   } catch (err) {
-    console.error("Widget fetch error:", err);
+    console.error("⚠️ Widget fetch error:", err);
     setConversations([]);
   } finally {
     setLoadingConversations(false);
