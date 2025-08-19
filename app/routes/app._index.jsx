@@ -558,14 +558,16 @@ const sendMessage = async () => {
 
   // Widget messages
 if (selectedPage.type === "widget") {
+  if (!newMessage.trim()) return;
+
   setSendingMessage(true);
   try {
     await fetch("/api/sendMessage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        conversationId: selectedConversation?.id, // may be undefined
-        customerId: selectedCustomer?.id,        // required if no conversation
+        conversationId: selectedConversation?.id || null, // can be null if new conversation
+        customerId: selectedCustomer?.id,                // must be provided
         message: newMessage,
       }),
     });
