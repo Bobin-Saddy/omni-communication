@@ -584,7 +584,7 @@ if (selectedPage.type === "widget") {
       body: JSON.stringify({
         storeDomain: currentStoreDomain,              // your shop domain
         sessionId: selectedConversation.sessionId,   // sessionId of this chat
-        sender: "me",
+        sender: "customer",                           // <-- must be "customer"
         message: newMessage,
       }),
     });
@@ -607,6 +607,7 @@ if (selectedPage.type === "widget") {
   }
   return;
 }
+
 
 
 

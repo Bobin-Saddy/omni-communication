@@ -15,18 +15,14 @@ export const action = async ({ request }) => {
       return json({ error: "storeDomain and sessionId are required" }, { status: 400 });
     }
 
-    // Check if session exists
+    // Ensure session exists
     let session = await prisma.storeChatSession.findUnique({
       where: { sessionId },
     });
 
-    // Create new session if not exists
     if (!session) {
       session = await prisma.storeChatSession.create({
-        data: {
-          sessionId,
-          storeDomain,
-        },
+        data: { sessionId, storeDomain },
       });
     }
 
@@ -35,7 +31,7 @@ export const action = async ({ request }) => {
       data: {
         sessionId: session.sessionId,
         storeDomain,
-        sender: sender || "me",
+        sender: sender === "customer" ? "customer" : "owner", // explicitly mark sender
         text: message,
       },
     });
