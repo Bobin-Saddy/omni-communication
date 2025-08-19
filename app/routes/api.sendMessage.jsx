@@ -6,42 +6,41 @@ const prisma = new PrismaClient();
 export const action = async ({ request }) => {
   try {
     const data = await request.json();
-    const { conversationId, customerId, message } = data;
+    const { sessionId, storeDomain, sender, message } = data;
 
     if (!message) {
       return json({ error: "Message is required" }, { status: 400 });
     }
-
-    let session = null;
-
-    // Try to find existing conversation
-    if (conversationId) {
-      session = await prisma.chatSession.findUnique({
-        where: { id: parseInt(conversationId, 10) },
-      });
+    if (!storeDomain || !sessionId) {
+      return json({ error: "storeDomain and sessionId are required" }, { status: 400 });
     }
 
-    // If no session, create a new one using customerId
-    if (!session) {
-      if (!customerId) {
-        return json({ error: "CustomerId is required for new conversation" }, { status: 400 });
-      }
+    // Check if session exists
+    let session = await prisma.storeChatSession.findUnique({
+      where: { sessionId },
+    });
 
-      session = await prisma.chatSession.create({
-        data: { customerId: parseInt(customerId, 10) },
+    // Create new session if not exists
+    if (!session) {
+      session = await prisma.storeChatSession.create({
+        data: {
+          sessionId,
+          storeDomain,
+        },
       });
     }
 
     // Save chat message
-    const savedMessage = await prisma.chatMessage.create({
+    const savedMessage = await prisma.storeChatMessage.create({
       data: {
-        conversationId: session.id,
-        sender: "me",
-        content: message,
+        sessionId: session.sessionId,
+        storeDomain,
+        sender: sender || "me",
+        text: message,
       },
     });
 
-    return json({ success: true, message: savedMessage, conversation: session });
+    return json({ success: true, message: savedMessage, session });
   } catch (err) {
     console.error("Error saving chat message:", err);
     return json({ error: "Failed to save message" }, { status: 500 });
