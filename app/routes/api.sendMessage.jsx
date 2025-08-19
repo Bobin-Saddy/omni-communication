@@ -6,21 +6,35 @@ const prisma = new PrismaClient();
 export const action = async ({ request }) => {
   try {
     const data = await request.json();
-    const { conversationId, message } = data;
+    const { conversationId, message, customerId } = data;
 
-    // Use ChatSession (not Conversation)
-    const session = await prisma.chatSession.findUnique({
-      where: { id: parseInt(conversationId, 10) },
-    });
-
-    if (!session) {
-      return json({ error: "Conversation not found" }, { status: 400 });
+    if (!message || (!conversationId && !customerId)) {
+      return json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Try to fetch the existing chat session
+    let session = null;
+
+    if (conversationId) {
+      session = await prisma.chatSession.findUnique({
+        where: { id: parseInt(conversationId, 10) },
+      });
+    }
+
+    // If session does not exist, create one using customerId
+    if (!session) {
+      session = await prisma.chatSession.create({
+        data: {
+          customerId: customerId, // You need to send customerId from frontend
+        },
+      });
+    }
+
+    // Save the chat message
     const savedMessage = await prisma.chatMessage.create({
       data: {
         conversationId: session.id,
-        sender: "me",
+        sender: "me", // Owner sending message
         content: message,
       },
     });

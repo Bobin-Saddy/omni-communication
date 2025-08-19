@@ -560,14 +560,16 @@ const sendMessage = async () => {
   if (selectedPage.type === "widget") {
     setSendingMessage(true);
     try {
-      await fetch("/api/sendMessage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: selectedConversation.id, // Widget uses conversationId
-          message: newMessage,
-        }),
-      });
+ await fetch("/api/sendMessage", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    conversationId: selectedConversation?.id,
+    customerId: selectedCustomer?.id,
+    message: newMessage,
+  }),
+});
+
 
       setNewMessage("");
       await fetchMessages(selectedConversation); // reload messages
