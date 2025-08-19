@@ -60,21 +60,14 @@ export async function action({ request }) {
     return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
   }
 
-  // Ensure session exists
   await prisma.storeChatSession.upsert({
     where: { sessionId: session_id },
     update: {},
     create: { sessionId: session_id, storeDomain: store_domain },
   });
 
-  // Save message with correct sender
   await prisma.storeChatMessage.create({
-    data: {
-      sessionId: session_id,
-      storeDomain: store_domain,
-      sender: sender === "customer" ? "customer" : "owner",
-      text: message,
-    },
+    data: { sessionId: session_id, storeDomain: store_domain, sender, text: message },
   });
 
   return json({ ok: true }, { headers: corsHeaders });
