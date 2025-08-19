@@ -392,15 +392,15 @@ const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-      const backendMessages = (data.messages || []).map((msg, index) => ({
-        id: msg.id || `local-${index}`,
-        from: { id: msg.from || msg.sender || "unknown" },
-        displayName: msg.from === "me" ? "You" : conv.userName || "Widget User",
-        message: msg.content || msg.message || "",
-        created_time: msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
+const backendMessages = (data.messages || []).map((msg, index) => ({
+  id: msg.id || `local-${index}`,
+  from: msg.sender || "unknown",
+  message: msg.content || "",
+  created_time: msg.createdAt
+    ? new Date(msg.createdAt).toISOString()
+    : new Date().toISOString(),
+}));
+
 
       setMessages((prevMessages) => ({
         ...prevMessages,
