@@ -88,45 +88,42 @@ const fetchShopifySessions = async () => {
   }
 };
 
-const fetchWidgetUserMessages = async (userId) => {
+  const fetchWidgetUserMessages = async (user) => {
   try {
-    const res = await fetch(`/admin/chat/list?userId=${userId}`);
-    if (!res.ok) throw new Error("Failed to fetch widget user messages");
+    const res = await fetch(`/admin/chat/list?userId=${user.id}`);
     const data = await res.json();
-    return data.messages || [];
+
+    setMessages((prev) => ({
+      ...prev,
+      [String(user.id)]: data.messages || [],
+    }));
   } catch (err) {
-    console.error("Error fetching widget user messages:", err);
-    return [];
+    console.error("Failed to fetch widget user messages:", err);
   }
 };
-
-
   /** Open Shopify conversation in dashboard */
 const openShopifyConversation = async (session) => {
-  setSelectedPage({
-    id: session.sessionId,
-    name: session.storeDomain,
-    type: "shopify",
-  });
+  setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
   setSelectedConversation(session);
 
-  const msgs = await fetchMessages(session.sessionId);
-  setMessages((prev) => ({
-    ...prev,
-    [session.sessionId]: msgs,
-  }));
-};
+  try {
+    // Correct endpoint for fetching messages
+    const res = await fetch(`/admin/chat/messages?sessionId=${session.sessionId}`);
+    
+    // Optional: check content-type
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const contentType = res.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      const text = await res.text();
+      console.error("Expected JSON but got:", text);
+      return;
+    }
 
-
-const openWidgetConversation = async (user) => {
-  setSelectedPage({ id: user.id, name: user.name || "User", type: "widget" });
-  setSelectedConversation(user);
-
-  const msgs = await fetchWidgetUserMessages(user.id);
-  setMessages((prev) => ({
-    ...prev,
-    [user.id]: msgs,
-  }));
+    const data = await res.json();
+    setMessages({ [session.sessionId]: data.messages || [] });
+  } catch (err) {
+    console.error("Error fetching session messages:", err);
+  }
 };
 
 
@@ -354,7 +351,6 @@ const fetchMessages = async (conv) => {
 
   setSelectedConversation(conv);
 
-  // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
     if (!conv.userNumber) {
       console.error("WhatsApp conversation missing userNumber");
@@ -365,30 +361,32 @@ const fetchMessages = async (conv) => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-      const backendMessages = (data.messages || []).map((msg, index) => ({
-        id: msg.id || `local-${index}`,
-        from: { id: msg.sender || "unknown" },
-        message: msg.content || "",
-        created_time: msg.timestamp
-          ? new Date(msg.timestamp).toISOString()
-          : msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
+const backendMessages = (data.messages || []).map((msg, index) => ({
+  id: msg.id || `local-${index}`, // fallback id
+  from: { id: msg.sender || "unknown" },
+  message: msg.content || "",
+  created_time: msg.timestamp
+    ? new Date(msg.timestamp).toISOString()
+    : msg.createdAt
+    ? new Date(msg.createdAt).toISOString()
+    : new Date().toISOString(),
+}));
+
 
       setMessages((prevMessages) => {
         const prevConvMessages = prevMessages[conv.id] || [];
-        const localMessagesNotInBackend = prevConvMessages.filter(
-          (localMsg) =>
-            localMsg.id?.startsWith("local-") &&
-            !backendMessages.some(
-              (bm) =>
-                bm.message?.trim() === localMsg.message?.trim() &&
-                Math.abs(
-                  new Date(bm.created_time) - new Date(localMsg.created_time)
-                ) < 5000
-            )
-        );
+
+        // Filter local messages that backend hasn't returned yet
+const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
+  (localMsg.id && typeof localMsg.id === "string" && localMsg.id.startsWith("local-")) &&
+  !backendMessages.some(bm =>
+    bm.message?.trim() === localMsg.message?.trim() &&
+    Math.abs(new Date(bm.created_time) - new Date(localMsg.created_time)) < 5000
+  )
+);
+
+
+        // Combine backend + local pending messages for this conversation only
         return {
           ...prevMessages,
           [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
@@ -401,57 +399,7 @@ const fetchMessages = async (conv) => {
     return;
   }
 
-  // ✅ Shopify session messages (from Remix loader)
-  if (selectedPage.type === "shopify") {
-    try {
-      const res = await fetch(`/admin/chat/list?sessionId=${conv.sessionId}`);
-      if (!res.ok) throw new Error("Failed to fetch Shopify messages");
-      const data = await res.json();
-
-      const shopifyMessages = (data.messages || []).map((msg) => ({
-        id: msg.id,
-        from: { id: msg.sender },
-        message: msg.content,
-        created_time: new Date(msg.createdAt).toISOString(),
-        displayName: msg.sender === "admin" ? "You" : "Customer",
-      }));
-
-      setMessages((prev) => ({
-        ...prev,
-        [conv.sessionId]: shopifyMessages,
-      }));
-    } catch (err) {
-      console.error("Error fetching Shopify messages:", err);
-    }
-    return;
-  }
-
-  // ✅ Widget user messages (from Remix loader)
-  if (selectedPage.type === "widget") {
-    try {
-      const res = await fetch(`/admin/chat/list?userId=${conv.id}`);
-      if (!res.ok) throw new Error("Failed to fetch widget user messages");
-      const data = await res.json();
-
-      const widgetMessages = (data.messages || []).map((msg) => ({
-        id: msg.id,
-        from: { id: msg.sender },
-        message: msg.content,
-        created_time: new Date(msg.createdAt).toISOString(),
-        displayName: msg.sender === "admin" ? "You" : conv.name || "User",
-      }));
-
-      setMessages((prev) => ({
-        ...prev,
-        [conv.id]: widgetMessages,
-      }));
-    } catch (err) {
-      console.error("Error fetching widget messages:", err);
-    }
-    return;
-  }
-
-  // ✅ Facebook & Instagram
+  // Facebook & Instagram messages
   try {
     const token = pageAccessTokens[selectedPage.id];
     const res = await fetch(
@@ -462,25 +410,33 @@ const fetchMessages = async (conv) => {
 
     const enrichedMessages = rawMessages.map((msg) => {
       let displayName = "User";
+
       if (selectedPage.type === "instagram") {
-        displayName =
-          msg.from?.id === selectedPage.igId
-            ? selectedPage.name
-            : conv.userName ||
-              msg.from?.name ||
-              msg.from?.username ||
-              `IG User #${msg.from?.id?.slice(-4)}`;
+        if (msg.from?.id === selectedPage.igId) {
+          displayName = selectedPage.name;
+        } else {
+          displayName =
+            conv.userName ||
+            msg.from?.name ||
+            msg.from?.username ||
+            `Instagram User #${msg.from?.id?.slice(-4)}`;
+        }
       } else {
-        displayName =
-          msg.from?.name === selectedPage.name
-            ? selectedPage.name
-            : msg.from?.name || "User";
+        if (msg.from?.name === selectedPage.name) {
+          displayName = selectedPage.name;
+        } else {
+          displayName = msg.from?.name || "User";
+        }
       }
-      return { ...msg, displayName };
+
+      return {
+        ...msg,
+        displayName,
+      };
     });
 
-    setMessages((prev) => ({
-      ...prev,
+    setMessages((prevMessages) => ({
+      ...prevMessages,
       [conv.id]: enrichedMessages,
     }));
   } catch (error) {
@@ -488,7 +444,6 @@ const fetchMessages = async (conv) => {
     console.error(error);
   }
 };
-
 
 
 const sendWhatsAppMessage = async () => {
@@ -754,9 +709,7 @@ return (
                 <div
                   key={user.id}
                   onClick={async () => {
-                    // Fetch messages first, then set selected conversation
-                    const messagesData = await fetchWidgetUserMessages(user.id);
-                    setMessages(prev => ({ ...prev, [user.id]: messagesData }));
+                    await fetchWidgetUserMessages(user);
                     setSelectedConversation(user);
                   }}
                   style={{
@@ -789,12 +742,7 @@ return (
             return (
               <div
                 key={conv.id || conv.sessionId}
-                onClick={async () => {
-                  // Fetch messages for selected conversation
-                  const messagesData = await fetchMessages(conv.id || conv.sessionId);
-                  setMessages(prev => ({ ...prev, [conv.id || conv.sessionId]: messagesData }));
-                  setSelectedConversation(conv);
-                }}
+                onClick={() => fetchMessages(conv)}
                 style={{
                   padding: 12,
                   cursor: "pointer",
@@ -882,7 +830,6 @@ return (
     `}</style>
   </div>
 );
-
 
 
 
