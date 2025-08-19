@@ -105,17 +105,34 @@ const handleWidgetConnect = async () => {
   setLoadingConversations(true);
 
   try {
-    // Fetch Widget users (sessions)
+    // Fetch Widget conversations (sessions + messages)
     const res = await fetch(`/admin/chat/list?userId=1`); // pass userId dynamically
+    if (!res.ok) {
+      throw new Error(`Failed to fetch widget conversations: ${res.status}`);
+    }
+
     const data = await res.json();
 
-    setConversations(data.messages || []);
+    // Adjust depending on your API response
+    // If your backend sends { sessions: [...] }
+    if (data.sessions) {
+      setConversations(data.sessions);
+    } 
+    // If your backend sends { messages: [...] }
+    else if (data.messages) {
+      setConversations(data.messages);
+    } 
+    else {
+      setConversations([]);
+    }
   } catch (err) {
     console.error("Widget fetch error:", err);
+    setConversations([]);
   } finally {
     setLoadingConversations(false);
   }
 };
+
 
   const handleWhatsAppConnect = async () => {
     setWaConnected(true);
