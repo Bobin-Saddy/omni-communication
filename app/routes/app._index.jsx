@@ -571,38 +571,43 @@ const sendMessage = async () => {
   try {
     // --- Widget messages ---
 if (selectedPage.type === "widget") {
-  if (!newMessage.trim()) return;
-
-  if (!selectedConversation?.id && !selectedCustomer?.id) {
-    alert("Please select a customer to start a conversation");
+  if (!newMessage.trim() || !selectedConversation?.sessionId || !currentStoreDomain) {
+    alert("storeDomain and sessionId are required");
     return;
   }
 
-  const payload = {
-    message: newMessage,
-  };
+  setSendingMessage(true);
+  try {
+    const response = await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        storeDomain: currentStoreDomain,              // your shop domain
+        sessionId: selectedConversation.sessionId,   // sessionId of this chat
+        sender: "me",
+        message: newMessage,
+      }),
+    });
 
-  if (selectedConversation?.id) {
-    payload.conversationId = selectedConversation.id;
-  } else {
-    payload.customerId = selectedCustomer.id; // ✅ send customerId
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error(result.error);
+      alert("Failed to send widget message: " + result.error);
+      return;
+    }
+
+    setNewMessage("");
+    await fetchMessages(selectedConversation); // reload messages
+  } catch (error) {
+    console.error(error);
+    alert("Failed to send widget message. Check console for details.");
+  } finally {
+    setSendingMessage(false);
   }
-
-  const response = await fetch("/api/sendMessage", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  const result = await response.json();
-  if (!response.ok) {
-    alert("Failed to send widget message: " + result.error);
-    return;
-  }
-
-  setNewMessage("");
-  await fetchMessages(selectedConversation || result.conversation);
+  return;
 }
+
 
 
 
