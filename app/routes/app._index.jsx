@@ -108,17 +108,24 @@ const openShopifyConversation = async (session) => {
   setSelectedConversation(session);
 
   try {
-    const res = await fetch(`/admin/chat/list?shop=${session.storeDomain}`);
+    // Fetch the sessions again from your existing loader
+    const url = new URL(window.location.href);
+    const shop = url.searchParams.get("shop");
+    if (!shop) return;
+
+    const res = await fetch(`/admin/chat/list?shop=${shop}`);
     const data = await res.json();
 
-    // Find the messages for the current session
-    const sessionMessages = data.sessions.find(s => s.sessionId === session.sessionId)?.messages || [];
+    // Find the session we want
+    const currentSession = data.sessions.find(s => s.sessionId === session.sessionId);
 
-    setMessages({ [session.sessionId]: sessionMessages });
+    // Set messages for this session
+    setMessages({ [session.sessionId]: currentSession?.messages || [] });
   } catch (err) {
-    console.error("Error fetching Shopify session messages:", err);
+    console.error("Error fetching session messages:", err);
   }
 };
+
 
 
 
