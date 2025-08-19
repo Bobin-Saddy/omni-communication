@@ -23,96 +23,102 @@
     </div>
   </div>
 
-  <script>
-  (function(){
-    const root = document.currentScript.closest('#oc-chat');
-    const store = root.dataset.store;
-    const endpoint = root.dataset.endpoint;
+<script>
+(function(){
+  const root = document.currentScript.closest('#oc-chat');
+  const store = root.dataset.store;
+  const endpoint = root.dataset.endpoint;
 
-    const btnToggle = root.querySelector('.oc-chat-toggle');
-    const panel = root.querySelector('.oc-chat-container');
-    const list = root.querySelector('.oc-chat-messages');
-    const input = root.querySelector('.oc-chat-input input');
-    const sendBtn = root.querySelector('.oc-chat-input button');
+  const btnToggle = root.querySelector('.oc-chat-toggle');
+  const panel = root.querySelector('.oc-chat-container');
+  const list = root.querySelector('.oc-chat-messages');
+  const input = root.querySelector('.oc-chat-input input');
+  const sendBtn = root.querySelector('.oc-chat-input button');
 
-    // Generate session id for this browser
-    const sidKey = 'oc_chat_sid';
-    function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8); return v.toString(16); }); }
-    let SID = localStorage.getItem(sidKey);
-    if (!SID) { SID = uuid(); localStorage.setItem(sidKey, SID); }
+  // session id for this browser
+  const sidKey = 'oc_chat_sid';
+  function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8); return v.toString(16); }); }
+  let SID = localStorage.getItem(sidKey);
+  if (!SID) { SID = uuid(); localStorage.setItem(sidKey, SID); }
 
-    // Toggle chat panel
-    btnToggle.addEventListener('click', ()=> {
-      panel.classList.toggle('oc-hidden');
-      btnToggle.classList.toggle('oc-hidden');
-    });
+  // UI toggle
+  btnToggle.addEventListener('click', ()=> {
+    panel.classList.toggle('oc-hidden');
+    btnToggle.classList.toggle('oc-hidden');
+  });
 
-    // Append bubble to chat
-    function appendBubble(text, who){
-      const b = document.createElement('div');
-      b.className = 'oc-bubble ' + (who === 'customer' ? 'oc-me' : 'oc-them');
-      b.textContent = text;
-      list.appendChild(b);
-      list.scrollTop = list.scrollHeight;
+  function appendBubble(text, sender){
+    const b = document.createElement('div');
+    if(sender === 'customer'){
+      b.className = 'oc-bubble oc-me';
+    } else {
+      b.className = 'oc-bubble oc-them';
     }
+    b.textContent = text;
+    list.appendChild(b);
+    list.scrollTop = list.scrollHeight;
+  }
 
-    // Send message
-    async function sendMessage(){
-      const msg = (input.value || '').trim();
-      if (!msg) return;
-      appendBubble(msg, 'customer'); // right side
-      input.value = '';
-      try {
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({
-            store_domain: store,
-            session_id: SID,
-            message: msg,
-            sender: 'customer'
-          })
-        });
-      } catch(e) { console.warn('send error', e); }
-    }
-    sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') sendMessage(); });
+  // send message
+  async function sendMessage(){
+    const msg = (input.value || '').trim();
+    if(!msg) return;
+    appendBubble(msg, 'customer');  // mark as customer
+    input.value = '';
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          storeDomain: store,
+          sessionId: SID,
+          sender: 'customer',  // send customer to backend
+          message: msg
+        })
+      });
+    } catch(e){ console.warn('send error', e); }
+  }
 
-    // Poll messages
-    let lastISO = null;
-    async function poll(){
-      try {
-        const url = new URL(endpoint);
-        url.searchParams.set('store_domain', store);
-        url.searchParams.set('session_id', SID);
-        if (lastISO) url.searchParams.set('since', lastISO);
-        const r = await fetch(url.toString());
-        const data = await r.json();
-        if (data && data.ok && Array.isArray(data.messages)) {
-          data.messages.forEach(m => {
-            if (m.sender === 'owner') appendBubble(m.text, 'owner'); // left side
-            lastISO = m.createdAt;
-          });
-        }
-      } catch(e) { console.warn('poll error', e); }
-    }
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
 
-    // Initial load: get history
-    (async function init(){
+  // poll messages
+  let lastISO = null;
+  async function poll(){
+    try {
       const url = new URL(endpoint);
-      url.searchParams.set('store_domain', store);
-      url.searchParams.set('session_id', SID);
+      url.searchParams.set('storeDomain', store);
+      url.searchParams.set('sessionId', SID);
+      if(lastISO) url.searchParams.set('since', lastISO);
       const r = await fetch(url.toString());
       const data = await r.json();
-      if (data && data.ok && Array.isArray(data.messages)) {
-        data.messages.forEach(m => appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner'));
-        if (data.messages.length) lastISO = data.messages[data.messages.length-1].createdAt;
+      if(data && data.ok && Array.isArray(data.messages)){
+        data.messages.forEach(m => {
+          if(!lastISO || m.sender === 'me' || m.sender === 'customer'){
+            appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner');
+          }
+          lastISO = m.createdAt;
+        });
       }
-      setInterval(poll, 3000);
-    })();
+    } catch(e){ console.warn(e); }
+  }
 
+  // init
+  (async function init(){
+    const url = new URL(endpoint);
+    url.searchParams.set('storeDomain', store);
+    url.searchParams.set('sessionId', SID);
+    const r = await fetch(url.toString());
+    const data = await r.json();
+    if(data && data.ok && Array.isArray(data.messages)){
+      data.messages.forEach(m => appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner'));
+      if(data.messages.length) lastISO = data.messages[data.messages.length-1].createdAt;
+    }
+    setInterval(poll, 3000);
   })();
-  </script>
+})();
+</script>
+
 </div>
 
 
