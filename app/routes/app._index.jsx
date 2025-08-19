@@ -304,14 +304,16 @@ const fetchMessages = async (conv) => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-const backendMessages = (data.messages || []).map((msg, index) => ({
-  id: msg.id || `local-${index}`,
-  from: msg.sender || "unknown",
-  message: msg.text || msg.content || "",
-  created_time: msg.createdAt
-    ? new Date(msg.createdAt).toISOString()
-    : new Date().toISOString(),
-}));
+      const backendMessages = (data.messages || []).map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: { id: msg.sender || "unknown" },
+        message: msg.content || "",
+        created_time: msg.timestamp
+          ? new Date(msg.timestamp).toISOString()
+          : msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
 
       setMessages((prevMessages) => {
         const prevConvMessages = prevMessages[conv.id] || [];
@@ -363,14 +365,15 @@ if (selectedPage.type === "widget") {
     let backendMessages = [];
 
     if (data.messages) {
-      backendMessages = (data.messages || []).map((msg, index) => ({
-        id: msg.id || `local-${index}`,
-        from: msg.sender || "unknown",
-        message: msg.content || "",
-        created_time: msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
+const backendMessages = (data.messages || []).map((msg, index) => ({
+  id: msg.id || `local-${index}`,
+  from: msg.sender || "unknown",
+  message: msg.text || msg.content || "",
+  created_time: msg.createdAt
+    ? new Date(msg.createdAt).toISOString()
+    : new Date().toISOString(),
+}));
+
     } else if (data.sessions) {
       backendMessages = data.sessions.flatMap((s, idx) =>
         (s.messages || []).map((msg, index) => ({
