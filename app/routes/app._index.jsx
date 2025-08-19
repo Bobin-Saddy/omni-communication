@@ -557,30 +557,30 @@ const sendMessage = async () => {
   if (!newMessage.trim() || !selectedPage || !selectedConversation || sendingMessage) return;
 
   // Widget messages
-  if (selectedPage.type === "widget") {
-    setSendingMessage(true);
-    try {
- await fetch("/api/sendMessage", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    conversationId: selectedConversation?.id,
-    customerId: selectedCustomer?.id,
-    message: newMessage,
-  }),
-});
+if (selectedPage.type === "widget") {
+  setSendingMessage(true);
+  try {
+    await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: selectedConversation?.id, // may be undefined
+        customerId: selectedCustomer?.id,        // required if no conversation
+        message: newMessage,
+      }),
+    });
 
-
-      setNewMessage("");
-      await fetchMessages(selectedConversation); // reload messages
-    } catch (error) {
-      alert("Failed to send widget message.");
-      console.error(error);
-    } finally {
-      setSendingMessage(false);
-    }
-    return;
+    setNewMessage("");
+    await fetchMessages(selectedConversation); // reload messages
+  } catch (error) {
+    alert("Failed to send widget message.");
+    console.error(error);
+  } finally {
+    setSendingMessage(false);
   }
+  return;
+}
+
 
   // WhatsApp messages
   if (selectedPage.type === "whatsapp") {
