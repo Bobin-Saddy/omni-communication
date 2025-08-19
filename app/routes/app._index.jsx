@@ -108,24 +108,18 @@ const openShopifyConversation = async (session) => {
   setSelectedConversation(session);
 
   try {
-    // Correct endpoint for fetching messages
-    const res = await fetch(`/admin/chat/messages?sessionId=${session.sessionId}`);
-    
-    // Optional: check content-type
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const contentType = res.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      const text = await res.text();
-      console.error("Expected JSON but got:", text);
-      return;
-    }
-
+    const res = await fetch(`/admin/chat/list?shop=${session.storeDomain}`);
     const data = await res.json();
-    setMessages({ [session.sessionId]: data.messages || [] });
+
+    // Find the messages for the current session
+    const sessionMessages = data.sessions.find(s => s.sessionId === session.sessionId)?.messages || [];
+
+    setMessages({ [session.sessionId]: sessionMessages });
   } catch (err) {
-    console.error("Error fetching session messages:", err);
+    console.error("Error fetching Shopify session messages:", err);
   }
 };
+
 
 
   /** Send message for Shopify session */
