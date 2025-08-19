@@ -343,54 +343,59 @@ const fetchMessages = async (conv) => {
   }
 
   // ✅ Widget
-  if (selectedPage.type === "widget") {
-    try {
-      // Agar conv.userId mila to user ke saare chats fetch kro
-      let url = "";
-      if (conv.userId) {
-        url = `/admin/chat/list?userId=${conv.userId}`;
-      } else {
-        url = `/admin/chat/list?conversationId=${conv.id}`;
-      }
+ // ✅ Widget
+if (selectedPage.type === "widget") {
+  try {
+    let url = "";
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
+    // userId ko safe string banate hain
+    if (conv.userId) {
+      const userId =
+        typeof conv.userId === "object" ? conv.userId.id : conv.userId;
 
-      let backendMessages = [];
+      url = `/admin/chat/list?userId=${encodeURIComponent(userId)}`;
+    } else {
+      url = `/admin/chat/list?conversationId=${encodeURIComponent(conv.id)}`;
+    }
 
-      if (data.messages) {
-        backendMessages = (data.messages || []).map((msg, index) => ({
-          id: msg.id || `local-${index}`,
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+    const data = await res.json();
+
+    let backendMessages = [];
+
+    if (data.messages) {
+      backendMessages = (data.messages || []).map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: msg.sender || "unknown",
+        message: msg.content || "",
+        created_time: msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
+    } else if (data.sessions) {
+      backendMessages = data.sessions.flatMap((s, idx) =>
+        (s.messages || []).map((msg, index) => ({
+          id: msg.id || `local-${idx}-${index}`,
           from: msg.sender || "unknown",
           message: msg.content || "",
           created_time: msg.createdAt
             ? new Date(msg.createdAt).toISOString()
             : new Date().toISOString(),
-        }));
-      } else if (data.sessions) {
-        backendMessages = data.sessions.flatMap((s, idx) =>
-          (s.messages || []).map((msg, index) => ({
-            id: msg.id || `local-${idx}-${index}`,
-            from: msg.sender || "unknown",
-            message: msg.content || "",
-            created_time: msg.createdAt
-              ? new Date(msg.createdAt).toISOString()
-              : new Date().toISOString(),
-          }))
-        );
-      }
-
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [conv.userId || conv.id]: backendMessages,
-      }));
-    } catch (err) {
-      console.error("Error fetching Widget messages", err);
-      alert("Failed to fetch Widget messages.");
+        }))
+      );
     }
-    return;
+
+    setMessages((prevMessages) => ({
+      ...prevMessages,
+      [conv.userId?.id || conv.userId || conv.id]: backendMessages,
+    }));
+  } catch (err) {
+    console.error("Error fetching Widget messages", err);
+    alert("Failed to fetch Widget messages.");
   }
+  return;
+}
 
   // ✅ Facebook & Instagram
   try {
