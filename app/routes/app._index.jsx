@@ -25,7 +25,7 @@ export default function SocialChatDashboard() {
 
   const FACEBOOK_APP_ID = "544704651303656";
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPBXoZBZBjZCo9iIeGinLLOkdC3oKwWdg5OnXd0EeKjHeSueZCIs0Dg0hf7wZA6kefsklIUTZCnDB3ZBZA5yirJSloxClWfVEgWeZCONNKjNH8Xbq6XZCqnHaOZBMXYzlOzZAHxErLuDasv5AZCZBS4U3dyaewR8v8LGVu8ZAcrHPLujO64KzOrwMo74o8W31S6eZCpoPcwCgM3rAgusSA3u8WuTxo2IRY81r1ioqSAZDZD";
+    "EAAHvZAZB8ZCmugBPAXJrKjZCP5zwPiAJ8OdZCG3zZAznapdTpY1AOKfKXjwJ4AzGBUqQ0pl0GdZAGnZADVt2jTWe0SkvZBeHpTBA9snoVY1UNiEiKSZAXUMXltesuhWOjnUZCpVf1M5458yZAD2F1IHeO24z63d5sOMDrk9SzEJQ6zGvLleGzJ9BeFlS3pUjfOQFjblc31EPdhhTw78MjYq71PcevswUrU0ZBsGqFGVRkxXlNuE8ZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
   const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
@@ -164,6 +164,7 @@ const openShopifyConversation = async (session) => {
       console.error("Failed to send Shopify message", err);
     }
   };
+
   const resetIgData = () => {
     setIgPages([]);
     setIgConnected(false);
