@@ -13,8 +13,13 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [selectedCustomer, setSelectedCustomer] = useState(null);
-const url = new URL(window.location.href);
-const currentStoreDomain = url.searchParams.get("shop"); 
+const [currentStoreDomain, setCurrentStoreDomain] = useState("");
+
+useEffect(() => {
+  const url = new URL(window.location.href);
+  setCurrentStoreDomain(url.searchParams.get("shop") || "");
+}, []);
+
 // Set it when a user is selected in the widget
 
   // Loading states
