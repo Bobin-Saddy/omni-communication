@@ -107,24 +107,20 @@ const openShopifyConversation = async (session) => {
   setSelectedConversation(session);
 
   try {
-    // Correct endpoint for fetching messages
-    const res = await fetch(`/admin/chat/messages?sessionId=${session.sessionId}`);
-    
-    // Optional: check content-type
+    const res = await fetch(`/admin/chat/list?sessionId=${session.sessionId}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const contentType = res.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      const text = await res.text();
-      console.error("Expected JSON but got:", text);
-      return;
-    }
-
     const data = await res.json();
-    setMessages({ [session.sessionId]: data.messages || [] });
+
+    // ✅ Merge messages just like widget users
+    setMessages((prev) => ({
+      ...prev,
+      [String(session.sessionId)]: data.messages || [],
+    }));
   } catch (err) {
     console.error("Error fetching session messages:", err);
   }
 };
+
 
 
   /** Send message for Shopify session */
