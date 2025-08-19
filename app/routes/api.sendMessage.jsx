@@ -9,23 +9,21 @@ export const action = async ({ request }) => {
     const data = await request.json();
     const { conversationId, message } = data;
 
-// server side
-const conversation = await prisma.conversation.findUnique({
-  where: { id: parseInt(conversationId, 10) },
-});
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: parseInt(conversationId, 10) },
+    });
 
-if (!conversation) {
-  return json({ error: "Conversation not found" }, { status: 400 });
-}
+    if (!conversation) {
+      return json({ error: "Conversation not found" }, { status: 400 });
+    }
 
-await prisma.chatMessage.create({
-  data: {
-    conversationId: conversation.id,
-    sender: "me",
-    content: message,
-  },
-});
-
+    const savedMessage = await prisma.chatMessage.create({
+      data: {
+        conversationId: conversation.id,
+        sender: "me",
+        content: message,
+      },
+    });
 
     return json({ success: true, message: savedMessage });
   } catch (err) {
