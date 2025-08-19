@@ -293,6 +293,7 @@ const fetchMessages = async (conv) => {
 
   setSelectedConversation(conv);
 
+  // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
     if (!conv.userNumber) {
       console.error("WhatsApp conversation missing userNumber");
@@ -303,32 +304,32 @@ const fetchMessages = async (conv) => {
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-const backendMessages = (data.messages || []).map((msg, index) => ({
-  id: msg.id || `local-${index}`, // fallback id
-  from: { id: msg.sender || "unknown" },
-  message: msg.content || "",
-  created_time: msg.timestamp
-    ? new Date(msg.timestamp).toISOString()
-    : msg.createdAt
-    ? new Date(msg.createdAt).toISOString()
-    : new Date().toISOString(),
-}));
-
+      const backendMessages = (data.messages || []).map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: { id: msg.sender || "unknown" },
+        message: msg.content || "",
+        created_time: msg.timestamp
+          ? new Date(msg.timestamp).toISOString()
+          : msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
 
       setMessages((prevMessages) => {
         const prevConvMessages = prevMessages[conv.id] || [];
 
-        // Filter local messages that backend hasn't returned yet
-const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
-  (localMsg.id && typeof localMsg.id === "string" && localMsg.id.startsWith("local-")) &&
-  !backendMessages.some(bm =>
-    bm.message?.trim() === localMsg.message?.trim() &&
-    Math.abs(new Date(bm.created_time) - new Date(localMsg.created_time)) < 5000
-  )
-);
+        const localMessagesNotInBackend = prevConvMessages.filter(
+          (localMsg) =>
+            localMsg.id?.startsWith("local-") &&
+            !backendMessages.some(
+              (bm) =>
+                bm.message?.trim() === localMsg.message?.trim() &&
+                Math.abs(
+                  new Date(bm.created_time) - new Date(localMsg.created_time)
+                ) < 5000
+            )
+        );
 
-
-        // Combine backend + local pending messages for this conversation only
         return {
           ...prevMessages,
           [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
@@ -341,7 +342,57 @@ const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
     return;
   }
 
-  // Facebook & Instagram messages
+  // ✅ Widget
+  if (selectedPage.type === "widget") {
+    try {
+      // Agar conv.userId mila to user ke saare chats fetch kro
+      let url = "";
+      if (conv.userId) {
+        url = `/admin/chat/list?userId=${conv.userId}`;
+      } else {
+        url = `/admin/chat/list?conversationId=${conv.id}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+
+      let backendMessages = [];
+
+      if (data.messages) {
+        backendMessages = (data.messages || []).map((msg, index) => ({
+          id: msg.id || `local-${index}`,
+          from: msg.sender || "unknown",
+          message: msg.content || "",
+          created_time: msg.createdAt
+            ? new Date(msg.createdAt).toISOString()
+            : new Date().toISOString(),
+        }));
+      } else if (data.sessions) {
+        backendMessages = data.sessions.flatMap((s, idx) =>
+          (s.messages || []).map((msg, index) => ({
+            id: msg.id || `local-${idx}-${index}`,
+            from: msg.sender || "unknown",
+            message: msg.content || "",
+            created_time: msg.createdAt
+              ? new Date(msg.createdAt).toISOString()
+              : new Date().toISOString(),
+          }))
+        );
+      }
+
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [conv.userId || conv.id]: backendMessages,
+      }));
+    } catch (err) {
+      console.error("Error fetching Widget messages", err);
+      alert("Failed to fetch Widget messages.");
+    }
+    return;
+  }
+
+  // ✅ Facebook & Instagram
   try {
     const token = pageAccessTokens[selectedPage.id];
     const res = await fetch(
@@ -385,45 +436,8 @@ const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
     alert("Error fetching messages.");
     console.error(error);
   }
-
-  if (selectedPage.type === "widget") {
-    try {
-    const res = await fetch(`/admin/chat/list?conversationId=${conv.id}`);
-
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-
-const backendMessages = (data.messages || []).map((msg, index) => ({
-  id: msg.id || `local-${index}`,
-  from: msg.sender || "unknown",
-  message: msg.content || "",
-  created_time: msg.createdAt
-    ? new Date(msg.createdAt).toISOString()
-    : new Date().toISOString(),
-}));
-
-
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [conv.id]: backendMessages,
-      }));
-    } catch (err) {
-      console.error("Error fetching Widget messages", err);
-      alert("Failed to fetch Widget messages.");
-    }
-    return;
-  }
-
-  // 🟢 Facebook & Instagram
-  try {
-    // ... your existing FB/IG logic unchanged ...
-  } catch (error) {
-    alert("Error fetching messages.");
-    console.error(error);
-  }
-
-
 };
+
 
 
 const sendWhatsAppMessage = async () => {

@@ -3,33 +3,42 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// backend: /admin/chat/list
 export async function loader({ request }) {
   try {
     const url = new URL(request.url);
-    const conversationId = url.searchParams.get("conversationId"); // messages for a chat session
-    const shop = url.searchParams.get("shop"); // filter sessions by shop
+    const conversationId = url.searchParams.get("conversationId");
+    const shop = url.searchParams.get("shop");
+    const userId = url.searchParams.get("userId"); // ✅ new param
 
     if (conversationId) {
-      // ✅ Fetch messages for a specific conversation
       const messages = await prisma.chatMessage.findMany({
         where: { conversationId: parseInt(conversationId) },
         orderBy: { createdAt: "asc" },
       });
-
       return json({ messages });
     }
 
-    if (shop) {
-      // ✅ Fetch chat sessions for a particular shop
+    if (userId) {
+      // ✅ fetch all conversations & messages of this user
       const sessions = await prisma.storeChatSession.findMany({
-        where: { storeDomain: shop },
-        orderBy: { lastSeenAt: "desc" },
+        where: { userId: parseInt(userId) },
+        include: {
+          messages: { orderBy: { createdAt: "asc" } },
+        },
       });
 
       return json({ sessions });
     }
 
-    // ✅ Default: return all sessions
+    if (shop) {
+      const sessions = await prisma.storeChatSession.findMany({
+        where: { storeDomain: shop },
+        orderBy: { lastSeenAt: "desc" },
+      });
+      return json({ sessions });
+    }
+
     const sessions = await prisma.storeChatSession.findMany({
       orderBy: { lastSeenAt: "desc" },
     });
@@ -37,6 +46,7 @@ export async function loader({ request }) {
     return json({ sessions });
   } catch (err) {
     console.error("Loader error:", err);
-    return json({ sessions: [], messages: [] }); // fallback
+    return json({ sessions: [], messages: [] });
   }
 }
+
