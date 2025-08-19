@@ -388,7 +388,8 @@ const localMessagesNotInBackend = prevConvMessages.filter(localMsg =>
 
   if (selectedPage.type === "widget") {
     try {
-      const res = await fetch(`/admin/chat/list?userId=${conv.userId}`);
+    const res = await fetch(`/admin/chat/list?conversationId=${conv.id}`);
+
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
