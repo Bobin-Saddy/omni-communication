@@ -278,8 +278,9 @@ const handleWidgetConnect = async () => {
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
 
-  
-  setSelectedConversation(conv);
+  // Determine message key (for widget use sessionId, otherwise use conversation id)
+  const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
+  setSelectedConversation({ ...conv, messageKey });
 
   // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
@@ -330,51 +331,53 @@ const fetchMessages = async (conv) => {
     return;
   }
 
+  // ✅ Widget
+  if (selectedPage.type === "widget") {
+    if (!conv.sessionId || !conv.storeDomain) {
+      console.error("Widget conversation missing sessionId or storeDomain");
+      return;
+    }
 
-if (selectedPage?.type === "widget") {
-  if (!conv.sessionId || !conv.storeDomain) {
-    console.error("Widget conversation missing sessionId or storeDomain");
+    try {
+      const url = `/api/chat?session_id=${encodeURIComponent(
+        conv.sessionId
+      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+
+      let backendMessages = [];
+
+      if (data.messages) {
+        backendMessages = data.messages.map((msg, index) => ({
+          id: msg.id || `local-${index}`,
+          from: msg.sender || "unknown",
+          message: msg.text || msg.content || "",
+          created_time: msg.createdAt
+            ? new Date(msg.createdAt).toISOString()
+            : new Date().toISOString(),
+        }));
+      }
+
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [messageKey]: backendMessages, // use messageKey here
+      }));
+
+      // selectedConversation already set with messageKey above
+    } catch (err) {
+      console.error("Error fetching Widget messages", err);
+      alert("Failed to fetch Widget messages.");
+    }
+
     return;
   }
 
+  // --- Other platform logic (Facebook, Instagram, etc.) ---
   try {
-    const url = `/api/chat?session_id=${encodeURIComponent(conv.sessionId)}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-    const data = await res.json();
-
-    let backendMessages = [];
-
-    if (data.messages) {
-      backendMessages = data.messages.map((msg, index) => ({
-        id: msg.id || `local-${index}`,
-        from: msg.sender || "unknown",
-        message: msg.text || msg.content || "",
-        created_time: msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
-    }
-
-    setMessages((prevMessages) => ({
-      ...prevMessages,
-      [conv.sessionId]: backendMessages,
-    }));
-
-    setSelectedConversation(conv); 
-  } catch (err) {
-    console.error("Error fetching Widget messages", err);
-    alert("Failed to fetch Widget messages.");
-  }
-
-  return;
-}
-
-
-  // --- Other platform logic (Facebook, Instagram, WhatsApp) ---
-  // Example for Instagram / FB messages (your previous code)
-  try {
-    const platformUrl = `/admin/chat/list?conversationId=${encodeURIComponent(conv.id)}`;
+    const platformUrl = `/admin/chat/list?conversationId=${encodeURIComponent(
+      conv.id
+    )}`;
     const res = await fetch(platformUrl);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
@@ -402,7 +405,6 @@ if (selectedPage?.type === "widget") {
     console.error("Error fetching platform messages", err);
     alert("Failed to fetch messages.");
   }
-
 
   // ✅ Facebook & Instagram
   try {
@@ -449,6 +451,7 @@ if (selectedPage?.type === "widget") {
     console.error(error);
   }
 };
+
 
 
 
