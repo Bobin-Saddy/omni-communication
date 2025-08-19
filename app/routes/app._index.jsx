@@ -570,14 +570,16 @@ if (selectedPage.type === "widget") {
 
   setSendingMessage(true);
   try {
-    const response = await fetch("/api/sendMessage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        conversationId: selectedConversation.id, // only use existing conversation
-        message: newMessage,
-      }),
-    });
+await fetch("/api/sendMessage", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    session_id: selectedConversation.sessionId, // required
+    store_domain: currentStoreDomain,          // required
+    sender: "me",
+    message: newMessage,
+  }),
+});
 
     const result = await response.json();
     if (!response.ok) {
