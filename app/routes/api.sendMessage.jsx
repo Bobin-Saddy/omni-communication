@@ -9,18 +9,23 @@ export const action = async ({ request }) => {
     const data = await request.json();
     const { conversationId, message } = data;
 
-    if (!conversationId || !message) {
-      return json({ error: "Missing conversationId or message" }, { status: 400 });
-    }
+// server side
+const conversation = await prisma.conversation.findUnique({
+  where: { id: parseInt(conversationId, 10) },
+});
 
-    // Save message to database
-    const savedMessage = await prisma.chatMessage.create({
-      data: {
-        conversationId: parseInt(conversationId, 10),
-        sender: "me",
-        content: message, // ✅ use content instead of message
-      },
-    });
+if (!conversation) {
+  return json({ error: "Conversation not found" }, { status: 400 });
+}
+
+await prisma.chatMessage.create({
+  data: {
+    conversationId: conversation.id,
+    sender: "me",
+    content: message,
+  },
+});
+
 
     return json({ success: true, message: savedMessage });
   } catch (err) {
