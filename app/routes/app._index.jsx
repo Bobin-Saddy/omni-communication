@@ -78,16 +78,7 @@ const fetchShopifySessions = async () => {
     const shop = url.searchParams.get("shop");
     if (!shop) return;
 
-    const res = await fetch(`/admin/chat/list?shop=${shop}`);
-
-    // Check if the response is JSON
-    const contentType = res.headers.get("content-type");
-    if (!contentType?.includes("application/json")) {
-      const text = await res.text();
-      console.error("Expected JSON but got:", text);
-      return;
-    }
-
+    const res = await fetch(`/admin/chat/list?shop=${shop}`); // matches loader
     const data = await res.json();
     setShopifySessions(data.sessions || []);
   } catch (err) {
@@ -97,9 +88,9 @@ const fetchShopifySessions = async () => {
   }
 };
 
-  const fetchWidgetUserMessages = async (user) => {
+const fetchWidgetUserMessages = async (user) => {
   try {
-    const res = await fetch(`/admin/chat/list?userId=${user.id}`);
+    const res = await fetch(`/admin/chat/list?userId=${user.id}`); // matches loader
     const data = await res.json();
 
     setMessages((prev) => ({
@@ -110,6 +101,7 @@ const fetchShopifySessions = async () => {
     console.error("Failed to fetch widget user messages:", err);
   }
 };
+
   /** Open Shopify conversation in dashboard */
 const openShopifyConversation = async (session) => {
   setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
