@@ -13,14 +13,8 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [selectedCustomer, setSelectedCustomer] = useState(null);
-const [currentStoreDomain, setCurrentStoreDomain] = useState("");
-useEffect(() => {
-  if (typeof window !== "undefined") {
-    const url = new URL(window.location.href);
-    setCurrentStoreDomain(url.searchParams.get("shop") || "");
-  }
-}, []);
-
+const url = new URL(window.location.href);
+const currentStoreDomain = url.searchParams.get("shop"); 
 // Set it when a user is selected in the widget
 
   // Loading states
@@ -577,29 +571,27 @@ if (selectedPage.type === "widget") {
 
   setSendingMessage(true);
   try {
-const response = await fetch("/api/sendMessage", {
+await fetch("/api/sendMessage", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    session_id: selectedConversation?.sessionId, // if exists
-    customerId: selectedConversation?.id ? undefined : selectedCustomer?.id,
-    message: newMessage,
-    sender: "me",
+    session_id: selectedConversation.sessionId,
     store_domain: currentStoreDomain,
+    sender: "me",
+    message: newMessage,
   }),
 });
 
-const result = await response.json();
 
-if (!response.ok || !result.ok) {
-  console.error(result.error);
-  alert("Failed to send widget message: " + result.error);
-  return;
-}
+    const result = await response.json();
+    if (!response.ok) {
+      console.error(result.error);
+      alert("Failed to send widget message: " + result.error);
+      return;
+    }
 
-setNewMessage("");
-await fetchMessages(selectedConversation || result.conversation);
-
+    setNewMessage("");
+    await fetchMessages(selectedConversation);
   } catch (error) {
     console.error(error);
     alert("Failed to send widget message. Check console for details.");
@@ -671,46 +663,6 @@ await fetchMessages(selectedConversation || result.conversation);
 };
 
 
-const sendWidgetMessage = async () => {
-  if (!newMessage.trim() || sendingMessage) return;
-
-  if (!selectedConversation?.id && !selectedCustomer?.id) {
-    alert("Please select a customer to start a new conversation");
-    return;
-  }
-
-  setSendingMessage(true);
-
-  try {
-    const response = await fetch("/api/sendMessage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        session_id: selectedConversation?.sessionId, // optional if new
-        customerId: selectedConversation?.id ? undefined : selectedCustomer?.id,
-        message: newMessage,
-        sender: "me",
-        store_domain: currentStoreDomain,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.ok) {
-      console.error(result.error);
-      alert("Failed to send widget message: " + result.error);
-      return;
-    }
-
-    setNewMessage("");
-    await fetchMessages(selectedConversation || result.conversation);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to send widget message. Check console for details.");
-  } finally {
-    setSendingMessage(false);
-  }
-};
 
   
 return (
