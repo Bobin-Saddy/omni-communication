@@ -1,50 +1,140 @@
-import { json } from "@remix-run/node";
-import { PrismaClient } from "@prisma/client";
+import { useState, useEffect, useRef } from "react";
 
-const prisma = new PrismaClient();
+export default function AdminChatList() {
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef(null);
 
-export async function loader({ request }) {
-  try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");   // Widget user messages
-    const sessionId = url.searchParams.get("sessionId"); // Shopify session messages
-    const shop = url.searchParams.get("shop");       // Shopify sessions list
+  // ✅ Auto-scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    if (userId) {
-      // ✅ Fetch messages for widget user
-      const messages = await prisma.chatMessage.findMany({
-        where: { userId: parseInt(userId) },
-        orderBy: { createdAt: "asc" },
+  // ✅ Fetch conversations on mount
+  useEffect(() => {
+    fetch("/api/conversations")
+      .then((res) => res.json())
+      .then((data) => setConversations(data))
+      .catch((err) => console.error("Error fetching conversations:", err));
+  }, []);
+
+  // ✅ Fetch messages when conversation changes
+  useEffect(() => {
+    if (!selectedConversation) return;
+
+    fetch(`/api/conversations/${selectedConversation.id}/messages`)
+      .then((res) => res.json())
+      .then((data) => {
+        setMessages(data);
+        scrollToBottom();
+      })
+      .catch((err) => console.error("Error fetching messages:", err));
+  }, [selectedConversation]);
+
+  // ✅ Send new message
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+
+    const msg = {
+      content: newMessage,
+      sender: "admin", // fixed since this is admin panel
+      conversationId: selectedConversation.id,
+    };
+
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(msg),
       });
-      return json({ messages });
+
+      if (!res.ok) throw new Error("Failed to send message");
+
+      const savedMsg = await res.json();
+      setMessages((prev) => [...prev, savedMsg]);
+      setNewMessage("");
+      scrollToBottom();
+    } catch (err) {
+      console.error("Error sending message:", err);
     }
+  };
 
-    if (sessionId) {
-      // ✅ Fetch messages for Shopify session
-      const messages = await prisma.chatMessage.findMany({
-        where: { sessionId: parseInt(sessionId) },
-        orderBy: { createdAt: "asc" },
-      });
-      return json({ messages });
-    }
+  return (
+    <div className="social-chat-dashboard" style={{ fontFamily: "Arial, sans-serif", maxWidth: 1200, margin: "auto" }}>
+      <h1 style={{ textAlign: "center", margin: "20px 0" }}>📱 Admin Chat Dashboard</h1>
 
-    if (shop) {
-      // ✅ Fetch chat sessions for a particular shop
-      const sessions = await prisma.storeChatSession.findMany({
-        where: { storeDomain: shop },
-        orderBy: { lastSeenAt: "desc" },
-      });
-      return json({ sessions });
-    }
+      <div style={{ display: "flex", gap: 20 }}>
+        {/* ✅ Conversation List */}
+        <div style={{ flex: 1, border: "1px solid #ddd", borderRadius: 10, padding: 10 }}>
+          <h2>Conversations</h2>
+          {conversations.map((c) => (
+            <div
+              key={c.id}
+              onClick={() => setSelectedConversation(c)}
+              style={{
+                padding: "10px",
+                margin: "5px 0",
+                cursor: "pointer",
+                background: selectedConversation?.id === c.id ? "#e3f2fd" : "#f9f9f9",
+                borderRadius: 8,
+              }}
+            >
+              <strong>{c.userName || `Conversation #${c.id}`}</strong>
+            </div>
+          ))}
+        </div>
 
-    // ✅ Default: return all sessions
-    const sessions = await prisma.storeChatSession.findMany({
-      orderBy: { lastSeenAt: "desc" },
-    });
-    return json({ sessions });
+        {/* ✅ Messages Panel */}
+        <div style={{ flex: 2, border: "1px solid #ddd", borderRadius: 10, padding: 10, display: "flex", flexDirection: "column" }}>
+          <h2>Messages</h2>
+          <div style={{ flex: 1, overflowY: "auto", padding: 10, background: "#fafafa", borderRadius: 8 }}>
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                style={{
+                  textAlign: m.sender === "admin" ? "right" : "left",
+                  marginBottom: 10,
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "8px 12px",
+                    borderRadius: 16,
+                    background: m.sender === "admin" ? "#1976d2" : "#e0e0e0",
+                    color: m.sender === "admin" ? "white" : "black",
+                  }}
+                >
+                  {m.content}
+                </span>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
 
-  } catch (err) {
-    console.error("Loader error:", err);
-    return json({ sessions: [], messages: [] }); // fallback
-  }
+          {/* ✅ Send Message Box */}
+          {selectedConversation && (
+            <div style={{ display: "flex", marginTop: 10 }}>
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Type a message..."
+                style={{ flex: 1, padding: 10, border: "1px solid #ccc", borderRadius: 8 }}
+              />
+              <button
+                onClick={handleSendMessage}
+                style={{ marginLeft: 10, padding: "10px 20px", background: "#1976d2", color: "white", border: "none", borderRadius: 8 }}
+              >
+                Send
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
