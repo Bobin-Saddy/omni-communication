@@ -13,11 +13,12 @@ export const action = async ({ request }) => {
       return json({ error: "Missing conversationId or message" }, { status: 400 });
     }
 
+    // Save message to database
     const savedMessage = await prisma.chatMessage.create({
       data: {
         conversationId: parseInt(conversationId, 10),
         sender: "me",
-        message,
+        content: message, // ✅ use content instead of message
       },
     });
 
