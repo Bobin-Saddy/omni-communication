@@ -3,23 +3,23 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-
 export const action = async ({ request }) => {
   try {
     const data = await request.json();
     const { conversationId, message } = data;
 
-    const conversation = await prisma.conversation.findUnique({
+    // Use ChatSession (not Conversation)
+    const session = await prisma.chatSession.findUnique({
       where: { id: parseInt(conversationId, 10) },
     });
 
-    if (!conversation) {
+    if (!session) {
       return json({ error: "Conversation not found" }, { status: 400 });
     }
 
     const savedMessage = await prisma.chatMessage.create({
       data: {
-        conversationId: conversation.id,
+        conversationId: session.id,
         sender: "me",
         content: message,
       },
