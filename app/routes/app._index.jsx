@@ -711,7 +711,9 @@ return (
                 <div
                   key={user.id}
                   onClick={async () => {
-                    await fetchWidgetUserMessages(user);
+                    // Fetch messages first, then set selected conversation
+                    const messagesData = await fetchWidgetUserMessages(user.id);
+                    setMessages(prev => ({ ...prev, [user.id]: messagesData }));
                     setSelectedConversation(user);
                   }}
                   style={{
@@ -744,7 +746,12 @@ return (
             return (
               <div
                 key={conv.id || conv.sessionId}
-                onClick={() => fetchMessages(conv)}
+                onClick={async () => {
+                  // Fetch messages for selected conversation
+                  const messagesData = await fetchMessages(conv.id || conv.sessionId);
+                  setMessages(prev => ({ ...prev, [conv.id || conv.sessionId]: messagesData }));
+                  setSelectedConversation(conv);
+                }}
                 style={{
                   padding: 12,
                   cursor: "pointer",
@@ -832,6 +839,7 @@ return (
     `}</style>
   </div>
 );
+
 
 
 
