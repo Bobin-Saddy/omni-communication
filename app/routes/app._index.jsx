@@ -611,14 +611,16 @@ const sendWhatsAppMessage = async () => {
       if (selectedPage.type === "widget") {
     setSendingMessage(true);
     try {
-      await fetch("/api/sendMessage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: selectedConversation.userId, // comes from conv
-          message: newMessage,
-        }),
-      });
+await fetch("/api/sendMessage", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    conversationId: selectedConversation.id, // use id, not userId
+    message: newMessage,
+  }),
+});
+
+
 
       setNewMessage("");
       await fetchMessages(selectedConversation); // reload messages
