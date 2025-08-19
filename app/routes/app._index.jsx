@@ -105,7 +105,7 @@ const handleWidgetConnect = async () => {
   setLoadingConversations(true);
 
   try {
-    const res = await fetch(`/admin/api.chat?userId=widget`); // You can use a special identifier for all widget sessions
+    const res = await fetch(`/api/chat?userId=widget`); // You can use a special identifier for all widget sessions
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
 
     const data = await res.json();
@@ -338,10 +338,10 @@ const fetchMessages = async (conv) => {
 
       if (conv.sessionId) {
         // fetch messages using sessionId
-        url = `/admin/api.chat?sessionId=${encodeURIComponent(conv.sessionId)}`;
+        url = `/api/chat?sessionId=${encodeURIComponent(conv.sessionId)}`;
       } else {
         // fallback to conversationId if sessionId is not available
-        url = `/admin/api.chat?conversationId=${encodeURIComponent(conv.id)}`;
+        url = `/api/chat?conversationId=${encodeURIComponent(conv.id)}`;
       }
 
       const res = await fetch(url);
