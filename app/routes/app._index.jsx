@@ -571,16 +571,22 @@ const sendMessage = async () => {
   try {
     // --- Widget messages ---
 if (selectedPage.type === "widget") {
+  if (!newMessage.trim()) return;
+
   setSendingMessage(true);
   try {
     const payload = { message: newMessage };
 
+    // Existing conversation
     if (selectedConversation?.id) {
       payload.conversationId = selectedConversation.id;
-    } else if (selectedCustomer?.id) {
-      payload.customerId = selectedCustomer.id; // mandatory for new conversation
-    } else {
-      alert("Customer must be selected to start a new conversation");
+    } 
+    // New conversation
+    else if (selectedCustomer?.id) {
+      payload.customerId = selectedCustomer.id; // ✅ REQUIRED
+    } 
+    else {
+      alert("Please select a customer to start a conversation");
       setSendingMessage(false);
       return;
     }
@@ -593,13 +599,12 @@ if (selectedPage.type === "widget") {
 
     const result = await response.json();
     if (!response.ok) {
-      console.error(result.error);
       alert("Failed to send widget message: " + result.error);
       return;
     }
 
     setNewMessage("");
-    await fetchMessages(selectedConversation || result.conversation);
+    await fetchMessages(selectedConversation || result.conversation); // reload messages
   } catch (error) {
     console.error(error);
     alert("Failed to send widget message. Check console for details.");
@@ -608,6 +613,7 @@ if (selectedPage.type === "widget") {
   }
   return;
 }
+
 
 
     // --- WhatsApp messages ---
