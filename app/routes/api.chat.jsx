@@ -15,39 +15,22 @@ function getCorsHeaders(request) {
   return { "Access-Control-Allow-Origin": "null" };
 }
 
-// GET all widget sessions
 export async function loader({ request }) {
   const corsHeaders = getCorsHeaders(request);
-
-  if (request.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = new URL(request.url);
+  const sessionId = url.searchParams.get("sessionId");
 
-  // If fetching all widget sessions
-  if (url.searchParams.get("widget") === "true") {
-    const sessions = await prisma.storeChatSession.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return json({ ok: true, sessions }, { headers: corsHeaders });
-  }
-
-  const storeDomain = url.searchParams.get("store_domain");
-  const sessionId = url.searchParams.get("session_id");
-
-  if (!storeDomain || !sessionId) {
-    return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
-  }
+  if (!sessionId) return json({ ok: false, error: "Missing sessionId" }, { status: 400, headers: corsHeaders });
 
   const messages = await prisma.storeChatMessage.findMany({
-    where: { storeDomain, sessionId },
+    where: { sessionId },
     orderBy: { createdAt: "asc" },
   });
 
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
-
 
 export async function action({ request }) {
   const corsHeaders = getCorsHeaders(request);
