@@ -1,6 +1,6 @@
 // app/routes/api.sendMessage.jsx
 import { json } from "@remix-run/node";
-import { prisma } from "../db.server"; // Make sure db.server exports { prisma }
+import { prisma } from "../db.server"; // Import the named export
 
 export const action = async ({ request }) => {
   try {
@@ -11,7 +11,6 @@ export const action = async ({ request }) => {
       return json({ error: "Missing conversationId or message" }, { status: 400 });
     }
 
-    // Save message to database
     const savedMessage = await prisma.chatMessage.create({
       data: {
         conversationId: parseInt(conversationId, 10),
