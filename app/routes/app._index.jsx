@@ -100,39 +100,26 @@ export default function SocialChatDashboard() {
       }
     );
   };
-const handleWidgetConnect = async (userId) => {
+const handleWidgetConnect = async () => {
   setSelectedPage({ id: "widget", type: "widget", name: "Chat Widget" });
   setLoadingConversations(true);
 
   try {
-    if (!userId) {
-      console.error("❌ Widget connect failed: userId is missing");
-      setConversations([]);
-      return;
-    }
-
-    const res = await fetch(`/admin/chat/list?userId=${encodeURIComponent(userId)}`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch widget conversations: ${res.status} ${res.statusText}`);
-    }
+    const res = await fetch(`/admin/api.chat?userId=widget`); // You can use a special identifier for all widget sessions
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
 
     const data = await res.json();
+    const sessions = Array.isArray(data.sessions) ? data.sessions : [];
 
-    // Normalize data so UI always receives an array
-    const normalized = Array.isArray(data.sessions)
-      ? data.sessions
-      : Array.isArray(data.messages)
-      ? data.messages
-      : [];
-
-    setConversations(normalized);
+    setConversations(sessions);
   } catch (err) {
-    console.error("⚠️ Widget fetch error:", err);
+    console.error("Widget connect error:", err);
     setConversations([]);
   } finally {
     setLoadingConversations(false);
   }
 };
+
 
 
 
@@ -344,26 +331,62 @@ const fetchMessages = async (conv) => {
 
   // ✅ Widget
  // ✅ Widget
-if (selectedPage.type === "widget") {
-  try {
-    let url = "";
+  // For Widget, fetch messages from your API using sessionId
+  if (selectedPage?.type === "widget") {
+    try {
+      let url = "";
 
-    if (conv.sessionId) {
-      // fetch messages using sessionId
-      url = `/admin/chat/list?sessionId=${encodeURIComponent(conv.sessionId)}`;
-    } else {
-      // fallback to conversationId if sessionId is not available
-      url = `/admin/chat/list?conversationId=${encodeURIComponent(conv.id)}`;
+      if (conv.sessionId) {
+        // fetch messages using sessionId
+        url = `/admin/api.chat?sessionId=${encodeURIComponent(conv.sessionId)}`;
+      } else {
+        // fallback to conversationId if sessionId is not available
+        url = `/admin/api.chat?conversationId=${encodeURIComponent(conv.id)}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+
+      let backendMessages = [];
+
+      if (data.messages) {
+        backendMessages = data.messages.map((msg, index) => ({
+          id: msg.id || `local-${index}`,
+          from: msg.sender || "unknown",
+          message: msg.text || msg.content || "",
+          created_time: msg.createdAt
+            ? new Date(msg.createdAt).toISOString()
+            : new Date().toISOString(),
+        }));
+      }
+
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [conv.sessionId || conv.id]: backendMessages,
+      }));
+
+      setSelectedConversation(conv); // select conversation in UI
+    } catch (err) {
+      console.error("Error fetching Widget messages", err);
+      alert("Failed to fetch Widget messages.");
     }
 
-    const res = await fetch(url);
+    return;
+  }
+
+  // --- Other platform logic (Facebook, Instagram, WhatsApp) ---
+  // Example for Instagram / FB messages (your previous code)
+  try {
+    const platformUrl = `/admin/chat/list?conversationId=${encodeURIComponent(conv.id)}`;
+    const res = await fetch(platformUrl);
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
-    let backendMessages = [];
+    let platformMessages = [];
 
     if (data.messages) {
-      backendMessages = data.messages.map((msg, index) => ({
+      platformMessages = data.messages.map((msg, index) => ({
         id: msg.id || `local-${index}`,
         from: msg.sender || "unknown",
         message: msg.text || msg.content || "",
@@ -375,14 +398,14 @@ if (selectedPage.type === "widget") {
 
     setMessages((prevMessages) => ({
       ...prevMessages,
-      [conv.sessionId || conv.id]: backendMessages,
+      [conv.id]: platformMessages,
     }));
+
+    setSelectedConversation(conv);
   } catch (err) {
-    console.error("Error fetching Widget messages", err);
-    alert("Failed to fetch Widget messages.");
+    console.error("Error fetching platform messages", err);
+    alert("Failed to fetch messages.");
   }
-  return;
-}
 
 
   // ✅ Facebook & Instagram
