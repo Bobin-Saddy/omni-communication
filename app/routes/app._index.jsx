@@ -577,13 +577,13 @@ if (selectedPage.type === "widget") {
   try {
     const payload = { message: newMessage };
 
-    // Existing conversation
+    // If replying to existing conversation
     if (selectedConversation?.id) {
       payload.conversationId = selectedConversation.id;
     } 
-    // New conversation
+    // If starting a new conversation
     else if (selectedCustomer?.id) {
-      payload.customerId = selectedCustomer.id; // ✅ REQUIRED
+      payload.customerId = selectedCustomer.id;  // ✅ REQUIRED
     } 
     else {
       alert("Please select a customer to start a conversation");
