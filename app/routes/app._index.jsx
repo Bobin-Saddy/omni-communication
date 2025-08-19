@@ -15,6 +15,8 @@ export default function SocialChatDashboard() {
   const [shopifySessions, setShopifySessions] = useState([]);
   const [showShopifyWidget, setShowShopifyWidget] = useState(false);
   const [loadingShopify, setLoadingShopify] = useState(false);
+const [chatWidgetConnected, setChatWidgetConnected] = useState(false);
+const [chatWidgetUsers, setChatWidgetUsers] = useState([]);
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -78,7 +80,7 @@ const fetchShopifySessions = async () => {
     const shop = url.searchParams.get("shop");
     if (!shop) return;
 
-    const res = await fetch(`/admin/chat/list?shop=${shop}`); // matches loader
+    const res = await fetch(`/admin/chat/list?shop=${shop}`);
     const data = await res.json();
     setShopifySessions(data.sessions || []);
   } catch (err) {
@@ -103,54 +105,50 @@ const fetchShopifySessions = async () => {
 };
   /** Open Shopify conversation in dashboard */
 const openShopifyConversation = async (session) => {
-  setSelectedPage({ id: session.sessionId, name: session.storeDomain, type: "shopify" });
+  setSelectedPage({ id: session.id, name: session.storeDomain, type: "shopify" });
   setSelectedConversation(session);
 
   try {
-    const res = await fetch(`/admin/chat/list?sessionId=${session.sessionId}`);
+    const res = await fetch(`/admin/chat/list?sessionId=${session.id}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // ✅ Merge messages just like widget users
     setMessages((prev) => ({
       ...prev,
-      [String(session.sessionId)]: data.messages || [],
+      [String(session.id)]: data.messages || [],
     }));
   } catch (err) {
     console.error("Error fetching session messages:", err);
   }
 };
 
+const sendShopifyMessage = async () => {
+  if (!newMessage.trim() || !selectedConversation) return;
+  try {
+    const sessionId = selectedConversation.id;
+    await fetch("/admin/chat/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, message: newMessage }),
+    });
 
+    const localMsg = {
+      id: "local-" + Date.now(),
+      displayName: "You",
+      message: newMessage,
+      created_time: new Date().toISOString(),
+    };
 
-  /** Send message for Shopify session */
-  const sendShopifyMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
-    try {
-      const sessionId = selectedConversation.sessionId;
-      await fetch("/admin/chat/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, message: newMessage }),
-      });
+    setMessages((prev) => ({
+      ...prev,
+      [sessionId]: [...(prev[sessionId] || []), localMsg],
+    }));
 
-      const localMsg = {
-        id: "local-" + Date.now(),
-        displayName: "You",
-        message: newMessage,
-        created_time: new Date().toISOString(),
-      };
-
-      setMessages((prev) => ({
-        ...prev,
-        [sessionId]: [...(prev[sessionId] || []), localMsg],
-      }));
-
-      setNewMessage("");
-    } catch (err) {
-      console.error("Failed to send Shopify message", err);
-    }
-  };
+    setNewMessage("");
+  } catch (err) {
+    console.error("Failed to send Shopify message", err);
+  }
+};
 
   const resetIgData = () => {
     setIgPages([]);
