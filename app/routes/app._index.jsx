@@ -573,22 +573,20 @@ const sendMessage = async () => {
 if (selectedPage.type === "widget") {
   if (!newMessage.trim()) return;
 
+  if (!selectedConversation?.id && !selectedCustomer?.id) {
+    alert("Please select a customer to start a conversation");
+    return;
+  }
+
   setSendingMessage(true);
   try {
     const payload = { message: newMessage };
 
-    // If replying to existing conversation
     if (selectedConversation?.id) {
       payload.conversationId = selectedConversation.id;
-    } 
-    // If starting a new conversation
-    else if (selectedCustomer?.id) {
-      payload.customerId = selectedCustomer.id;  // ✅ REQUIRED
-    } 
-    else {
-      alert("Please select a customer to start a conversation");
-      setSendingMessage(false);
-      return;
+    } else {
+      // New conversation must send customerId
+      payload.customerId = selectedCustomer.id;
     }
 
     const response = await fetch("/api/sendMessage", {
@@ -598,13 +596,15 @@ if (selectedPage.type === "widget") {
     });
 
     const result = await response.json();
+
     if (!response.ok) {
+      console.error(result.error);
       alert("Failed to send widget message: " + result.error);
       return;
     }
 
     setNewMessage("");
-    await fetchMessages(selectedConversation || result.conversation); // reload messages
+    await fetchMessages(selectedConversation || result.conversation);
   } catch (error) {
     console.error(error);
     alert("Failed to send widget message. Check console for details.");
@@ -613,6 +613,7 @@ if (selectedPage.type === "widget") {
   }
   return;
 }
+
 
 
 
