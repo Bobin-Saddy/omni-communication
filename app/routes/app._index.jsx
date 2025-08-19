@@ -13,6 +13,8 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 
+// Set it when a user is selected in the widget
+
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
@@ -558,7 +560,7 @@ const sendMessage = async () => {
 
   // Widget messages
 if (selectedPage.type === "widget") {
-  if (!newMessage.trim()) return;
+  if (!newMessage.trim() || !selectedConversation?.id) return;
 
   setSendingMessage(true);
   try {
@@ -566,14 +568,12 @@ if (selectedPage.type === "widget") {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        conversationId: selectedConversation?.id || null, // existing conversation
-        customerId: selectedCustomer?.id || null,        // needed if new conversation
+        conversationId: selectedConversation.id, // only use existing conversation
         message: newMessage,
       }),
     });
 
     const result = await response.json();
-
     if (!response.ok) {
       console.error(result.error);
       alert("Failed to send widget message: " + result.error);
@@ -581,7 +581,7 @@ if (selectedPage.type === "widget") {
     }
 
     setNewMessage("");
-    await fetchMessages(result.conversation || selectedConversation);
+    await fetchMessages(selectedConversation);
   } catch (error) {
     console.error(error);
     alert("Failed to send widget message. Check console for details.");
