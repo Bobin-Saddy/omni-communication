@@ -100,17 +100,14 @@ export default function SocialChatDashboard() {
       }
     );
   };
-const handleWidgetConnect = async () => {
+const handleWidgetConnect = async (userId) => {
   setSelectedPage({ id: "widget", type: "widget", name: "Chat Widget" });
   setLoadingConversations(true);
 
   try {
-    // 👇 assume you have userId stored in state/context
-    const userId = currentUser?.id || selectedUser?.id;
-
     if (!userId) throw new Error("UserId is missing!");
 
-    const res = await fetch(`/admin/chat/list?userId=${userId}`);
+    const res = await fetch(`/admin/chat/list?userId=${encodeURIComponent(userId)}`);
     if (!res.ok) throw new Error(`Failed to fetch widget conversations: ${res.status}`);
 
     const data = await res.json();
