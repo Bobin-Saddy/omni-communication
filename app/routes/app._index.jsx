@@ -348,13 +348,11 @@ if (selectedPage.type === "widget") {
   try {
     let url = "";
 
-    // userId ko safe string banate hain
-    if (conv.userId) {
-      const userId =
-        typeof conv.userId === "object" ? conv.userId.id : conv.userId;
-
-      url = `/admin/chat/list?userId=${encodeURIComponent(userId)}`;
+    if (conv.sessionId) {
+      // fetch messages using sessionId
+      url = `/admin/chat/list?sessionId=${encodeURIComponent(conv.sessionId)}`;
     } else {
+      // fallback to conversationId if sessionId is not available
       url = `/admin/chat/list?conversationId=${encodeURIComponent(conv.id)}`;
     }
 
@@ -364,31 +362,20 @@ if (selectedPage.type === "widget") {
 
     let backendMessages = [];
 
- if (data.messages) {
-  backendMessages = (data.messages || []).map((msg, index) => ({
-    id: msg.id || `local-${index}`,
-    from: msg.sender || "unknown",
-    message: msg.text || msg.content || "",
-    created_time: msg.createdAt
-      ? new Date(msg.createdAt).toISOString()
-      : new Date().toISOString(),
-  }));
-} else if (data.sessions) {
-  backendMessages = data.sessions.flatMap((s, idx) =>
-    (s.messages || []).map((msg, index) => ({
-      id: msg.id || `local-${idx}-${index}`,
-      from: msg.sender || "unknown",
-      message: msg.content || "",
-      created_time: msg.createdAt
-        ? new Date(msg.createdAt).toISOString()
-        : new Date().toISOString(),
-    }))
-  );
-}
+    if (data.messages) {
+      backendMessages = data.messages.map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: msg.sender || "unknown",
+        message: msg.text || msg.content || "",
+        created_time: msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
+    }
 
     setMessages((prevMessages) => ({
       ...prevMessages,
-      [conv.userId?.id || conv.userId || conv.id]: backendMessages,
+      [conv.sessionId || conv.id]: backendMessages,
     }));
   } catch (err) {
     console.error("Error fetching Widget messages", err);
@@ -396,6 +383,7 @@ if (selectedPage.type === "widget") {
   }
   return;
 }
+
 
   // ✅ Facebook & Instagram
   try {
