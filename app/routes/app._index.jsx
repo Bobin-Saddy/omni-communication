@@ -573,7 +573,6 @@ const sendMessage = async () => {
 if (selectedPage.type === "widget") {
   if (!newMessage.trim()) return;
 
-  // Must have either conversation or customer
   if (!selectedConversation?.id && !selectedCustomer?.id) {
     alert("Please select a customer to start a conversation");
     return;
@@ -586,7 +585,7 @@ if (selectedPage.type === "widget") {
   if (selectedConversation?.id) {
     payload.conversationId = selectedConversation.id;
   } else {
-    payload.customerId = selectedCustomer.id; // ✅ crucial
+    payload.customerId = selectedCustomer.id; // ✅ send customerId
   }
 
   const response = await fetch("/api/sendMessage", {
