@@ -25,7 +25,7 @@ const [widgetConnected, setWidgetConnected] = useState(false);
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPDf9mYpD8bmGLBNMjDgZBD1fnxTKaoMQz4tTifRQNLLcZBDQjHy9YRtxsGfJxa9TsrMMSzS72ZCiv1ROOw3GcZBeecSuuitjuwlqdbyUGihjd4kbMgxgF3EYOSmB9nWFcCgbfHEkM5qoKMbdv8fsom7rNvUF0SYZCIj3pBHhBTgTdObOCfQpLdGJvmsmSjo4E8fWoFfVs4ZAX3ju4m9rsZCUnCvnp4G8AYZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
-  const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
+  // const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
   const [currentStoreDomain, setCurrentStoreDomain] = useState(null);
 
