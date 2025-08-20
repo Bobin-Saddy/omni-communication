@@ -575,47 +575,42 @@ const sendMessage = async () => {
 
   try {
     // --- Widget messages ---
-if (selectedPage.type === "widget") {
-  if (!newMessage.trim() || !selectedConversation?.sessionId || !currentStoreDomain) {
-    alert("storeDomain and sessionId are required");
-    return;
-  }
+    if (selectedPage.type === "widget") {
+      if (!newMessage.trim() || !selectedConversation?.sessionId || !currentStoreDomain) {
+        alert("storeDomain and sessionId are required");
+        return;
+      }
 
-  setSendingMessage(true);
-  try {
-    const response = await fetch("/api/sendMessage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        storeDomain: currentStoreDomain,              // your shop domain
-        sessionId: selectedConversation.sessionId,   // sessionId of this chat
-        sender: "me",
-        message: newMessage,
-      }),
-    });
+      try {
+        const response = await fetch("/api/sendMessage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            storeDomain: currentStoreDomain,
+            sessionId: selectedConversation.sessionId,
+            sender: "me",
+            message: newMessage,
+          }),
+        });
 
-    const result = await response.json();
+        const result = await response.json();
 
-    if (!response.ok) {
-      console.error(result.error);
-      alert("Failed to send widget message: " + result.error);
+        if (!response.ok) {
+          console.error(result.error);
+          alert("Failed to send widget message: " + result.error);
+          return;
+        }
+
+        setNewMessage("");
+        await fetchMessages(selectedConversation); // reload messages
+      } catch (error) {
+        console.error(error);
+        alert("Failed to send widget message. Check console for details.");
+      } finally {
+        setSendingMessage(false);
+      }
       return;
     }
-
-    setNewMessage("");
-    await fetchMessages(selectedConversation); // reload messages
-  } catch (error) {
-    console.error(error);
-    alert("Failed to send widget message. Check console for details.");
-  } finally {
-    setSendingMessage(false);
-  }
-  return;
-}
-
-
-
-
 
     // --- WhatsApp messages ---
     if (selectedPage.type === "whatsapp") {
@@ -625,44 +620,65 @@ if (selectedPage.type === "widget") {
 
     // --- Instagram & Facebook ---
     const token = pageAccessTokens[selectedPage.id];
-    if (!token) return alert("Page token missing");
+    if (!token) {
+      alert("Page token missing");
+      return;
+    }
 
     let recipientId;
 
     if (selectedPage.type === "instagram") {
+      // Get recipient for Instagram
       const msgRes = await fetch(
         `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
       );
       const msgData = await msgRes.json();
-      const sender = msgData?.data?.find((m) => m.from?.id !== selectedPage.igId);
-      if (!sender) return alert("Recipient not found for Instagram");
+      const sender = msgData?.data?.find(
+        (m) => m.from?.id !== selectedPage.igId
+      );
+      if (!sender) {
+        alert("Recipient not found for Instagram");
+        return;
+      }
       recipientId = sender.from.id;
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "instagram",
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-        }),
-      });
+      await fetch(
+        `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messaging_product: "instagram",
+            recipient: { id: recipientId },
+            message: { text: newMessage },
+          }),
+        }
+      );
     } else {
+      // Get recipient for Facebook
       const participants = selectedConversation.participants?.data || [];
-      const recipient = participants.find((p) => p.name !== selectedPage.name);
-      if (!recipient) return alert("Recipient not found for Facebook");
+      const recipient = participants.find(
+        (p) => p.name !== selectedPage.name
+      );
+      if (!recipient) {
+        alert("Recipient not found for Facebook");
+        return;
+      }
       recipientId = recipient.id;
 
-      await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${token}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: recipientId },
-          message: { text: newMessage },
-          messaging_type: "MESSAGE_TAG",
-          tag: "ACCOUNT_UPDATE",
-        }),
-      });
+      await fetch(
+        `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: { id: recipientId },
+            message: { text: newMessage },
+            messaging_type: "MESSAGE_TAG",
+            tag: "ACCOUNT_UPDATE",
+          }),
+        }
+      );
     }
 
     setNewMessage("");
@@ -674,6 +690,7 @@ if (selectedPage.type === "widget") {
     setSendingMessage(false);
   }
 };
+
 
 
 
