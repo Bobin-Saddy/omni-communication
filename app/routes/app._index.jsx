@@ -684,31 +684,30 @@ return (
     className="social-chat-dashboard"
     style={{
       fontFamily: "Inter, Arial, sans-serif",
-      maxWidth: 1200,
+      maxWidth: 1300,
       margin: "auto",
       padding: "20px",
     }}
   >
-    {/* Title */}
+    {/* Header */}
     <h1
       style={{
         textAlign: "center",
         marginBottom: "25px",
-        fontSize: "28px",
+        fontSize: "30px",
         fontWeight: "700",
-        color: "#1e1e1e",
+        color: "#1e293b",
       }}
     >
       📱 Social Chat Dashboard
     </h1>
 
-    {/* Card Wrapper */}
+    {/* Card */}
     <div
-      className="card for-box"
       style={{
         padding: 24,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-        borderRadius: 12,
+        boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
+        borderRadius: 14,
         background: "#ffffff",
       }}
     >
@@ -719,11 +718,7 @@ return (
           disabled={fbConnected || loadingPages}
           className="btn-primary"
         >
-          {loadingPages && !fbConnected
-            ? "Loading..."
-            : fbConnected
-            ? "✅ Facebook Connected"
-            : "Connect Facebook"}
+          {fbConnected ? "✅ Facebook Connected" : "Connect Facebook"}
         </button>
 
         <div style={{ marginTop: 12 }}>
@@ -732,11 +727,7 @@ return (
             disabled={igConnected || loadingPages}
             className="btn-primary"
           >
-            {loadingPages && !igConnected
-              ? "Loading..."
-              : igConnected
-              ? "✅ Instagram Connected"
-              : "Connect Instagram"}
+            {igConnected ? "✅ Instagram Connected" : "Connect Instagram"}
           </button>
         </div>
 
@@ -763,7 +754,7 @@ return (
         </div>
       </div>
 
-      {/* Main 3-column UI */}
+      {/* Main 3-column layout */}
       {selectedPage && (
         <div
           style={{
@@ -774,7 +765,7 @@ return (
             overflow: "hidden",
           }}
         >
-          {/* Sidebar */}
+          {/* Sidebar (Pages) */}
           <div
             style={{
               width: "22%",
@@ -806,10 +797,11 @@ return (
                     selectedPage?.id === page.id ? "#e0f2fe" : "transparent",
                   borderBottom: "1px solid #eee",
                   transition: "background 0.2s",
+                  fontWeight: "500",
                 }}
               >
-                <span style={{ fontWeight: "500" }}>{page.name}</span>{" "}
-                <small style={{ color: "#6b7280" }}>({page.type})</small>
+                {page.type === "facebook" && "📘"}{" "}
+                {page.type === "instagram" && "📸"} {page.name}
               </div>
             ))}
 
@@ -823,9 +815,10 @@ return (
                     selectedPage?.type === "whatsapp" ? "#e0f2fe" : "transparent",
                   borderBottom: "1px solid #eee",
                   transition: "background 0.2s",
+                  fontWeight: "500",
                 }}
               >
-                WhatsApp
+                💬 WhatsApp
               </div>
             )}
 
@@ -842,7 +835,7 @@ return (
                   fontWeight: "500",
                 }}
               >
-                Chat Widget Users
+                🧩 Chat Widget Users
               </div>
             )}
           </div>
@@ -901,7 +894,9 @@ return (
                       padding: "12px 16px",
                       cursor: "pointer",
                       backgroundColor:
-                        selectedConversation?.id === conv.id ? "#e0f2fe" : "transparent",
+                        selectedConversation?.id === conv.id
+                          ? "#e0f2fe"
+                          : "transparent",
                       borderBottom: "1px solid #eee",
                       transition: "background 0.2s",
                     }}
@@ -913,15 +908,16 @@ return (
             )}
           </div>
 
-          {/* Chat */}
+          {/* Chat Area */}
           <div
             style={{
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              background: "#fafafa",
+              background: "#f9fafb",
             }}
           >
+            {/* Header */}
             <div
               style={{
                 padding: "14px 16px",
@@ -953,25 +949,42 @@ return (
                     fromId === selectedPage?.id;
 
                   return (
-                    <div key={msg.id} style={{ marginBottom: 10 }}>
+                    <div
+                      key={msg.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: isMe ? "flex-end" : "flex-start",
+                        marginBottom: 12,
+                      }}
+                    >
                       <div
                         style={{
-                          alignSelf: isMe ? "flex-end" : "flex-start",
-                          backgroundColor: isMe ? "#d1fae5" : "#f3f4f6",
+                          backgroundColor: isMe ? "#2563eb" : "#e5e7eb",
+                          color: isMe ? "#ffffff" : "#111827",
                           padding: "10px 14px",
-                          borderRadius: 12,
-                          maxWidth: "70%",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                          borderRadius: 16,
+                          maxWidth: "65%",
+                          boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+                          textAlign: "left",
                         }}
                       >
-                        <strong style={{ fontSize: 13, color: "#111827" }}>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: "600",
+                            marginBottom: 4,
+                          }}
+                        >
                           {isMe ? "You" : msg.displayName || "User"}
-                        </strong>
-                        <div style={{ fontSize: 14, marginTop: 4 }}>
+                        </div>
+                        <div style={{ fontSize: 14, marginBottom: 4 }}>
                           {msg.message}
                         </div>
-                        <small style={{ fontSize: 11, color: "#6b7280" }}>
-                          {new Date(msg.created_time).toLocaleString()}
+                        <small style={{ fontSize: 11, color: isMe ? "#e0e7ff" : "#4b5563" }}>
+                          {new Date(msg.created_time).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </small>
                       </div>
                     </div>
@@ -1061,6 +1074,7 @@ return (
     `}</style>
   </div>
 );
+
 
 
 }
