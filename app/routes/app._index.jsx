@@ -694,43 +694,56 @@ return (
       }}
     >
       {/* Connection Buttons */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <button
-          onClick={handleFacebookLogin}
-          disabled={fbConnected || loadingPages}
-          className="btn-primary"
-        >
-          {loadingPages && !fbConnected
-            ? "Loading..."
-            : fbConnected
-            ? "Facebook Connected"
-            : "Connect Facebook"}
-        </button>
+{/* Connection Buttons */}
+<div style={{ textAlign: "center", marginBottom: 20 }}>
+  <button
+    onClick={handleFacebookLogin}
+    disabled={fbConnected || loadingPages}
+    className="btn-primary"
+  >
+    {loadingPages && !fbConnected
+      ? "Loading..."
+      : fbConnected
+      ? "Facebook Connected"
+      : "Connect Facebook"}
+  </button>
 
-        <div style={{ marginTop: 10 }}>
-          <button
-            onClick={handleInstagramLogin}
-            disabled={igConnected || loadingPages}
-            className="btn-primary"
-          >
-            {loadingPages && !igConnected
-              ? "Loading..."
-              : igConnected
-              ? "Instagram Connected"
-              : "Connect Instagram"}
-          </button>
-        </div>
+  <div style={{ marginTop: 10 }}>
+    <button
+      onClick={handleInstagramLogin}
+      disabled={igConnected || loadingPages}
+      className="btn-primary"
+    >
+      {loadingPages && !igConnected
+        ? "Loading..."
+        : igConnected
+        ? "Instagram Connected"
+        : "Connect Instagram"}
+    </button>
+  </div>
 
-        <div style={{ marginTop: 10 }}>
-          <button
-            onClick={handleWhatsAppConnect}
-            disabled={waConnected}
-            className="btn-primary"
-          >
-            {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
-          </button>
-        </div>
-      </div>
+  <div style={{ marginTop: 10 }}>
+    <button
+      onClick={handleWhatsAppConnect}
+      disabled={waConnected}
+      className="btn-primary"
+    >
+      {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
+    </button>
+  </div>
+
+  {/* ✅ New Chat Widget Button */}
+  <div style={{ marginTop: 10 }}>
+    <button
+      onClick={() =>
+        setSelectedPage({ type: "widget", id: "widget", name: "Chat Widget" })
+      }
+      className="btn-primary"
+    >
+      {selectedPage?.type === "widget" ? "Chat Widget Connected" : "Connect Chat Widget"}
+    </button>
+  </div>
+</div>
 
       {/* Main 3-column chat UI */}
       {selectedPage && (
