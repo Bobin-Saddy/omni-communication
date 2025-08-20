@@ -1,4 +1,3 @@
-import { empty } from "@prisma/client/runtime/library";
 import { useState, useEffect, useRef } from "react";
 
 export default function SocialChatDashboard() {
@@ -573,7 +572,6 @@ const sendMessage = async () => {
   if (!newMessage.trim() || !selectedPage || sendingMessage) return;
 
   setSendingMessage(true);
-
 
   try {
     // --- Widget messages ---
