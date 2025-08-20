@@ -673,26 +673,6 @@ if (selectedPage.type === "widget") {
 };
 
 
-// Widget conversations fetcher
-// ✅ Fetch Widget Conversations + Select Widget Page
-const fetchWidgetConversations = async () => {
-  try {
-    setLoadingConversations(true);
-
-    const res = await fetch(`/admin/chat/list?type=widget`); // 👈 apni API
-    const data = await res.json();
-
-    // ✅ Directly set conversations & selectedPage
-    setConversations(data.conversations || []);
-    setSelectedPage({ type: "widget", id: "widget", name: "Chat Widget" });
-
-  } catch (err) {
-    console.error("Error fetching widget conversations:", err);
-  } finally {
-    setLoadingConversations(false);
-  }
-};
-
 
 
   
@@ -714,7 +694,7 @@ return (
       }}
     >
       {/* Connection Buttons */}
-{/* Connection Buttons */}
+     {/* Connection Buttons */}
 <div style={{ textAlign: "center", marginBottom: 20 }}>
   <button
     onClick={handleFacebookLogin}
@@ -753,21 +733,17 @@ return (
   </div>
 
   {/* ✅ New Chat Widget Button */}
-<div
-  onClick={fetchWidgetConversations}
-  style={{
-    padding: 12,
-    cursor: "pointer",
-    backgroundColor:
-      selectedPage?.type === "widget" ? "#e3f2fd" : "white",
-    borderBottom: "1px solid #eee",
-  }}
->
-  Chat Widget
-</div>
-
-
-
+  <div style={{ marginTop: 10 }}>
+    <button
+      onClick={handleWidgetConnect}
+      disabled={selectedPage?.type === "widget"}
+      className="btn-primary"
+    >
+      {selectedPage?.type === "widget"
+        ? "Widget Connected"
+        : "Connect Widget"}
+    </button>
+  </div>
 </div>
 
       {/* Main 3-column chat UI */}
@@ -833,18 +809,7 @@ return (
             )}
 
             {/* ✅ Chat Widget Button */}
-            <div
-              onClick={handleWidgetConnect}
-              style={{
-                padding: 12,
-                cursor: "pointer",
-                backgroundColor:
-                  selectedPage?.type === "widget" ? "#e3f2fd" : "white",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              Chat Widget
-            </div>
+      
           </div>
 
           {/* Conversations List */}
