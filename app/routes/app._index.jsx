@@ -27,8 +27,9 @@ export default function SocialChatDashboard() {
 
   // --- Constants ---
   const FACEBOOK_APP_ID = "544704651303656";
-  const WHATSAPP_TOKEN = "YOUR_WA_TOKEN";
+  const WHATSAPP_TOKEN = "EAAHvZAZB8ZCmugBPDf9mYpD8bmGLBNMjDgZBD1fnxTKaoMQz4tTifRQNLLcZBDQjHy9YRtxsGfJxa9TsrMMSzS72ZCiv1ROOw3GcZBeecSuuitjuwlqdbyUGihjd4kbMgxgF3EYOSmB9nWFcCgbfHEkM5qoKMbdv8fsom7rNvUF0SYZCIj3pBHhBTgTdObOCfQpLdGJvmsmSjo4E8fWoFfVs4ZAX3ju4m9rsZCUnCvnp4G8AYZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
+  const WHATSAPP_RECIPIENT_NUMBER = "919779728764";
 
   // --- Initialize shop domain ---
   useEffect(() => {
