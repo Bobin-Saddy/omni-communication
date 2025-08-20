@@ -706,63 +706,47 @@ return (
     <div
       style={{
         padding: 24,
-        boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-        borderRadius: 14,
-        background: "#ffffff",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+        borderRadius: 16,
+        background: "rgba(255, 255, 255, 0.9)",
+        backdropFilter: "blur(12px)",
       }}
     >
       {/* Connection Buttons */}
       <div style={{ textAlign: "center", marginBottom: 30 }}>
-        <button
-          onClick={handleFacebookLogin}
-          disabled={fbConnected || loadingPages}
-          className="btn-primary"
-        >
+        <button onClick={handleFacebookLogin} disabled={fbConnected || loadingPages} className="btn-primary">
           {fbConnected ? "✅ Facebook Connected" : "Connect Facebook"}
         </button>
 
         <div style={{ marginTop: 12 }}>
-          <button
-            onClick={handleInstagramLogin}
-            disabled={igConnected || loadingPages}
-            className="btn-primary"
-          >
+          <button onClick={handleInstagramLogin} disabled={igConnected || loadingPages} className="btn-primary">
             {igConnected ? "✅ Instagram Connected" : "Connect Instagram"}
           </button>
         </div>
 
         <div style={{ marginTop: 12 }}>
-          <button
-            onClick={handleWhatsAppConnect}
-            disabled={waConnected}
-            className="btn-primary"
-          >
+          <button onClick={handleWhatsAppConnect} disabled={waConnected} className="btn-primary">
             {waConnected ? "✅ WhatsApp Connected" : "Connect WhatsApp"}
           </button>
         </div>
 
         <div style={{ marginTop: 12 }}>
-          <button
-            onClick={handleWidgetConnect}
-            disabled={selectedPage?.type === "widget"}
-            className="btn-primary"
-          >
-            {selectedPage?.type === "widget"
-              ? "✅ Widget Connected"
-              : "Connect Widget"}
+          <button onClick={handleWidgetConnect} disabled={selectedPage?.type === "widget"} className="btn-primary">
+            {selectedPage?.type === "widget" ? "✅ Widget Connected" : "Connect Widget"}
           </button>
         </div>
       </div>
 
-      {/* Main 3-column layout */}
+      {/* Main Layout */}
       {selectedPage && (
         <div
           style={{
             display: "flex",
             height: 650,
             border: "1px solid #e5e7eb",
-            borderRadius: 12,
+            borderRadius: 14,
             overflow: "hidden",
+            background: "#f9fafb",
           }}
         >
           {/* Sidebar (Pages) */}
@@ -774,18 +758,9 @@ return (
               overflowY: "auto",
             }}
           >
-            <div
-              style={{
-                padding: "14px 16px",
-                borderBottom: "1px solid #e5e7eb",
-                background: "#f3f4f6",
-                fontWeight: "600",
-                fontSize: "15px",
-              }}
-            >
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", background: "#f3f4f6", fontWeight: "600" }}>
               Channels
             </div>
-
             {[...fbPages, ...igPages].map((page) => (
               <div
                 key={page.id}
@@ -793,26 +768,27 @@ return (
                 style={{
                   padding: "12px 16px",
                   cursor: "pointer",
-                  backgroundColor:
-                    selectedPage?.id === page.id ? "#e0f2fe" : "transparent",
+                  backgroundColor: selectedPage?.id === page.id ? "#e0f2fe" : "transparent",
                   borderBottom: "1px solid #eee",
                   transition: "background 0.2s",
                   fontWeight: "500",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                 }}
               >
-                {page.type === "facebook" && "📘"}{" "}
-                {page.type === "instagram" && "📸"} {page.name}
+                {page.type === "facebook" && "📘"}
+                {page.type === "instagram" && "📸"}
+                {page.name}
               </div>
             ))}
-
             {waConnected && (
               <div
                 onClick={handleWhatsAppConnect}
                 style={{
                   padding: "12px 16px",
                   cursor: "pointer",
-                  backgroundColor:
-                    selectedPage?.type === "whatsapp" ? "#e0f2fe" : "transparent",
+                  backgroundColor: selectedPage?.type === "whatsapp" ? "#e0f2fe" : "transparent",
                   borderBottom: "1px solid #eee",
                   transition: "background 0.2s",
                   fontWeight: "500",
@@ -821,70 +797,42 @@ return (
                 💬 WhatsApp
               </div>
             )}
-
             {widgetConnected && (
               <div
                 onClick={handleWidgetConnect}
                 style={{
                   padding: "12px 16px",
                   cursor: "pointer",
-                  backgroundColor:
-                    selectedPage?.type === "widget" ? "#e0f2fe" : "transparent",
+                  backgroundColor: selectedPage?.type === "widget" ? "#e0f2fe" : "transparent",
                   borderBottom: "1px solid #eee",
                   transition: "background 0.2s",
                   fontWeight: "500",
                 }}
               >
-                🧩 Chat Widget Users
+                🧩 Chat Widget
               </div>
             )}
           </div>
 
           {/* Conversations */}
-          <div
-            style={{
-              width: "28%",
-              borderRight: "1px solid #e5e7eb",
-              overflowY: "auto",
-              background: "#ffffff",
-            }}
-          >
-            <div
-              style={{
-                padding: "14px 16px",
-                borderBottom: "1px solid #e5e7eb",
-                background: "#f3f4f6",
-                fontWeight: "600",
-                fontSize: "15px",
-              }}
-            >
+          <div style={{ width: "28%", borderRight: "1px solid #e5e7eb", overflowY: "auto", background: "#fff" }}>
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", background: "#f3f4f6", fontWeight: "600" }}>
               Conversations
             </div>
-
             {loadingConversations ? (
               <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
             ) : conversations.length === 0 ? (
-              <div style={{ padding: 14, color: "#6b7280" }}>
-                No conversations found
-              </div>
+              <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
             ) : (
               conversations.map((conv) => {
                 const name =
                   selectedPage?.type === "instagram"
                     ? `${conv.businessName} ↔️ ${conv.userName}`
                     : selectedPage?.type === "whatsapp"
-                    ? conv.userName ||
-                      conv.profile?.name ||
-                      conv.contacts?.[0]?.profile?.name ||
-                      conv.contacts?.[0]?.wa_id ||
-                      conv.wa_id ||
-                      "WhatsApp User"
+                    ? conv.userName || conv.contacts?.[0]?.wa_id || "WhatsApp User"
                     : selectedPage?.type === "widget"
                     ? conv.userName || "Widget User"
-                    : conv.participants?.data
-                        ?.filter((p) => p.name !== selectedPage.name)
-                        .map((p) => p.name)
-                        .join(", ") || "User";
+                    : conv.participants?.data?.map((p) => p.name).join(", ") || "User";
 
                 return (
                   <div
@@ -893,10 +841,7 @@ return (
                     style={{
                       padding: "12px 16px",
                       cursor: "pointer",
-                      backgroundColor:
-                        selectedConversation?.id === conv.id
-                          ? "#e0f2fe"
-                          : "transparent",
+                      backgroundColor: selectedConversation?.id === conv.id ? "#e0f2fe" : "transparent",
                       borderBottom: "1px solid #eee",
                       transition: "background 0.2s",
                     }}
@@ -909,24 +854,9 @@ return (
           </div>
 
           {/* Chat Area */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              background: "#f9fafb",
-            }}
-          >
-            {/* Header */}
-            <div
-              style={{
-                padding: "14px 16px",
-                borderBottom: "1px solid #e5e7eb",
-                background: "#f3f4f6",
-                fontWeight: "600",
-                fontSize: "15px",
-              }}
-            >
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f9fafb" }}>
+            {/* Chat Header */}
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", background: "#f3f4f6", fontWeight: "600" }}>
               Chat
             </div>
 
@@ -934,75 +864,52 @@ return (
             <div
               style={{
                 flex: 1,
-                padding: 16,
+                padding: 20,
                 overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
+                gap: "12px",
               }}
             >
-              {(messages[selectedConversation?.messageKey || selectedConversation?.id] || []).map(
-                (msg) => {
-                  const fromId = msg.from?.id || msg.from;
-                  const isMe =
-                    fromId === WHATSAPP_RECIPIENT_NUMBER ||
-                    fromId === "me" ||
-                    fromId === selectedPage?.id;
+              {(messages[selectedConversation?.messageKey || selectedConversation?.id] || []).map((msg) => {
+                const fromId = msg.from?.id || msg.from;
+                const isMe = fromId === "me" || fromId === selectedPage?.id;
+                const bubbleStyle = {
+                  padding: "12px 16px",
+                  borderRadius: 18,
+                  maxWidth: "65%",
+                  fontSize: 14,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  wordBreak: "break-word",
+                };
 
-                  return (
+                return (
+                  <div key={msg.id} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start" }}>
                     <div
-                      key={msg.id}
                       style={{
-                        display: "flex",
-                        justifyContent: isMe ? "flex-end" : "flex-start",
-                        marginBottom: 12,
+                        ...bubbleStyle,
+                        background: isMe ? "#2563eb" : "#e5e7eb",
+                        color: isMe ? "#fff" : "#111827",
                       }}
                     >
-                      <div
-                        style={{
-                          backgroundColor: isMe ? "#2563eb" : "#e5e7eb",
-                          color: isMe ? "#ffffff" : "#111827",
-                          padding: "10px 14px",
-                          borderRadius: 16,
-                          maxWidth: "65%",
-                          boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-                          textAlign: "left",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: "600",
-                            marginBottom: 4,
-                          }}
-                        >
-                          {isMe ? "You" : msg.displayName || "User"}
+                      {!isMe && (
+                        <div style={{ fontSize: 12, fontWeight: "600", marginBottom: 4 }}>
+                          {msg.displayName || "User"}
                         </div>
-                        <div style={{ fontSize: 14, marginBottom: 4 }}>
-                          {msg.message}
-                        </div>
-                        <small style={{ fontSize: 11, color: isMe ? "#e0e7ff" : "#4b5563" }}>
-                          {new Date(msg.created_time).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </small>
-                      </div>
+                      )}
+                      <div>{msg.message}</div>
+                      <small style={{ display: "block", marginTop: 4, fontSize: 11, opacity: 0.7 }}>
+                        {new Date(msg.created_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </small>
                     </div>
-                  );
-                }
-              )}
+                  </div>
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
 
             {/* Input */}
-            <div
-              style={{
-                display: "flex",
-                padding: 12,
-                borderTop: "1px solid #e5e7eb",
-                background: "#ffffff",
-              }}
-            >
+            <div style={{ display: "flex", padding: 12, borderTop: "1px solid #e5e7eb", background: "#fff" }}>
               <input
                 type="text"
                 value={newMessage}
@@ -1010,8 +917,8 @@ return (
                 placeholder="Type a message..."
                 style={{
                   flex: 1,
-                  padding: "10px 14px",
-                  borderRadius: 8,
+                  padding: "12px 16px",
+                  borderRadius: 20,
                   border: "1px solid #d1d5db",
                   fontSize: 14,
                   outline: "none",
@@ -1024,11 +931,8 @@ return (
                 }}
                 disabled={sendingMessage}
               />
-
               <button
-                onClick={() => {
-                  if (!sendingMessage && newMessage.trim()) sendMessage();
-                }}
+                onClick={() => !sendingMessage && newMessage.trim() && sendMessage()}
                 disabled={sendingMessage || !newMessage.trim()}
                 style={{
                   marginLeft: 10,
@@ -1036,13 +940,13 @@ return (
                   backgroundColor: sendingMessage ? "#9ca3af" : "#2563eb",
                   color: "white",
                   border: "none",
-                  borderRadius: 8,
+                  borderRadius: 50,
                   fontWeight: "500",
                   cursor: sendingMessage ? "not-allowed" : "pointer",
                   transition: "background 0.3s",
                 }}
               >
-                {sendingMessage ? "Sending..." : "Send"}
+                {sendingMessage ? "..." : "➤"}
               </button>
             </div>
           </div>
@@ -1057,7 +961,7 @@ return (
         color: white;
         padding: 12px 22px;
         border: none;
-        border-radius: 8px;
+        border-radius: 10px;
         font-size: 15px;
         font-weight: 500;
         cursor: pointer;
@@ -1065,11 +969,19 @@ return (
         transition: all 0.3s ease;
       }
       .btn-primary:disabled {
-        background-color: #6b7280;
+        background-color: #9ca3af;
         cursor: not-allowed;
       }
       .btn-primary:not(:disabled):hover {
         background-color: #1f2937;
+      }
+      /* Smooth scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+        border-radius: 10px;
       }
     `}</style>
   </div>
