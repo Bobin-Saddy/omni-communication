@@ -673,21 +673,6 @@ if (selectedPage.type === "widget") {
 };
 
 
-// Widget conversations fetcher
-const fetchWidgetConversations = async () => {
-  try {
-    setLoadingConversations(true);
-    const res = await fetch(`/admin/chat/list?type=widget`); // 👈 apna API route
-    const data = await res.json();
-
-    setConversations(data.conversations || []);
-    setSelectedPage({ type: "widget", id: "widget", name: "Chat Widget" });
-  } catch (err) {
-    console.error("Error fetching widget conversations:", err);
-  } finally {
-    setLoadingConversations(false);
-  }
-};
 
 
   
@@ -737,17 +722,15 @@ return (
     </button>
   </div>
 
-<div style={{ marginTop: 10 }}>
-  <button
-    onClick={fetchWidgetConversations}
-    className="btn-primary"
-  >
-    {selectedPage?.type === "widget"
-      ? "Chat Widget Connected"
-      : "Connect Chat Widget"}
-  </button>
-</div>
-
+  <div style={{ marginTop: 10 }}>
+    <button
+      onClick={handleWhatsAppConnect}
+      disabled={waConnected}
+      className="btn-primary"
+    >
+      {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
+    </button>
+  </div>
 
   {/* ✅ New Chat Widget Button */}
   <div style={{ marginTop: 10 }}>
