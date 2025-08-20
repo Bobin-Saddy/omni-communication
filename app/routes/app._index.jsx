@@ -776,51 +776,53 @@ return (
               Pages
             </div>
 
-            {[...fbPages, ...igPages].map((page) => (
-              <div
-                key={page.id}
-                onClick={() => fetchConversations(page)}
-                style={{
-                  padding: 12,
-                  cursor: "pointer",
-                  backgroundColor:
-                    selectedPage?.id === page.id ? "#e3f2fd" : "white",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                {page.name}{" "}
-                <small style={{ color: "#888" }}>({page.type})</small>
-              </div>
-            ))}
+   {[...fbPages, ...igPages].map((page) => (
+  <div
+    key={page.id}
+    onClick={() => fetchConversations(page)}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor:
+        selectedPage?.id === page.id ? "#e3f2fd" : "white",
+      borderBottom: "1px solid #eee",
+    }}
+  >
+    {page.name}{" "}
+    <small style={{ color: "#888" }}>({page.type})</small>
+  </div>
+))}
 
-            {waConnected && (
-              <div
-                onClick={handleWhatsAppConnect}
-                style={{
-                  padding: 12,
-                  cursor: "pointer",
-                  backgroundColor:
-                    selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
-                  borderBottom: "1px solid #eee",
-                }}
-              >
-                WhatsApp
-              </div>
-            )}
+{waConnected && (
+  <div
+    onClick={handleWhatsAppConnect}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor:
+        selectedPage?.type === "whatsapp" ? "#e3f2fd" : "white",
+      borderBottom: "1px solid #eee",
+    }}
+  >
+    WhatsApp
+  </div>
+)}
 
-            {/* ✅ Chat Widget Button */}
-            <div
-              onClick={handleWidgetConnect}
-              style={{
-                padding: 12,
-                cursor: "pointer",
-                backgroundColor:
-                  selectedPage?.type === "widget" ? "#e3f2fd" : "white",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              Chat Widget
-            </div>
+{/* ✅ Always show Widget Section */}
+<div
+  onClick={handleWidgetConnect}
+  style={{
+    padding: 12,
+    cursor: "pointer",
+    backgroundColor:
+      selectedPage?.type === "widget" ? "#e3f2fd" : "white",
+    borderBottom: "1px solid #eee",
+    fontWeight: "500",
+  }}
+>
+  Chat Widget Users
+</div>
+
           </div>
 
           {/* Conversations List */}
