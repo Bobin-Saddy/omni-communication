@@ -12,6 +12,7 @@ export default function SocialChatDashboard() {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
+const [widgetConnected, setWidgetConnected] = useState(false);
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -111,22 +112,24 @@ useEffect(() => {
     );
   };
 const handleWidgetConnect = async () => {
-  setSelectedPage({ id: "widget", type: "widget", name: "Chat Widget" });
-  setLoadingConversations(true);
-
   try {
+    setSelectedPage({ id: "widget", type: "widget", name: "Chat Widget" });
+    setLoadingConversations(true);
+
     const res = await fetch(`/api/chat?widget=true`);
     if (!res.ok) throw new Error("Failed to fetch widget sessions");
 
     const data = await res.json();
-    setConversations(data.sessions || []); // array of sessions
+    setConversations(data.sessions || []);
+
+    setWidgetConnected(true); // ✅ Mark widget as connected
   } catch (err) {
-    console.error("Widget session fetch failed:", err);
-    setConversations([]);
+    console.error("Widget connect failed:", err);
   } finally {
     setLoadingConversations(false);
   }
 };
+
 
 
 
@@ -808,20 +811,23 @@ return (
   </div>
 )}
 
-{/* ✅ Always show Widget Section */}
-<div
-  onClick={handleWidgetConnect}
-  style={{
-    padding: 12,
-    cursor: "pointer",
-    backgroundColor:
-      selectedPage?.type === "widget" ? "#e3f2fd" : "white",
-    borderBottom: "1px solid #eee",
-    fontWeight: "500",
-  }}
->
-  Chat Widget Users
-</div>
+{/* ✅ Show Widget tab only if connected */}
+{widgetConnected && (
+  <div
+    onClick={handleWidgetConnect}
+    style={{
+      padding: 12,
+      cursor: "pointer",
+      backgroundColor:
+        selectedPage?.type === "widget" ? "#e3f2fd" : "white",
+      borderBottom: "1px solid #eee",
+      fontWeight: "500",
+    }}
+  >
+    Chat Widget Users
+  </div>
+)}
+
 
           </div>
 
