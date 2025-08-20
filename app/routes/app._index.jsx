@@ -574,9 +574,6 @@ const sendMessage = async () => {
 
   setSendingMessage(true);
 
-  if(setSendingMessage !=empty){
-    console.log('check-allmessage-response----------->', newMessage, selectedPage, sendingMessage);
-  }
 
   try {
     // --- Widget messages ---
