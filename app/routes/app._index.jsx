@@ -1,3 +1,4 @@
+import { empty } from "@prisma/client/runtime/library";
 import { useState, useEffect, useRef } from "react";
 
 export default function SocialChatDashboard() {
@@ -572,6 +573,10 @@ const sendMessage = async () => {
   if (!newMessage.trim() || !selectedPage || sendingMessage) return;
 
   setSendingMessage(true);
+
+  if(setSendingMessage !=empty){
+    console.log('check-allmessage-response----------->', newMessage, selectedPage, sendingMessage);
+  }
 
   try {
     // --- Widget messages ---
