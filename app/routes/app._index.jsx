@@ -1015,6 +1015,7 @@ return (
         font-size: 16px;
         font-weight: 500;
         cursor: pointer;
+        width: 15pc;
         transition: background-color 0.3s ease;
       }
       .btn-primary:disabled {
