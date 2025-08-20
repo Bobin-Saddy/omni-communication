@@ -6,21 +6,35 @@ const prisma = new PrismaClient();
 export async function loader({ request }) {
   try {
     const url = new URL(request.url);
-    const conversationId = url.searchParams.get("conversationId"); // messages for a chat session
+    const conversationId = url.searchParams.get("conversationId"); // for internal chat
+    const sessionId = url.searchParams.get("sessionId"); // for store/widget chat
     const shop = url.searchParams.get("shop"); // filter sessions by shop
 
+    // ✅ Internal chat system
     if (conversationId) {
-      // ✅ Fetch messages for a specific conversation
+      const convId = parseInt(conversationId, 10);
+      if (isNaN(convId)) return json({ messages: [] });
+
       const messages = await prisma.chatMessage.findMany({
-        where: { conversationId: parseInt(conversationId) },
+        where: { conversationId: convId },
         orderBy: { createdAt: "asc" },
       });
 
       return json({ messages });
     }
 
+    // ✅ Store chat system (widget, FB, IG, WA…)
+    if (sessionId) {
+      const messages = await prisma.storeChatMessage.findMany({
+        where: { sessionId },
+        orderBy: { createdAt: "asc" },
+      });
+
+      return json({ messages });
+    }
+
+    // ✅ Fetch sessions for a specific shop
     if (shop) {
-      // ✅ Fetch chat sessions for a particular shop
       const sessions = await prisma.storeChatSession.findMany({
         where: { storeDomain: shop },
         orderBy: { lastSeenAt: "desc" },
@@ -29,7 +43,7 @@ export async function loader({ request }) {
       return json({ sessions });
     }
 
-    // ✅ Default: return all sessions
+    // ✅ Default: return all store sessions
     const sessions = await prisma.storeChatSession.findMany({
       orderBy: { lastSeenAt: "desc" },
     });
