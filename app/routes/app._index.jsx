@@ -809,7 +809,18 @@ return (
             )}
 
             {/* ✅ Chat Widget Button */}
-      
+            <div
+              onClick={handleWidgetConnect}
+              style={{
+                padding: 12,
+                cursor: "pointer",
+                backgroundColor:
+                  selectedPage?.type === "widget" ? "#e3f2fd" : "white",
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              Chat Widget
+            </div>
           </div>
 
           {/* Conversations List */}
