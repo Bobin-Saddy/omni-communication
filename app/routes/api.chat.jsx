@@ -16,17 +16,34 @@ function getCorsHeaders(request) {
 }
 
 // -------- GET messages or sessions --------
+// -------- GET messages or sessions --------
 export async function loader({ request }) {
   const corsHeaders = getCorsHeaders(request);
-  if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (request.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   const url = new URL(request.url);
-  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
-  const widget = url.searchParams.get("widget") === "true";
+
+  // pehle query param se lo
+  let storeDomain =
+    url.searchParams.get("store_domain") ||
+    url.searchParams.get("storeDomain") ||
+    url.searchParams.get("shop"); // Shopify hamesha ?shop=seo-partner.myshopify.com bhejta hai
+
+  // agar query se na mile toh Origin header se lo
+  if (!storeDomain) {
+    const origin = request.headers.get("Origin") || "";
+    if (origin.endsWith(".myshopify.com")) {
+      storeDomain = origin.replace(/^https?:\/\//, ""); // https:// hata ke
+    }
+  }
 
   if (!storeDomain) {
     return json({ ok: false, error: "Missing storeDomain" }, { status: 400, headers: corsHeaders });
   }
+
+  const widget = url.searchParams.get("widget") === "true";
 
   // ✅ Widget sessions for this specific store
   if (widget) {
