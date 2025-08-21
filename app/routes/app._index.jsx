@@ -730,7 +730,7 @@ return (
       }}
     >
       {/* Connection Buttons */}
-      <div style={{ textAlign: "center", marginBottom: 30, display:"flex", gap:"10px"}}>
+      <div style={{ textAlign: "center", marginBottom: 30 }}>
         <button onClick={handleFacebookLogin} disabled={fbConnected || loadingPages} className="btn-primary">
           {fbConnected ? "✅ Facebook Connected" : "Connect Facebook"}
         </button>
