@@ -726,7 +726,7 @@ return (
       📱 Social Chat Dashboard
     </h1>
 
-    {/* Top Navigation Buttons */}
+    {/* Top Navigation */}
     <div style={{ textAlign: "center", marginBottom: 20 }}>
       <button
         onClick={() => setActiveTab("settings")}
@@ -910,7 +910,7 @@ return (
                   }}
                 >
                   <div style={{ fontWeight: 500 }}>
-                    {conv.userName || "Unknown User"}
+                    {conv.userName || conv.userNumber || "Guest User"}
                   </div>
                   {conv.lastMessage && (
                     <div
@@ -949,7 +949,9 @@ return (
                 fontWeight: "600",
               }}
             >
-              {selectedConversation?.userName || "Chat"}
+              {selectedConversation?.userName ||
+                selectedConversation?.userNumber ||
+                "Chat"}
             </div>
 
             {/* Messages */}
@@ -961,6 +963,7 @@ return (
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
+                background: "#f1f5f9",
               }}
             >
               {(messages[selectedConversation?.id] || []).map((msg) => {
@@ -979,8 +982,10 @@ return (
                         borderRadius: 18,
                         maxWidth: "65%",
                         fontSize: 14,
-                        background: isMe ? "#2563eb" : "#e5e7eb",
+                        lineHeight: "20px",
+                        background: isMe ? "#2563eb" : "#fff",
                         color: isMe ? "#fff" : "#111827",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                         wordBreak: "break-word",
                       }}
                     >
@@ -1064,6 +1069,7 @@ return (
     `}</style>
   </div>
 );
+
 
 
 
