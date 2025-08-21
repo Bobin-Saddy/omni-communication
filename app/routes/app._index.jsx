@@ -732,24 +732,24 @@ return (
       {/* Connection Buttons */}
       <div style={{ textAlign: "center", marginBottom: 30 }}>
         <button onClick={handleFacebookLogin} disabled={fbConnected || loadingPages} className="btn-primary">
-          {fbConnected ? "✅ Facebook Connected" : "Connect Facebook"}
+          {fbConnected ? "Facebook Connected ✅ " : "Connect Facebook"}
         </button>
 
         <div style={{ marginTop: 12 }}>
           <button onClick={handleInstagramLogin} disabled={igConnected || loadingPages} className="btn-primary">
-            {igConnected ? "✅ Instagram Connected" : "Connect Instagram"}
+            {igConnected ? "Instagram Connected ✅ " : "Connect Instagram"}
           </button>
         </div>
 
         <div style={{ marginTop: 12 }}>
           <button onClick={handleWhatsAppConnect} disabled={waConnected} className="btn-primary">
-            {waConnected ? "✅ WhatsApp Connected" : "Connect WhatsApp"}
+            {waConnected ? "WhatsApp Connected ✅ " : "Connect WhatsApp"}
           </button>
         </div>
 
         <div style={{ marginTop: 12 }}>
           <button onClick={handleWidgetConnect} disabled={selectedPage?.type === "widget"} className="btn-primary">
-            {selectedPage?.type === "widget" ? "✅ Widget Connected" : "Connect Widget"}
+            {selectedPage?.type === "widget" ? "Widget Connected ✅ " : "Connect Widget"}
           </button>
         </div>
       </div>
