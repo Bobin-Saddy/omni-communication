@@ -84,58 +84,46 @@ useEffect(() => {
     }
   };
 
-const handleFacebookLogin = () => {
-  window.FB.login(
-    (res) => {
-      if (res.authResponse) {
-        resetIgData();
-        fetchFacebookPages(res.authResponse.accessToken).then((pages) => {
-          if (pages && pages.length > 0) {
-            setSelectedPage({ ...pages[0], type: "facebook" }); // ✅ auto select first FB page
-            fetchConversations(pages[0]); // ✅ auto fetch conversations
-          }
-          setFbConnected(true);
-        });
+ const handleFacebookLogin = () => {
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) {
+          resetIgData();
+          fetchFacebookPages(res.authResponse.accessToken);
+        }
+      },
+      {
+        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
       }
-    },
-    {
-      scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
-    }
-  );
-};
+    );
+  };
 
-const handleInstagramLogin = () => {
-  window.FB.login(
-    (res) => {
-      if (res.authResponse) {
-        resetFbData();
-        fetchInstagramPages(res.authResponse.accessToken).then((pages) => {
-          if (pages && pages.length > 0) {
-            setSelectedPage({ ...pages[0], type: "instagram" }); // ✅ auto select first IG page
-            fetchConversations(pages[0]);
-          }
-          setIgConnected(true);
-        });
+  const handleInstagramLogin = () => {
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) {
+          resetFbData();
+          fetchInstagramPages(res.authResponse.accessToken);
+        }
+      },
+      {
+        scope:
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
       }
-    },
-    {
-      scope:
-        "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-    }
-  );
-};
-
+    );
+  };
 const handleWidgetConnect = async () => {
   try {
+    setSelectedPage({ id: "widget", type: "widget", name: "Chat Widget" });
     setLoadingConversations(true);
+
     const res = await fetch(`/api/chat?widget=true`);
     if (!res.ok) throw new Error("Failed to fetch widget sessions");
 
     const data = await res.json();
     setConversations(data.sessions || []);
 
-    setSelectedPage({ id: "widget", type: "widget", name: "Chat Widget" }); // ✅ auto select widget
-    setWidgetConnected(true);
+    setWidgetConnected(true); // ✅ Mark widget as connected
   } catch (err) {
     console.error("Widget connect failed:", err);
   } finally {
@@ -143,29 +131,30 @@ const handleWidgetConnect = async () => {
   }
 };
 
-const handleWhatsAppConnect = async () => {
-  try {
-    const res = await fetch("/get-whatsapp-users");
-    const users = await res.json(); // [{ number: "919876543210", name: "John" }]
 
-    const convs = users.map((u, index) => ({
-      id: `wa-${index}`,
-      userName: u.name || u.number,
-      businessName: "You",
-      userNumber: u.number,
-    }));
-
-    setConversations(convs);
-    setMessages([]);
-    setSelectedConversation(null);
-
-    setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" }); // ✅ auto select WA
+  const handleWhatsAppConnect = async () => {
     setWaConnected(true);
-  } catch (error) {
-    alert("Failed to fetch WhatsApp users.");
-    console.error(error);
-  }
-};
+    setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
+
+    try {
+      const res = await fetch("/get-whatsapp-users");
+      const users = await res.json(); // [{ number: "919876543210", name: "John" }, ...]
+
+      const convs = users.map((u, index) => ({
+        id: `wa-${index}`,
+        userName: u.name || u.number,
+        businessName: "You",
+        userNumber: u.number,
+      }));
+
+      setConversations(convs);
+      setMessages([]);
+      setSelectedConversation(null);
+    } catch (error) {
+      alert("Failed to fetch WhatsApp users.");
+      console.error(error);
+    }
+  };
 
 
   const fetchFacebookPages = async (accessToken) => {
