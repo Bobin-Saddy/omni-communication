@@ -16,21 +16,29 @@ function getCorsHeaders(request) {
 }
 
 // GET messages or sessions
+// GET messages or sessions
 export async function loader({ request }) {
   const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const url = new URL(request.url);
+  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
 
-  // Fetch all widget sessions
+  // Fetch all widget sessions for this store only
   if (url.searchParams.get("widget") === "true") {
+    if (!storeDomain) {
+      return json({ ok: false, error: "Missing storeDomain" }, { status: 400, headers: corsHeaders });
+    }
+
     const sessions = await prisma.storeChatSession.findMany({
+      where: { storeDomain },
       orderBy: { createdAt: "desc" },
     });
+
     return json({ ok: true, sessions }, { headers: corsHeaders });
   }
 
-  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
+  // Fetch messages for a session
   const sessionId = url.searchParams.get("session_id") || url.searchParams.get("sessionId");
 
   if (!storeDomain || !sessionId) {
@@ -44,6 +52,7 @@ export async function loader({ request }) {
 
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
+
 
 // POST message
 export async function action({ request }) {

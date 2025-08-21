@@ -177,7 +177,6 @@
   /* -------- Open / Close -------- */
   btnToggle.addEventListener('click', ()=> {
     panel.classList.add('open');
-    // When opening, jump to bottom
     requestAnimationFrame(()=> scrollToBottom(true));
     hideNewPill();
   });
@@ -188,7 +187,7 @@
     return list.scrollHeight - (list.scrollTop + list.clientHeight);
   }
   function isNearBottom() {
-    return distanceFromBottom() <= 48; // threshold in px
+    return distanceFromBottom() <= 48;
   }
   function scrollToBottom(force = false) {
     if (force || isNearBottom()) {
@@ -203,30 +202,36 @@
     scrollToBottom(true);
   });
 
-  // Hide the pill if user manually scrolls to the bottom
   list.addEventListener('scroll', () => {
     if (isNearBottom()) hideNewPill();
   });
 
-  /* -------- Rendering -------- */
-  function appendBubble(text, sender, forceScroll = false){
+  /* -------- Rendering (prevent duplicates) -------- */
+  const renderedIds = new Set(); // which messages have been rendered
+
+  function appendBubble(text, sender, id, forceScroll = false){
+    if (id && renderedIds.has(id)) return; // skip duplicates
+    if (id) renderedIds.add(id);
+
     const b = document.createElement('div');
     b.className = sender === 'customer' ? 'oc-bubble oc-me' : 'oc-bubble oc-them';
     b.textContent = text;
     const shouldScroll = forceScroll || isNearBottom();
     list.appendChild(b);
-    // Only autoscroll if user was near bottom or we force it (self message / open)
     if (shouldScroll) scrollToBottom(true);
   }
 
-  /* -------- Send -------- */
+  /* -------- Send (optimistic + register server id) -------- */
   async function sendMessage(){
     const msg = (input.value || '').trim();
     if(!msg) return;
-    appendBubble(msg, 'customer', true); // force autoscroll on own send
+
+    const localId = 'local-' + Date.now();     // temp id for dedupe
+    appendBubble(msg, 'customer', localId, true);
     input.value = '';
+
     try {
-      await fetch(endpoint, {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
@@ -236,7 +241,17 @@
           message: msg
         })
       });
-    } catch(e){ console.warn('send error', e); }
+
+      // IMPORTANT: read server response and register real id
+      const data = await res.json().catch(()=>null);
+      if (data && data.ok && data.message) {
+        // mark server id as already rendered so next poll won’t duplicate
+        if (data.message.id) renderedIds.add(data.message.id);
+        if (data.message.createdAt) lastISO = data.message.createdAt;
+      }
+    } catch(e){
+      console.warn('send error', e);
+    }
   }
   sendBtn.addEventListener('click', sendMessage);
   input.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
@@ -258,12 +273,13 @@
         let appended = 0;
 
         data.messages.forEach(m => {
-          appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', false);
+          // Use server id when available; fallback to createdAt
+          const mid = m.id ?? m.createdAt;
+          appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
           lastISO = m.createdAt;
           appended++;
         });
 
-        // If user wasn't near bottom, don't jump — show pill instead
         if (appended && !userWasNearBottom) {
           showNewPill();
         }
@@ -279,15 +295,18 @@
     const r = await fetch(url.toString());
     const data = await r.json();
     if(data && data.ok && Array.isArray(data.messages)){
-      data.messages.forEach(m => appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', false));
+      data.messages.forEach(m => {
+        const mid = m.id ?? m.createdAt;
+        appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
+      });
       if(data.messages.length) lastISO = data.messages[data.messages.length-1].createdAt;
-      // After initial load, scroll to bottom
       scrollToBottom(true);
     }
     setInterval(poll, 3000);
   })();
 })();
 </script>
+
 </div>
 
 
