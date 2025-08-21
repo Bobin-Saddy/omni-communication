@@ -22,7 +22,7 @@ export default function App() {
         <Link to="/app" rel="home">
           Home
         </Link>
-        <Link to="/admin/chat">Chat-widget</Link>
+        <Link to="/admin/chat">Settings</Link>
         {/* <Link to="/app/whatsapp">Additional page</Link>
          <Link to="/admin/messages">whatsapp page</Link>
           <Link to="/admin/messages/$from">whatsapp2 page</Link> */}
