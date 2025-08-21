@@ -220,60 +220,56 @@
   }
 
   /* -------- Send -------- */
-/* -------- Send -------- */
-async function sendMessage(){
-  const msg = (input.value || '').trim();
-  if(!msg) return;
-  appendBubble(msg, 'customer', true); // show instantly for customer
-  input.value = '';
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        storeDomain: store,
-        sessionId: SID,
-        sender: 'customer',
-        message: msg
-      })
-    });
-    const data = await res.json();
-    // 👇 if backend returns message with ID/timestamp, append it right away
-    if(data && data.ok && data.message){
-      appendBubble(data.message.text, data.message.sender, true);
-      lastISO = data.message.createdAt;
-    }
-  } catch(e){ console.warn('send error', e); }
-}
-
-/* -------- Polling (only append new) -------- */
-async function poll(){
-  try {
-    const url = new URL(endpoint);
-    url.searchParams.set('storeDomain', store);
-    url.searchParams.set('sessionId', SID);
-    if(lastISO) url.searchParams.set('since', lastISO);
-
-    const r = await fetch(url.toString());
-    const data = await r.json();
-
-    if(data && data.ok && Array.isArray(data.messages) && data.messages.length){
-      const userWasNearBottom = isNearBottom();
-      let appended = 0;
-
-      data.messages.forEach(m => {
-        // ✅ Append only if new
-        appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner', false);
-        lastISO = m.createdAt;
-        appended++;
+  async function sendMessage(){
+    const msg = (input.value || '').trim();
+    if(!msg) return;
+    appendBubble(msg, 'customer', true); // force autoscroll on own send
+    input.value = '';
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          storeDomain: store,
+          sessionId: SID,
+          sender: 'customer',
+          message: msg
+        })
       });
+    } catch(e){ console.warn('send error', e); }
+  }
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
 
-      if (appended && !userWasNearBottom) {
-        showNewPill();
+  /* -------- Polling -------- */
+  let lastISO = null;
+  async function poll(){
+    try {
+      const url = new URL(endpoint);
+      url.searchParams.set('storeDomain', store);
+      url.searchParams.set('sessionId', SID);
+      if(lastISO) url.searchParams.set('since', lastISO);
+
+      const r = await fetch(url.toString());
+      const data = await r.json();
+
+      if(data && data.ok && Array.isArray(data.messages) && data.messages.length){
+        const userWasNearBottom = isNearBottom();
+        let appended = 0;
+
+        data.messages.forEach(m => {
+          appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', false);
+          lastISO = m.createdAt;
+          appended++;
+        });
+
+        // If user wasn't near bottom, don't jump — show pill instead
+        if (appended && !userWasNearBottom) {
+          showNewPill();
+        }
       }
-    }
-  } catch(e){ console.warn(e); }
-}
+    } catch(e){ console.warn(e); }
+  }
 
   /* -------- Init -------- */
   (async function init(){
@@ -283,7 +279,7 @@ async function poll(){
     const r = await fetch(url.toString());
     const data = await r.json();
     if(data && data.ok && Array.isArray(data.messages)){
-      data.messages.forEach(m => appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner', false));
+      data.messages.forEach(m => appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', false));
       if(data.messages.length) lastISO = data.messages[data.messages.length-1].createdAt;
       // After initial load, scroll to bottom
       scrollToBottom(true);
