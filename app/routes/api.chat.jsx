@@ -63,8 +63,8 @@ export async function action({ request }) {
   }
 
   // Map sender to standardized values
-  if (!sender) sender = "me"; // default from backend
-  sender = sender === "customer" ? "customer" : "me"; // frontend = customer, backend = me
+  if (!sender) sender = "owner"; // default from backend
+  sender = sender === "customer" ? "customer" : "owner"; // frontend = customer, backend = me
 
   // Ensure session exists
   await prisma.storeChatSession.upsert({

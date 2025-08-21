@@ -588,7 +588,7 @@ const sendMessage = async () => {
           body: JSON.stringify({
             storeDomain: currentStoreDomain,
             sessionId: selectedConversation.sessionId,
-            sender: "me",
+            sender: "owner",
             message: newMessage,
           }),
         });

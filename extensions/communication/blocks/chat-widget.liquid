@@ -1,22 +1,148 @@
-<div id="oc-chat" data-store="{{ shop.domain }}" data-endpoint="https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/chat" class="oc-chat-wrap" style="all: initial;">
+<div id="oc-chat" 
+     data-store="{{ shop.domain }}" 
+     data-endpoint="https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/chat" 
+     class="oc-chat-wrap" 
+     style="all: initial;">
+
   <style>
-    .oc-chat-container { position: fixed; right: 16px; bottom: 16px; width: 320px; max-height: 60vh; display:flex; flex-direction:column; background:#fff; border:1px solid #e5e5e5; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.1); font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial; }
-    .oc-chat-header { padding:12px 14px; font-weight:600; font-size:14px; background: {{ block.settings.header_bg | default: "#111827" }}; color: {{ block.settings.header_fg | default: "#ffffff" }}; border-top-left-radius:16px; border-top-right-radius:16px; }
-    .oc-chat-messages { padding:12px; overflow:auto; flex:1; }
-    .oc-chat-input { display:flex; gap:8px; border-top:1px solid #eee; padding:10px; }
-    .oc-chat-input input { flex:1; border:1px solid #ddd; border-radius:12px; padding:10px; outline:none; }
-    .oc-chat-input button { border:none; border-radius:12px; padding:10px 14px; cursor:pointer; background: {{ block.settings.btn_bg | default: "#2563eb" }}; color: {{ block.settings.btn_fg | default: "#ffffff" }}; font-weight:600; }
-    .oc-bubble { max-width: 80%; padding:8px 10px; border-radius:12px; margin:6px 0; font-size:14px; line-height:1.3; word-break: break-word; }
-    .oc-me { background:#e6f2ff; margin-left:auto; border-bottom-right-radius:4px; }
-    .oc-them { background:#f3f4f6; margin-right:auto; border-bottom-left-radius:4px; }
-    .oc-chat-toggle { position:fixed; right:16px; bottom:16px; background: {{ block.settings.btn_bg | default: "#2563eb" }}; color: {{ block.settings.btn_fg | default: "#ffffff" }}; border:none; border-radius:999px; padding:12px 16px; font-weight:700; cursor:pointer; box-shadow:0 10px 30px rgba(0,0,0,.15); }
-    .oc-hidden { display:none; }
+    /* ---------- Chat Button ---------- */
+    .oc-chat-toggle {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: {{ block.settings.btn_bg | default: "#2563eb" }};
+      color: {{ block.settings.btn_fg | default: "#ffffff" }};
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      transition: transform 0.3s ease;
+      z-index: 99999;
+    }
+    .oc-chat-toggle:hover { transform: scale(1.1); }
+
+    /* ---------- Chat Container ---------- */
+    .oc-chat-container {
+      position: fixed;
+      right: 20px;
+      bottom: 90px;
+      width: 340px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
+      overflow: hidden;
+      transform: translateY(120%);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s ease;
+      z-index: 99999;
+    }
+    .oc-chat-container.open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ---------- Header ---------- */
+    .oc-chat-header {
+      padding: 14px;
+      font-weight: 600;
+      font-size: 15px;
+      background: {{ block.settings.header_bg | default: "#111827" }};
+      color: {{ block.settings.header_fg | default: "#ffffff" }};
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .oc-chat-header span {
+      display: flex; align-items: center; gap: 6px;
+    }
+    .oc-chat-header span::before { content: "💬"; font-size: 18px; }
+    .oc-close-btn {
+      background: transparent; border: none; color: #fff;
+      font-size: 18px; cursor: pointer; line-height: 1;
+    }
+
+    /* ---------- Messages ---------- */
+    .oc-chat-messages {
+      padding: 12px;
+      overflow-y: auto;
+      flex: 1;
+      background: #f9fafb;
+    }
+    .oc-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      margin: 8px 0;
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+      animation: fadeInUp 0.25s ease;
+    }
+    .oc-me   { background: #2563eb; color: #fff;  margin-left: auto;  border-bottom-right-radius: 4px; }
+    .oc-them { background: #e5e7eb; color: #111; margin-right: auto; border-bottom-left-radius: 4px; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- Input ---------- */
+    .oc-chat-input {
+      display: flex; gap: 8px; border-top: 1px solid #eee; padding: 10px; background: #fff;
+    }
+    .oc-chat-input input {
+      flex: 1; border: 1px solid #ddd; border-radius: 12px; padding: 10px; outline: none; font-size: 14px;
+    }
+    .oc-chat-input button {
+      border: none; border-radius: 12px; padding: 10px 14px; cursor: pointer;
+      background: {{ block.settings.btn_bg | default: "#2563eb" }};
+      color: {{ block.settings.btn_fg | default: "#ffffff" }}; font-weight: 600; transition: background 0.3s ease;
+    }
+    .oc-chat-input button:hover { background: #1d4ed8; }
+
+    /* ---------- New Messages Pill ---------- */
+    .oc-new-pill {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 60px; /* sits above input */
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      box-shadow: 0 6px 20px rgba(0,0,0,.12);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+    }
   </style>
 
-  <button class="oc-chat-toggle" aria-label="Open chat">{{ block.settings.toggle_label | default: "Chat" }}</button>
-  <div class="oc-chat-container oc-hidden">
-    <div class="oc-chat-header">{{ block.settings.header_title | default: "Need help? Chat with us!" }}</div>
+  <!-- Floating Button -->
+  <button class="oc-chat-toggle" aria-label="Open chat">💬</button>
+
+  <!-- Chat Window -->
+  <div class="oc-chat-container">
+    <div class="oc-chat-header">
+      <span>{{ block.settings.header_title | default: "Need help? Chat with us!" }}</span>
+      <button class="oc-close-btn" aria-label="Close chat">×</button>
+    </div>
+
     <div class="oc-chat-messages"></div>
+    <button type="button" class="oc-new-pill">New messages ↓</button>
+
     <div class="oc-chat-input">
       <input type="text" placeholder="{{ block.settings.placeholder | default: 'Type your message…' }}" />
       <button type="button">{{ block.settings.send_label | default: "Send" }}</button>
@@ -25,85 +151,131 @@
 
 <script>
 (function(){
-  const root = document.currentScript.closest('#oc-chat');
-  const store = root.dataset.store;
+  const root     = document.currentScript.closest('#oc-chat');
+  const store    = root.dataset.store;
   const endpoint = root.dataset.endpoint;
 
   const btnToggle = root.querySelector('.oc-chat-toggle');
-  const panel = root.querySelector('.oc-chat-container');
-  const list = root.querySelector('.oc-chat-messages');
-  const input = root.querySelector('.oc-chat-input input');
-  const sendBtn = root.querySelector('.oc-chat-input button');
+  const panel     = root.querySelector('.oc-chat-container');
+  const closeBtn  = root.querySelector('.oc-close-btn');
+  const list      = root.querySelector('.oc-chat-messages');
+  const input     = root.querySelector('.oc-chat-input input');
+  const sendBtn   = root.querySelector('.oc-chat-input button');
+  const newPill   = root.querySelector('.oc-new-pill');
 
-  // session id for this browser
+  /* -------- Session -------- */
   const sidKey = 'oc_chat_sid';
-  function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8); return v.toString(16); }); }
+  function uuid() {
+    return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
   let SID = localStorage.getItem(sidKey);
   if (!SID) { SID = uuid(); localStorage.setItem(sidKey, SID); }
 
-  // UI toggle
+  /* -------- Open / Close -------- */
   btnToggle.addEventListener('click', ()=> {
-    panel.classList.toggle('oc-hidden');
-    btnToggle.classList.toggle('oc-hidden');
+    panel.classList.add('open');
+    // When opening, jump to bottom
+    requestAnimationFrame(()=> scrollToBottom(true));
+    hideNewPill();
+  });
+  closeBtn.addEventListener('click', ()=> panel.classList.remove('open'));
+
+  /* -------- Autoscroll helpers -------- */
+  function distanceFromBottom() {
+    return list.scrollHeight - (list.scrollTop + list.clientHeight);
+  }
+  function isNearBottom() {
+    return distanceFromBottom() <= 48; // threshold in px
+  }
+  function scrollToBottom(force = false) {
+    if (force || isNearBottom()) {
+      list.scrollTop = list.scrollHeight;
+    }
+  }
+  function showNewPill(){ newPill.style.display = 'inline-flex'; }
+  function hideNewPill(){ newPill.style.display = 'none'; }
+
+  newPill.addEventListener('click', () => {
+    hideNewPill();
+    scrollToBottom(true);
   });
 
-  function appendBubble(text, sender){
+  // Hide the pill if user manually scrolls to the bottom
+  list.addEventListener('scroll', () => {
+    if (isNearBottom()) hideNewPill();
+  });
+
+  /* -------- Rendering -------- */
+  function appendBubble(text, sender, forceScroll = false){
     const b = document.createElement('div');
-    if(sender === 'customer'){
-      b.className = 'oc-bubble oc-me';
-    } else {
-      b.className = 'oc-bubble oc-them';
-    }
+    b.className = sender === 'customer' ? 'oc-bubble oc-me' : 'oc-bubble oc-them';
     b.textContent = text;
+    const shouldScroll = forceScroll || isNearBottom();
     list.appendChild(b);
-    list.scrollTop = list.scrollHeight;
+    // Only autoscroll if user was near bottom or we force it (self message / open)
+    if (shouldScroll) scrollToBottom(true);
   }
 
-  // send message
-  async function sendMessage(){
-    const msg = (input.value || '').trim();
-    if(!msg) return;
-    appendBubble(msg, 'customer');  // mark as customer
-    input.value = '';
-    try {
-      await fetch(endpoint, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          storeDomain: store,
-          sessionId: SID,
-          sender: 'customer',  // send customer to backend
-          message: msg
-        })
+  /* -------- Send -------- */
+/* -------- Send -------- */
+async function sendMessage(){
+  const msg = (input.value || '').trim();
+  if(!msg) return;
+  appendBubble(msg, 'customer', true); // show instantly for customer
+  input.value = '';
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        storeDomain: store,
+        sessionId: SID,
+        sender: 'customer',
+        message: msg
+      })
+    });
+    const data = await res.json();
+    // 👇 if backend returns message with ID/timestamp, append it right away
+    if(data && data.ok && data.message){
+      appendBubble(data.message.text, data.message.sender, true);
+      lastISO = data.message.createdAt;
+    }
+  } catch(e){ console.warn('send error', e); }
+}
+
+/* -------- Polling (only append new) -------- */
+async function poll(){
+  try {
+    const url = new URL(endpoint);
+    url.searchParams.set('storeDomain', store);
+    url.searchParams.set('sessionId', SID);
+    if(lastISO) url.searchParams.set('since', lastISO);
+
+    const r = await fetch(url.toString());
+    const data = await r.json();
+
+    if(data && data.ok && Array.isArray(data.messages) && data.messages.length){
+      const userWasNearBottom = isNearBottom();
+      let appended = 0;
+
+      data.messages.forEach(m => {
+        // ✅ Append only if new
+        appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner', false);
+        lastISO = m.createdAt;
+        appended++;
       });
-    } catch(e){ console.warn('send error', e); }
-  }
 
-  sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
-
-  // poll messages
-  let lastISO = null;
-  async function poll(){
-    try {
-      const url = new URL(endpoint);
-      url.searchParams.set('storeDomain', store);
-      url.searchParams.set('sessionId', SID);
-      if(lastISO) url.searchParams.set('since', lastISO);
-      const r = await fetch(url.toString());
-      const data = await r.json();
-      if(data && data.ok && Array.isArray(data.messages)){
-        data.messages.forEach(m => {
-          if(!lastISO || m.sender === 'me' || m.sender === 'customer'){
-            appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner');
-          }
-          lastISO = m.createdAt;
-        });
+      if (appended && !userWasNearBottom) {
+        showNewPill();
       }
-    } catch(e){ console.warn(e); }
-  }
+    }
+  } catch(e){ console.warn(e); }
+}
 
-  // init
+  /* -------- Init -------- */
   (async function init(){
     const url = new URL(endpoint);
     url.searchParams.set('storeDomain', store);
@@ -111,14 +283,15 @@
     const r = await fetch(url.toString());
     const data = await r.json();
     if(data && data.ok && Array.isArray(data.messages)){
-      data.messages.forEach(m => appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner'));
+      data.messages.forEach(m => appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'owner', false));
       if(data.messages.length) lastISO = data.messages[data.messages.length-1].createdAt;
+      // After initial load, scroll to bottom
+      scrollToBottom(true);
     }
     setInterval(poll, 3000);
   })();
 })();
 </script>
-
 </div>
 
 
