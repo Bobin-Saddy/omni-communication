@@ -707,10 +707,9 @@ const sendMessage = async () => {
     }
 
     // --- Optimistic UI update (instead of re-fetching) ---
- if (sentMessage) {
-  setMessages((prev = []) => [...prev, sentMessage]); // fallback to [] if prev is undefined
+if (sentMessage) {
+  setMessages((prev) => ([...(Array.isArray(prev) ? prev : []), sentMessage]));
 }
-
 
     setNewMessage("");
   } catch (err) {
