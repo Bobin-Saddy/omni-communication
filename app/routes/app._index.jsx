@@ -879,8 +879,207 @@ return (
               animation: "fadeIn 0.5s ease",
             }}
           >
-            {/* Keep your existing Channels + Conversations + Chat Area here */}
-            {/* ... */}
+            {/* Channels Sidebar */}
+            <div
+              style={{
+                width: "22%",
+                borderRight: "1px solid #e2e8f0",
+                padding: 14,
+                background: "linear-gradient(180deg,#eef2ff,#fefeff)",
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  marginBottom: 12,
+                  color: "#1e3a8a",
+                }}
+              >
+                📡 Channels
+              </h3>
+              {["Facebook", "Instagram", "WhatsApp", "Widget"].map((ch) => (
+                <button
+                  key={ch}
+                  onClick={() => setSelectedChannel(ch.toLowerCase())}
+                  className="btn-nav"
+                  style={{
+                    backgroundColor:
+                      selectedChannel === ch.toLowerCase()
+                        ? "rgba(165,180,252,0.4)"
+                        : "transparent",
+                  }}
+                >
+                  {ch}
+                </button>
+              ))}
+            </div>
+
+            {/* Conversations List */}
+            <div
+              style={{
+                width: "28%",
+                borderRight: "1px solid #e2e8f0",
+                padding: 14,
+                overflowY: "auto",
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  marginBottom: 12,
+                  color: "#1e3a8a",
+                }}
+              >
+                📜 Conversations
+              </h3>
+              {conversations
+                .filter((c) => c.channel === selectedChannel)
+                .map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => setSelectedConversation(c)}
+                    style={{
+                      padding: "10px",
+                      marginBottom: "8px",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedConversation?.id === c.id
+                          ? "rgba(199,210,254,0.6)"
+                          : "rgba(243,244,246,0.6)",
+                      transition: "all 0.2s ease",
+                      boxShadow:
+                        selectedConversation?.id === c.id
+                          ? "0 4px 10px rgba(59,130,246,0.25)"
+                          : "0 2px 6px rgba(0,0,0,0.08)",
+                    }}
+                  >
+                    <b>{c.name}</b>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 13,
+                        color: "#475569",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {c.lastMessage}
+                    </p>
+                  </div>
+                ))}
+            </div>
+
+            {/* Chat Area */}
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                background: "#fff",
+              }}
+            >
+              {selectedConversation ? (
+                <>
+                  <div
+                    style={{
+                      padding: 14,
+                      borderBottom: "1px solid #e2e8f0",
+                      background: "linear-gradient(90deg,#eef2ff,#fafafa)",
+                      fontWeight: "600",
+                      color: "#1e3a8a",
+                    }}
+                  >
+                    {selectedConversation.name}
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      padding: 16,
+                      overflowY: "auto",
+                      background: "linear-gradient(180deg,#f9fafb,#ffffff)",
+                    }}
+                  >
+                    {selectedConversation.messages.map((m, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: "flex",
+                          justifyContent:
+                            m.sender === "user" ? "flex-end" : "flex-start",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: 18,
+                            background:
+                              m.sender === "user"
+                                ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
+                                : "#f1f5f9",
+                            color: m.sender === "user" ? "white" : "#1e293b",
+                            boxShadow: "0 3px 8px rgba(0,0,0,0.12)",
+                            maxWidth: "65%",
+                            fontSize: 14,
+                            animation: "fadeIn 0.3s ease",
+                          }}
+                        >
+                          {m.text}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      padding: 12,
+                      borderTop: "1px solid #e2e8f0",
+                      background: "#fff",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      style={{
+                        flex: 1,
+                        padding: "12px",
+                        borderRadius: 12,
+                        border: "1px solid #cbd5e1",
+                        outline: "none",
+                        fontSize: 14,
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                    />
+                    <button
+                      onClick={sendMessage}
+                      className="btn-primary"
+                      style={{ marginLeft: 10, padding: "12px 20px" }}
+                    >
+                      Send
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#94a3b8",
+                  }}
+                >
+                  Select a conversation to start chatting
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
