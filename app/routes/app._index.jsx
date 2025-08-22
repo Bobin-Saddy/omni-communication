@@ -557,13 +557,29 @@ const sendWhatsAppMessage = async () => {
       from: { id: "me" },
     };
 
-    setMessages((prev) => {
-      const prevConvMessages = prev[selectedConversation.id] || [];
-      return {
-        ...prev,
-        [selectedConversation.id]: [...prevConvMessages, localMsg],
-      };
-    });
+setMessages((prevMessages) => {
+  const prevConvMessages = prevMessages[messageKey] || [];
+
+  // Keep local optimistic messages not yet in backend
+  const localMessagesNotInBackend = prevConvMessages.filter(
+    (localMsg) =>
+      localMsg.id &&
+      typeof localMsg.id === "string" &&
+      localMsg.id.startsWith("local-") &&
+      !backendMessages.some(
+        (bm) =>
+          bm.message?.trim() === localMsg.message?.trim() &&
+          Math.abs(
+            new Date(bm.created_time) - new Date(localMsg.created_time)
+          ) < 5000
+      )
+  );
+
+  return {
+    ...prevMessages,
+    [messageKey]: [...backendMessages, ...localMessagesNotInBackend],
+  };
+});
 
     setNewMessage("");
 
