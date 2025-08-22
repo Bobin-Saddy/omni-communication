@@ -879,39 +879,40 @@ return (
               animation: "fadeIn 0.5s ease",
             }}
           >
-            {/* Channels Sidebar */}
+            {/* Channels List */}
             <div
               style={{
                 width: "22%",
                 borderRight: "1px solid #e2e8f0",
-                padding: 14,
-                background: "linear-gradient(180deg,#eef2ff,#fefeff)",
+                background: "#f9fafb",
+                padding: "12px",
+                overflowY: "auto",
               }}
             >
-              <h3
-                style={{
-                  fontSize: 16,
-                  fontWeight: 600,
-                  marginBottom: 12,
-                  color: "#1e3a8a",
-                }}
-              >
-                📡 Channels
+              <h3 style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+                Channels
               </h3>
               {["Facebook", "Instagram", "WhatsApp", "Widget"].map((ch) => (
-                <button
+                <div
                   key={ch}
-                  onClick={() => setSelectedChannel(ch.toLowerCase())}
-                  className="btn-nav"
+                  onClick={() => setSelectedChannel(ch)}
                   style={{
-                    backgroundColor:
-                      selectedChannel === ch.toLowerCase()
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    marginBottom: 8,
+                    cursor: "pointer",
+                    fontWeight: 500,
+                    background:
+                      selectedChannel === ch
                         ? "rgba(165,180,252,0.4)"
                         : "transparent",
+                    color:
+                      selectedChannel === ch ? "#1e40af" : "#334155",
+                    transition: "all 0.2s ease",
                   }}
                 >
                   {ch}
-                </button>
+                </div>
               ))}
             </div>
 
@@ -920,77 +921,46 @@ return (
               style={{
                 width: "28%",
                 borderRight: "1px solid #e2e8f0",
-                padding: 14,
+                padding: "12px",
+                background: "#fff",
                 overflowY: "auto",
               }}
             >
-              <h3
-                style={{
-                  fontSize: 16,
-                  fontWeight: 600,
-                  marginBottom: 12,
-                  color: "#1e3a8a",
-                }}
-              >
-                📜 Conversations
+              <h3 style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>
+                Conversations
               </h3>
-              {conversations
-                .filter((c) => c.channel === selectedChannel)
-                .map((c) => (
-                  <div
-                    key={c.id}
-                    onClick={() => setSelectedConversation(c)}
-                    style={{
-                      padding: "10px",
-                      marginBottom: "8px",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      backgroundColor:
-                        selectedConversation?.id === c.id
-                          ? "rgba(199,210,254,0.6)"
-                          : "rgba(243,244,246,0.6)",
-                      transition: "all 0.2s ease",
-                      boxShadow:
-                        selectedConversation?.id === c.id
-                          ? "0 4px 10px rgba(59,130,246,0.25)"
-                          : "0 2px 6px rgba(0,0,0,0.08)",
-                    }}
-                  >
-                    <b>{c.name}</b>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 13,
-                        color: "#475569",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {c.lastMessage}
-                    </p>
-                  </div>
-                ))}
+              {conversations[selectedChannel]?.map((conv) => (
+                <div
+                  key={conv.id}
+                  onClick={() => setSelectedConversation(conv)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 10,
+                    marginBottom: 8,
+                    cursor: "pointer",
+                    background:
+                      selectedConversation?.id === conv.id
+                        ? "rgba(199,210,254,0.4)"
+                        : "transparent",
+                    fontWeight: 500,
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  {conv.name}
+                </div>
+              ))}
             </div>
 
             {/* Chat Area */}
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                background: "#fff",
-              }}
-            >
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
               {selectedConversation ? (
                 <>
                   <div
                     style={{
-                      padding: 14,
+                      padding: "14px",
                       borderBottom: "1px solid #e2e8f0",
-                      background: "linear-gradient(90deg,#eef2ff,#fafafa)",
-                      fontWeight: "600",
-                      color: "#1e3a8a",
+                      fontWeight: 600,
+                      background: "#f1f5f9",
                     }}
                   >
                     {selectedConversation.name}
@@ -998,47 +968,42 @@ return (
                   <div
                     style={{
                       flex: 1,
-                      padding: 16,
+                      padding: "14px",
                       overflowY: "auto",
-                      background: "linear-gradient(180deg,#f9fafb,#ffffff)",
+                      background: "#f9fafb",
                     }}
                   >
-                    {selectedConversation.messages.map((m, idx) => (
+                    {selectedConversation.messages.map((m, i) => (
                       <div
-                        key={idx}
+                        key={i}
                         style={{
-                          display: "flex",
-                          justifyContent:
-                            m.sender === "user" ? "flex-end" : "flex-start",
+                          textAlign: m.sender === "me" ? "right" : "left",
                           marginBottom: 10,
                         }}
                       >
-                        <div
+                        <span
                           style={{
+                            display: "inline-block",
                             padding: "10px 14px",
-                            borderRadius: 18,
+                            borderRadius: 16,
                             background:
-                              m.sender === "user"
-                                ? "linear-gradient(135deg,#6366f1,#8b5cf6)"
-                                : "#f1f5f9",
-                            color: m.sender === "user" ? "white" : "#1e293b",
-                            boxShadow: "0 3px 8px rgba(0,0,0,0.12)",
-                            maxWidth: "65%",
-                            fontSize: 14,
-                            animation: "fadeIn 0.3s ease",
+                              m.sender === "me"
+                                ? "linear-gradient(135deg,#4f46e5,#7c3aed)"
+                                : "#e2e8f0",
+                            color: m.sender === "me" ? "#fff" : "#1e293b",
+                            boxShadow: "0 3px 6px rgba(0,0,0,0.1)",
                           }}
                         >
                           {m.text}
-                        </div>
+                        </span>
                       </div>
                     ))}
                   </div>
-
                   <div
                     style={{
                       display: "flex",
-                      padding: 12,
                       borderTop: "1px solid #e2e8f0",
+                      padding: "10px",
                       background: "#fff",
                     }}
                   >
@@ -1046,21 +1011,24 @@ return (
                       type="text"
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                       placeholder="Type a message..."
                       style={{
                         flex: 1,
-                        padding: "12px",
-                        borderRadius: 12,
+                        padding: "10px 14px",
                         border: "1px solid #cbd5e1",
+                        borderRadius: 12,
+                        marginRight: 10,
                         outline: "none",
-                        fontSize: 14,
                       }}
-                      onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                     />
                     <button
                       onClick={sendMessage}
                       className="btn-primary"
-                      style={{ marginLeft: 10, padding: "12px 20px" }}
+                      style={{
+                        padding: "10px 20px",
+                        borderRadius: 12,
+                      }}
                     >
                       Send
                     </button>
@@ -1074,6 +1042,7 @@ return (
                     alignItems: "center",
                     justifyContent: "center",
                     color: "#94a3b8",
+                    fontSize: 16,
                   }}
                 >
                   Select a conversation to start chatting
@@ -1096,8 +1065,6 @@ return (
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
-        width: 260px;
-        margin: 12px 0;
         transition: all 0.3s ease;
         box-shadow: 0 4px 14px rgba(124,58,237,0.4);
       }
@@ -1106,7 +1073,7 @@ return (
         cursor: not-allowed;
         box-shadow: none;
       }
-      .btn-primary:not(:disabled):hover {
+      .btn-primary:hover {
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 6px 20px rgba(99,102,241,0.5);
       }
