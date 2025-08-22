@@ -354,34 +354,34 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-setMessages((prevMessages) => {
-  const prevConvMessages = prevMessages[messageKey] || [];
+// setMessages((prevMessages) => {
+//   const prevConvMessages = prevMessages[messageKey] || [];
 
-  // If backendMessages is empty (fetch still loading), just keep previous
-  if (!backendMessages || backendMessages.length === 0) {
-    return prevMessages;
-  }
+//   // If backendMessages is empty (fetch still loading), just keep previous
+//   if (!backendMessages || backendMessages.length === 0) {
+//     return prevMessages;
+//   }
 
-  // Merge local (optimistic) messages
-  const localMessagesNotInBackend = prevConvMessages.filter(
-    (localMsg) =>
-      localMsg.id &&
-      typeof localMsg.id === "string" &&
-      localMsg.id.startsWith("local-") &&
-      !backendMessages.some(
-        (bm) =>
-          bm.message?.trim() === localMsg.message?.trim() &&
-          Math.abs(
-            new Date(bm.created_time) - new Date(localMsg.created_time)
-          ) < 5000
-      )
-  );
+//   // Merge local (optimistic) messages
+//   const localMessagesNotInBackend = prevConvMessages.filter(
+//     (localMsg) =>
+//       localMsg.id &&
+//       typeof localMsg.id === "string" &&
+//       localMsg.id.startsWith("local-") &&
+//       !backendMessages.some(
+//         (bm) =>
+//           bm.message?.trim() === localMsg.message?.trim() &&
+//           Math.abs(
+//             new Date(bm.created_time) - new Date(localMsg.created_time)
+//           ) < 5000
+//       )
+//   );
 
-  return {
-    ...prevMessages,
-    [messageKey]: [...backendMessages, ...localMessagesNotInBackend],
-  };
-});
+//   return {
+//     ...prevMessages,
+//     [messageKey]: [...backendMessages, ...localMessagesNotInBackend],
+//   };
+// });
 
 
     } catch (err) {
