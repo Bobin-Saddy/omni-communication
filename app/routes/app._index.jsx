@@ -354,10 +354,15 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-     setMessages((prevMessages) => {
+setMessages((prevMessages) => {
   const prevConvMessages = prevMessages[messageKey] || [];
 
-  // Keep local optimistic messages not yet in backend
+  // If backendMessages is empty (fetch still loading), just keep previous
+  if (!backendMessages || backendMessages.length === 0) {
+    return prevMessages;
+  }
+
+  // Merge local (optimistic) messages
   const localMessagesNotInBackend = prevConvMessages.filter(
     (localMsg) =>
       localMsg.id &&
@@ -377,6 +382,7 @@ const fetchMessages = async (conv) => {
     [messageKey]: [...backendMessages, ...localMessagesNotInBackend],
   };
 });
+
 
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
@@ -557,29 +563,13 @@ const sendWhatsAppMessage = async () => {
       from: { id: "me" },
     };
 
-setMessages((prevMessages) => {
-  const prevConvMessages = prevMessages[messageKey] || [];
-
-  // Keep local optimistic messages not yet in backend
-  const localMessagesNotInBackend = prevConvMessages.filter(
-    (localMsg) =>
-      localMsg.id &&
-      typeof localMsg.id === "string" &&
-      localMsg.id.startsWith("local-") &&
-      !backendMessages.some(
-        (bm) =>
-          bm.message?.trim() === localMsg.message?.trim() &&
-          Math.abs(
-            new Date(bm.created_time) - new Date(localMsg.created_time)
-          ) < 5000
-      )
-  );
-
-  return {
-    ...prevMessages,
-    [messageKey]: [...backendMessages, ...localMessagesNotInBackend],
-  };
-});
+    setMessages((prev) => {
+      const prevConvMessages = prev[selectedConversation.id] || [];
+      return {
+        ...prev,
+        [selectedConversation.id]: [...prevConvMessages, localMsg],
+      };
+    });
 
     setNewMessage("");
 
