@@ -354,38 +354,28 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-setMessages((prevMessages) => {
-  const prevConvMessages = prevMessages[messageKey] || [];
+      setMessages((prevMessages) => {
+        const prevConvMessages = prevMessages[conv.id] || [];
 
-  // Optimistic local messages
-  const localMessages = prevConvMessages.filter(
-    (msg) =>
-      msg.id &&
-      typeof msg.id === "string" &&
-      msg.id.startsWith("local-")
-  );
+const localMessagesNotInBackend = prevConvMessages.filter(
+  (localMsg) =>
+    localMsg.id &&
+    typeof localMsg.id === "string" &&
+    localMsg.id.startsWith("local-") &&
+    !backendMessages.some(
+      (bm) =>
+        bm.message?.trim() === localMsg.message?.trim() &&
+        Math.abs(
+          new Date(bm.created_time) - new Date(localMsg.created_time)
+        ) < 5000
+    )
+);
 
-  // Merge backend messages and keep locals at the end if not confirmed yet
-  const mergedMessages = [
-    ...backendMessages,
-    ...localMessages.filter(
-      (localMsg) =>
-        !backendMessages.some(
-          (bm) =>
-            bm.message?.trim() === localMsg.message?.trim() &&
-            Math.abs(
-              new Date(bm.created_time) - new Date(localMsg.created_time)
-            ) < 5000
-        )
-    ),
-  ];
-
-  return {
-    ...prevMessages,
-    [messageKey]: mergedMessages,
-  };
-});
-
+        return {
+          ...prevMessages,
+          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
+        };
+      });
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
@@ -394,61 +384,46 @@ setMessages((prevMessages) => {
   }
 
   // ✅ Widget
-// --- Widget send ---
-if (selectedPage.type === "widget") {
-  if (!newMessage.trim() || !selectedConversation?.sessionId || !currentStoreDomain) {
-    alert("storeDomain and sessionId are required");
-    return;
-  }
-
-  try {
-    const response = await fetch("/api/sendMessage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        storeDomain: currentStoreDomain,
-        sessionId: selectedConversation.sessionId,
-        sender: "me",
-        message: newMessage,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error(result.error);
-      alert("Failed to send widget message: " + result.error);
+  if (selectedPage.type === "widget") {
+    if (!conv.sessionId || !conv.storeDomain) {
+      console.error("Widget conversation missing sessionId or storeDomain");
       return;
     }
 
-    // Optimistic message
-    const localMsg = {
-      id: "local-" + Date.now(),
-      from: "me",
-      message: newMessage,
-      created_time: new Date().toISOString(),
-    };
+    try {
+      const url = `/api/chat?session_id=${encodeURIComponent(
+        conv.sessionId
+      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
 
-    setMessages((prev) => {
-      const prevMsgs = prev[selectedConversation.messageKey] || [];
-      return {
-        ...prev,
-        [selectedConversation.messageKey]: [...prevMsgs, localMsg],
-      };
-    });
+      let backendMessages = [];
 
-    setNewMessage("");
+      if (data.messages) {
+        backendMessages = data.messages.map((msg, index) => ({
+          id: msg.id || `local-${index}`,
+          from: msg.sender || "unknown",
+          message: msg.text || msg.content || "",
+          created_time: msg.createdAt
+            ? new Date(msg.createdAt).toISOString()
+            : new Date().toISOString(),
+        }));
+      }
 
-    // ❌ don’t call fetchMessages immediately
-  } catch (error) {
-    console.error(error);
-    alert("Failed to send widget message. Check console for details.");
-  } finally {
-    setSendingMessage(false);
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [messageKey]: backendMessages, // use messageKey here
+      }));
+
+      // selectedConversation already set with messageKey above
+    } catch (err) {
+      console.error("Error fetching Widget messages", err);
+      alert("Failed to fetch Widget messages.");
+    }
+
+    return;
   }
-  return;
-}
-
 
   // --- Other platform logic (Facebook, Instagram, etc.) ---
   try {
@@ -534,8 +509,8 @@ if (selectedPage.type === "widget") {
 
 const sendWhatsAppMessage = async () => {
   if (!selectedConversation?.userNumber) return alert("Select a WhatsApp user first");
-  setSendingMessage(true);
 
+  setSendingMessage(true);
   try {
     const payload = {
       messaging_product: "whatsapp",
@@ -559,9 +534,21 @@ const sendWhatsAppMessage = async () => {
     const data = await res.json();
     console.log("WhatsApp send response", data);
 
-    // Optimistic local message
+    // Save message in your DB backend
+    await fetch("/save-whatsapp-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: selectedConversation.userNumber,
+        from: WHATSAPP_PHONE_NUMBER_ID,
+        message: newMessage,
+        direction: "outgoing",
+      }),
+    });
+
+    // Add local message immediately only for current conversation
     const localMsg = {
-      id: "local-" + Date.now(),
+      id: "local-" + Date.now().toString(),
       displayName: "You",
       message: newMessage,
       created_time: new Date().toISOString(),
@@ -578,8 +565,8 @@ const sendWhatsAppMessage = async () => {
 
     setNewMessage("");
 
-    // ❌ remove immediate fetchMessages(selectedConversation)
-    // ✅ let backend sync later or poll in background
+    // Refresh messages for the current conversation
+    await fetchMessages(selectedConversation);
   } catch (error) {
     alert("Failed to send WhatsApp message.");
     console.error(error);
