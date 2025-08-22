@@ -354,28 +354,30 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-      setMessages((prevMessages) => {
-        const prevConvMessages = prevMessages[conv.id] || [];
+setMessages((prevMessages) => {
+  const prevConvMessages = prevMessages[messageKey] || [];
 
-const localMessagesNotInBackend = prevConvMessages.filter(
-  (localMsg) =>
-    localMsg.id &&
-    typeof localMsg.id === "string" &&
-    localMsg.id.startsWith("local-") &&
-    !backendMessages.some(
-      (bm) =>
-        bm.message?.trim() === localMsg.message?.trim() &&
-        Math.abs(
-          new Date(bm.created_time) - new Date(localMsg.created_time)
-        ) < 5000
-    )
-);
+  // Keep local optimistic messages not yet in backend
+  const localMessagesNotInBackend = prevConvMessages.filter(
+    (localMsg) =>
+      localMsg.id &&
+      typeof localMsg.id === "string" &&
+      localMsg.id.startsWith("local-") &&
+      !backendMessages.some(
+        (bm) =>
+          bm.message?.trim() === localMsg.message?.trim() &&
+          Math.abs(
+            new Date(bm.created_time) - new Date(localMsg.created_time)
+          ) < 5000
+      )
+  );
 
-        return {
-          ...prevMessages,
-          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
-        };
-      });
+  return {
+    ...prevMessages,
+    [messageKey]: [...backendMessages, ...localMessagesNotInBackend],
+  };
+});
+
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
