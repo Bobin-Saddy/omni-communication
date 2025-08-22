@@ -707,9 +707,10 @@ const sendMessage = async () => {
     }
 
     // --- Optimistic UI update (instead of re-fetching) ---
-    if (sentMessage) {
-      setMessages((prev) => [...prev, sentMessage]);
-    }
+ if (sentMessage) {
+  setMessages((prev = []) => [...prev, sentMessage]); // fallback to [] if prev is undefined
+}
+
 
     setNewMessage("");
   } catch (err) {
