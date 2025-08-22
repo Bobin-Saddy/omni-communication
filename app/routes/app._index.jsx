@@ -302,35 +302,59 @@ const fetchMessages = async (conv) => {
    const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
   setSelectedConversation({ ...conv, messageKey });
 
-  if (selectedPage.type === "widget") {
-    if (!conv.sessionId || !conv.storeDomain) return;
+if (selectedPage.type === "widget") {
+  const localMsg = {
+    id: "local-" + Date.now(),
+    from: "me",
+    message: newMessage,
+    created_time: new Date().toISOString(),
+  };
 
-    try {
-      const url = `/api/chat?session_id=${encodeURIComponent(
-        conv.sessionId
-      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
+  // ✅ Optimistic update
+setMessages((prev) => {
+  const prevMsgs = prev[messageKey] || [];
 
-      const backendMessages = (data.messages || []).map((msg, index) => ({
-        id: msg.id || `local-${index}`,
-        from: msg.sender || "unknown",
-        message: msg.text || msg.content || "",
-        created_time: msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
+  const localMsgs = prevMsgs.filter((m) => m.id.startsWith("local-"));
+  const merged = [
+    ...backendMessages,
+    ...localMsgs.filter(
+      (lm) =>
+        !backendMessages.some(
+          (bm) =>
+            bm.message?.trim() === lm.message?.trim() &&
+            Math.abs(new Date(bm.created_time) - new Date(lm.created_time)) < 5000
+        )
+    ),
+  ];
 
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [messageKey]: backendMessages,
-      }));
-    } catch (err) {
-      console.error("Widget fetch failed:", err);
-    }
-    return;
+  return { ...prev, [messageKey]: merged };
+});
+
+
+  setNewMessage("");
+
+  try {
+    const res = await fetch("/api/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        storeDomain: currentStoreDomain,
+        sessionId: selectedConversation.sessionId,
+        sender: "me",
+        message: localMsg.message,
+      }),
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error);
+
+    // refresh and replace "local-" once backend confirms
+    await fetchMessages(selectedConversation);
+  } catch (e) {
+    console.error("Widget send failed", e);
   }
+}
+
 
   // ✅ WhatsApp
   if (selectedPage.type === "whatsapp") {
@@ -508,72 +532,53 @@ const localMessagesNotInBackend = prevConvMessages.filter(
 
 
 const sendWhatsAppMessage = async () => {
-  if (!selectedConversation?.userNumber) return alert("Select a WhatsApp user first");
+  if (!selectedConversation?.userNumber) return;
 
-  setSendingMessage(true);
-  try {
-    const payload = {
-      messaging_product: "whatsapp",
-      to: selectedConversation.userNumber,
-      type: "text",
-      text: { body: newMessage },
+  const localMsg = {
+    id: "local-" + Date.now(),
+    displayName: "You",
+    message: newMessage,
+    created_time: new Date().toISOString(),
+    from: { id: "me" },
+  };
+
+  // ✅ Add message immediately
+  setMessages((prev) => {
+    const prevMsgs = prev[selectedConversation.id] || [];
+    return {
+      ...prev,
+      [selectedConversation.id]: [...prevMsgs, localMsg],
     };
+  });
 
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+  setNewMessage("");
 
-    const data = await res.json();
-    console.log("WhatsApp send response", data);
-
-    // Save message in your DB backend
-    await fetch("/save-whatsapp-message", {
+  try {
+    // send to API
+    const res = await fetch(`https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
+        messaging_product: "whatsapp",
         to: selectedConversation.userNumber,
-        from: WHATSAPP_PHONE_NUMBER_ID,
-        message: newMessage,
-        direction: "outgoing",
+        type: "text",
+        text: { body: localMsg.message },
       }),
     });
 
-    // Add local message immediately only for current conversation
-    const localMsg = {
-      id: "local-" + Date.now().toString(),
-      displayName: "You",
-      message: newMessage,
-      created_time: new Date().toISOString(),
-      from: { id: "me" },
-    };
+    const data = await res.json();
+    console.log("WhatsApp response", data);
 
-    setMessages((prev) => {
-      const prevConvMessages = prev[selectedConversation.id] || [];
-      return {
-        ...prev,
-        [selectedConversation.id]: [...prevConvMessages, localMsg],
-      };
-    });
-
-    setNewMessage("");
-
-    // Refresh messages for the current conversation
+    // later fetchMessages will replace local- with real message
     await fetchMessages(selectedConversation);
-  } catch (error) {
-    alert("Failed to send WhatsApp message.");
-    console.error(error);
-  } finally {
-    setSendingMessage(false);
+  } catch (e) {
+    console.error("Send failed", e);
   }
 };
+
 
 const sendMessage = async () => {
   if (!newMessage.trim() || !selectedPage || sendingMessage) return;
