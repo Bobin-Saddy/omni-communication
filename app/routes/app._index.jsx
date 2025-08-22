@@ -354,28 +354,38 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-      setMessages((prevMessages) => {
-        const prevConvMessages = prevMessages[conv.id] || [];
+setMessages((prevMessages) => {
+  const prevConvMessages = prevMessages[messageKey] || [];
 
-const localMessagesNotInBackend = prevConvMessages.filter(
-  (localMsg) =>
-    localMsg.id &&
-    typeof localMsg.id === "string" &&
-    localMsg.id.startsWith("local-") &&
-    !backendMessages.some(
-      (bm) =>
-        bm.message?.trim() === localMsg.message?.trim() &&
-        Math.abs(
-          new Date(bm.created_time) - new Date(localMsg.created_time)
-        ) < 5000
-    )
-);
+  // Optimistic local messages
+  const localMessages = prevConvMessages.filter(
+    (msg) =>
+      msg.id &&
+      typeof msg.id === "string" &&
+      msg.id.startsWith("local-")
+  );
 
-        return {
-          ...prevMessages,
-          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
-        };
-      });
+  // Merge backend messages and keep locals at the end if not confirmed yet
+  const mergedMessages = [
+    ...backendMessages,
+    ...localMessages.filter(
+      (localMsg) =>
+        !backendMessages.some(
+          (bm) =>
+            bm.message?.trim() === localMsg.message?.trim() &&
+            Math.abs(
+              new Date(bm.created_time) - new Date(localMsg.created_time)
+            ) < 5000
+        )
+    ),
+  ];
+
+  return {
+    ...prevMessages,
+    [messageKey]: mergedMessages,
+  };
+});
+
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
