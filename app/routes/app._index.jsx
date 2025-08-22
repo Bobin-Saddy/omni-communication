@@ -311,25 +311,13 @@ if (selectedPage.type === "widget") {
   };
 
   // ✅ Optimistic update
-setMessages((prev) => {
-  const prevMsgs = prev[messageKey] || [];
-
-  const localMsgs = prevMsgs.filter((m) => m.id.startsWith("local-"));
-  const merged = [
-    ...backendMessages,
-    ...localMsgs.filter(
-      (lm) =>
-        !backendMessages.some(
-          (bm) =>
-            bm.message?.trim() === lm.message?.trim() &&
-            Math.abs(new Date(bm.created_time) - new Date(lm.created_time)) < 5000
-        )
-    ),
-  ];
-
-  return { ...prev, [messageKey]: merged };
-});
-
+  setMessages((prev) => {
+    const prevMsgs = prev[selectedConversation.messageKey] || [];
+    return {
+      ...prev,
+      [selectedConversation.messageKey]: [...prevMsgs, localMsg],
+    };
+  });
 
   setNewMessage("");
 
@@ -378,28 +366,25 @@ setMessages((prev) => {
           : new Date().toISOString(),
       }));
 
-      setMessages((prevMessages) => {
-        const prevConvMessages = prevMessages[conv.id] || [];
+setMessages((prev) => {
+  const prevMsgs = prev[messageKey] || [];
 
-const localMessagesNotInBackend = prevConvMessages.filter(
-  (localMsg) =>
-    localMsg.id &&
-    typeof localMsg.id === "string" &&
-    localMsg.id.startsWith("local-") &&
-    !backendMessages.some(
-      (bm) =>
-        bm.message?.trim() === localMsg.message?.trim() &&
-        Math.abs(
-          new Date(bm.created_time) - new Date(localMsg.created_time)
-        ) < 5000
-    )
-);
+  const localMsgs = prevMsgs.filter((m) => m.id.startsWith("local-"));
+  const merged = [
+    ...backendMessages,
+    ...localMsgs.filter(
+      (lm) =>
+        !backendMessages.some(
+          (bm) =>
+            bm.message?.trim() === lm.message?.trim() &&
+            Math.abs(new Date(bm.created_time) - new Date(lm.created_time)) < 5000
+        )
+    ),
+  ];
 
-        return {
-          ...prevMessages,
-          [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
-        };
-      });
+  return { ...prev, [messageKey]: merged };
+});
+
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
       alert("Failed to fetch WhatsApp messages.");
