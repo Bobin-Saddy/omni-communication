@@ -711,7 +711,7 @@ return (
       maxWidth: 1400,
       margin: "auto",
       padding: "20px",
-      background: "linear-gradient(135deg, #eef2f7, #f9fafc)",
+      background: "linear-gradient(135deg, #e0e7ff, #fef2f2)",
       minHeight: "100vh",
     }}
   >
@@ -719,11 +719,12 @@ return (
     <h1
       style={{
         textAlign: "center",
-        marginBottom: "25px",
-        fontSize: "32px",
-        fontWeight: "800",
-        color: "#111827",
-        letterSpacing: "-0.5px",
+        marginBottom: "30px",
+        fontSize: "36px",
+        fontWeight: "900",
+        color: "#0f172a",
+        letterSpacing: "-0.7px",
+        textShadow: "0 2px 8px rgba(0,0,0,0.08)",
       }}
     >
       ✨ Omni-Communication Dashboard
@@ -734,19 +735,19 @@ return (
       style={{
         display: "flex",
         minHeight: 680,
-        border: "1px solid rgba(0,0,0,0.06)",
-        borderRadius: 20,
+        border: "1px solid rgba(0,0,0,0.05)",
+        borderRadius: 24,
         overflow: "hidden",
-        background: "rgba(255,255,255,0.85)",
-        boxShadow: "0 8px 30px rgba(0,0,0,0.06)",
-        backdropFilter: "blur(14px)",
+        background: "rgba(255,255,255,0.9)",
+        boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
+        backdropFilter: "blur(20px)",
       }}
     >
       {/* Left Sidebar Navigation */}
       <div
         style={{
           width: "20%",
-          background: "rgba(248,250,252,0.9)",
+          background: "linear-gradient(180deg,#f9fafb,#f3f4f6)",
           borderRight: "1px solid #e5e7eb",
           display: "flex",
           flexDirection: "column",
@@ -754,11 +755,12 @@ return (
       >
         <div
           style={{
-            padding: "16px",
+            padding: "18px",
             borderBottom: "1px solid #e5e7eb",
-            background: "rgba(243,244,246,0.8)",
+            background: "#f1f5f9",
             fontWeight: "700",
             fontSize: 16,
+            color: "#111827",
           }}
         >
           🚀 Navigation
@@ -769,7 +771,8 @@ return (
           onClick={() => setActiveTab("home")}
           className="btn-nav"
           style={{
-            backgroundColor: activeTab === "home" ? "#e0f2fe" : "transparent",
+            backgroundColor: activeTab === "home" ? "#dbeafe" : "transparent",
+            fontWeight: activeTab === "home" ? "700" : "500",
           }}
         >
           🏠 Home
@@ -778,7 +781,8 @@ return (
           onClick={() => setActiveTab("settings")}
           className="btn-nav"
           style={{
-            backgroundColor: activeTab === "settings" ? "#e0f2fe" : "transparent",
+            backgroundColor: activeTab === "settings" ? "#dbeafe" : "transparent",
+            fontWeight: activeTab === "settings" ? "700" : "500",
           }}
         >
           ⚙️ Settings
@@ -788,7 +792,8 @@ return (
           className="btn-nav"
           style={{
             backgroundColor:
-              activeTab === "conversations" ? "#e0f2fe" : "transparent",
+              activeTab === "conversations" ? "#dbeafe" : "transparent",
+            fontWeight: activeTab === "conversations" ? "700" : "500",
           }}
         >
           💬 Conversations
@@ -796,25 +801,25 @@ return (
       </div>
 
       {/* Right Content Area */}
-      <div style={{ flex: 1, padding: 26, background: "#fff" }}>
+      <div style={{ flex: 1, padding: 28, background: "#fff" }}>
         {/* HOME TAB */}
         {activeTab === "home" && (
           <div>
             <h2
               style={{
-                fontSize: 24,
-                fontWeight: 700,
-                marginBottom: 14,
-                color: "#0f172a",
+                fontSize: 26,
+                fontWeight: 800,
+                marginBottom: 16,
+                color: "#1e293b",
               }}
             >
               👋 Welcome to Omni-Communication
             </h2>
-            <p style={{ color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
-              Manage conversations from <b>Facebook, Instagram, WhatsApp</b>,
-              and your <b>chat widget</b> – all unified in one dashboard.
+            <p style={{ color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
+              Manage conversations from <b>Facebook, Instagram, WhatsApp</b>, and
+              your <b>chat widget</b> – all unified in one beautiful dashboard.
             </p>
-            <p style={{ marginTop: 14, color: "#475569", fontSize: 15 }}>
+            <p style={{ marginTop: 16, color: "#475569", fontSize: 16 }}>
               Use <b>Settings</b> to connect your channels or head over to{" "}
               <b>Conversations</b> to start chatting.
             </p>
@@ -865,9 +870,10 @@ return (
               display: "flex",
               height: 600,
               border: "1px solid #e5e7eb",
-              borderRadius: 16,
+              borderRadius: 18,
               overflow: "hidden",
-              background: "#f8fafc",
+              background: "#f9fafb",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
             }}
           >
             {/* Channels Sidebar */}
@@ -884,7 +890,8 @@ return (
                   padding: "14px 16px",
                   borderBottom: "1px solid #e5e7eb",
                   background: "#f3f4f6",
-                  fontWeight: "600",
+                  fontWeight: "700",
+                  color: "#0f172a",
                 }}
               >
                 Channels
@@ -898,13 +905,13 @@ return (
                     padding: "12px 16px",
                     cursor: "pointer",
                     backgroundColor:
-                      selectedPage?.id === page.id ? "#e0f2fe" : "transparent",
+                      selectedPage?.id === page.id ? "#dbeafe" : "transparent",
                     borderBottom: "1px solid #eee",
-                    transition: "background 0.2s",
                     fontWeight: "500",
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
+                    transition: "all 0.25s ease",
                   }}
                 >
                   {page.type === "facebook" && "📘"}
@@ -920,8 +927,9 @@ return (
                     padding: "12px 16px",
                     cursor: "pointer",
                     backgroundColor:
-                      selectedPage?.type === "whatsapp" ? "#e0f2fe" : "transparent",
+                      selectedPage?.type === "whatsapp" ? "#dbeafe" : "transparent",
                     borderBottom: "1px solid #eee",
+                    transition: "all 0.25s ease",
                   }}
                 >
                   💬 WhatsApp
@@ -935,8 +943,9 @@ return (
                     padding: "12px 16px",
                     cursor: "pointer",
                     backgroundColor:
-                      selectedPage?.type === "widget" ? "#e0f2fe" : "transparent",
+                      selectedPage?.type === "widget" ? "#dbeafe" : "transparent",
                     borderBottom: "1px solid #eee",
+                    transition: "all 0.25s ease",
                   }}
                 >
                   🧩 Chat Widget
@@ -960,7 +969,8 @@ return (
                     padding: "14px 16px",
                     borderBottom: "1px solid #e5e7eb",
                     background: "#f3f4f6",
-                    fontWeight: "600",
+                    fontWeight: "700",
+                    color: "#0f172a",
                   }}
                 >
                   Conversations
@@ -974,7 +984,6 @@ return (
                   </div>
                 ) : (
                   conversations.map((conv) => {
-                    // Robust cross-channel name
                     const prettyName =
                       selectedPage?.type === "instagram"
                         ? `${conv.businessName || "You"} ↔️ ${
@@ -992,8 +1001,7 @@ return (
                           conv.meta?.name ||
                           conv.user?.name ||
                           "Widget User"
-                        : // Facebook default
-                          (conv.participants?.data
+                        : (conv.participants?.data
                             ?.map((p) => p.name)
                             .filter(Boolean)
                             .join(", ")) ||
@@ -1019,19 +1027,19 @@ return (
                           cursor: "pointer",
                           backgroundColor:
                             selectedConversation?.id === conv.id
-                              ? "#e0f2fe"
+                              ? "#dbeafe"
                               : "transparent",
                           borderBottom: "1px solid #eee",
-                          transition: "background 0.2s",
+                          transition: "all 0.25s ease",
                         }}
                       >
-                        <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                        <div style={{ fontWeight: 600, color: "#1e293b" }}>
                           {prettyName}
                         </div>
                         {preview && (
                           <div
                             style={{
-                              fontSize: 12,
+                              fontSize: 13,
                               color: "#64748b",
                               marginTop: 2,
                               whiteSpace: "nowrap",
@@ -1063,10 +1071,12 @@ return (
                     padding: "14px 16px",
                     borderBottom: "1px solid #e5e7eb",
                     background: "#ffffff",
-                    fontWeight: "700",
+                    fontWeight: "800",
+                    fontSize: 16,
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
+                    color: "#0f172a",
                   }}
                 >
                   <span style={{ fontSize: 18 }}>
@@ -1085,8 +1095,7 @@ return (
                             selectedConversation.meta?.name ||
                             selectedConversation.user?.name ||
                             "Widget User"
-                          : // Facebook
-                            (selectedConversation.participants?.data
+                          : (selectedConversation.participants?.data
                               ?.map((p) => p.name)
                               .filter(Boolean)
                               .join(", ")) ||
@@ -1127,13 +1136,13 @@ return (
                         <div
                           style={{
                             padding: "12px 16px",
-                            borderRadius: 18,
-                            maxWidth: "68%",
+                            borderRadius: 20,
+                            maxWidth: "70%",
                             fontSize: 14,
                             lineHeight: "20px",
                             background: isMe ? "#2563eb" : "#ffffff",
                             color: isMe ? "#ffffff" : "#0f172a",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.10)",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                             wordBreak: "break-word",
                             transition: "transform .15s ease",
                           }}
@@ -1241,13 +1250,14 @@ return (
             style={{
               height: 600,
               border: "1px solid #e5e7eb",
-              borderRadius: 16,
+              borderRadius: 18,
               background: "#f8fafc",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "#64748b",
               fontSize: 16,
+              fontWeight: "500",
             }}
           >
             👈 Select a channel from the left to view conversations
@@ -1263,14 +1273,14 @@ return (
         color: white;
         padding: 14px 26px;
         border: none;
-        border-radius: 12px;
+        border-radius: 14px;
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
         width: 260px;
-        margin: 8px 0;
+        margin: 10px 0;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       }
       .btn-primary:disabled {
         background: #9ca3af;
@@ -1279,8 +1289,18 @@ return (
       }
       .btn-primary:not(:disabled):hover {
         background: linear-gradient(135deg,#1e293b,#111827);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
       }
+      .btn-nav {
+        text-align: left;
+        padding: 16px 20px;
+        border: none;
+        background: transparent;
+        font-size: 15px;
+        cursor: pointer;
+        font-weight: 500;
+        color
+
       .btn-nav {
         text-align: left;
         padding: 16px 18px;
