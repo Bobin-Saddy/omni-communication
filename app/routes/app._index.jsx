@@ -369,21 +369,23 @@ if (selectedPage.type === "widget") {
 setMessages((prev) => {
   const prevMsgs = prev[messageKey] || [];
 
-  const localMsgs = prevMsgs.filter((m) => m.id.startsWith("local-"));
-  const merged = [
-    ...backendMessages,
-    ...localMsgs.filter(
-      (lm) =>
-        !backendMessages.some(
-          (bm) =>
-            bm.message?.trim() === lm.message?.trim() &&
-            Math.abs(new Date(bm.created_time) - new Date(lm.created_time)) < 5000
-        )
-    ),
-  ];
+  const localMsgs = prevMsgs.filter(
+    (m) =>
+      typeof m.id === "string" &&
+      m.id.startsWith("local-") &&
+      !backendMessages.some(
+        (bm) =>
+          bm.message?.trim() === m.message?.trim() &&
+          Math.abs(new Date(bm.created_time) - new Date(m.created_time)) < 5000
+      )
+  );
 
-  return { ...prev, [messageKey]: merged };
+  return {
+    ...prev,
+    [messageKey]: [...backendMessages, ...localMsgs],
+  };
 });
+
 
     } catch (err) {
       console.error("Error fetching WhatsApp messages", err);
