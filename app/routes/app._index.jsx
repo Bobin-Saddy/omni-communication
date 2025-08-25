@@ -323,17 +323,19 @@ const fetchConversations = async (page) => {
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
 
-  // Determine message key (for widget use sessionId, otherwise use conversation id)
-   const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
+  // Use conv.id unless widget sessionId is required
+  const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
   setSelectedConversation({ ...conv, messageKey });
 
-  if (selectedPage.type === "widget") {
-    if (!conv.sessionId || !conv.storeDomain) return;
+  try {
+    // ✅ Widget
+    if (selectedPage.type === "widget") {
+      if (!conv.sessionId || !conv.storeDomain) return;
 
-    try {
       const url = `/api/chat?session_id=${encodeURIComponent(
         conv.sessionId
       )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
+
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
@@ -347,23 +349,20 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-      setMessages((prevMessages) => ({
-        ...prevMessages,
+      setMessages((prev) => ({
+        ...prev,
         [messageKey]: backendMessages,
       }));
-    } catch (err) {
-      console.error("Widget fetch failed:", err);
-    }
-    return;
-  }
-
-  // ✅ WhatsApp
-  if (selectedPage.type === "whatsapp") {
-    if (!conv.userNumber) {
-      console.error("WhatsApp conversation missing userNumber");
       return;
     }
-    try {
+
+    // ✅ WhatsApp
+    if (selectedPage.type === "whatsapp") {
+      if (!conv.userNumber) {
+        console.error("WhatsApp conversation missing userNumber");
+        return;
+      }
+
       const res = await fetch(`/get-messages?number=${conv.userNumber}`);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
@@ -379,79 +378,85 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-      setMessages((prevMessages) => {
-        const prevConvMessages = prevMessages[conv.id] || [];
+      setMessages((prev) => {
+        const prevConvMessages = prev[conv.id] || [];
 
-const localMessagesNotInBackend = prevConvMessages.filter(
-  (localMsg) =>
-    localMsg.id &&
-    typeof localMsg.id === "string" &&
-    localMsg.id.startsWith("local-") &&
-    !backendMessages.some(
-      (bm) =>
-        bm.message?.trim() === localMsg.message?.trim() &&
-        Math.abs(
-          new Date(bm.created_time) - new Date(localMsg.created_time)
-        ) < 5000
-    )
-);
+        // keep local unsynced messages
+        const localMessagesNotInBackend = prevConvMessages.filter(
+          (localMsg) =>
+            localMsg.id &&
+            typeof localMsg.id === "string" &&
+            localMsg.id.startsWith("local-") &&
+            !backendMessages.some(
+              (bm) =>
+                bm.message?.trim() === localMsg.message?.trim() &&
+                Math.abs(
+                  new Date(bm.created_time) - new Date(localMsg.created_time)
+                ) < 5000
+            )
+        );
 
         return {
-          ...prevMessages,
+          ...prev,
           [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
         };
       });
-    } catch (err) {
-      console.error("Error fetching WhatsApp messages", err);
-      alert("Failed to fetch WhatsApp messages.");
-    }
-    return;
-  }
-
-  // ✅ Widget
-  if (selectedPage.type === "widget") {
-    if (!conv.sessionId || !conv.storeDomain) {
-      console.error("Widget conversation missing sessionId or storeDomain");
       return;
     }
 
-    try {
-      const url = `/api/chat?session_id=${encodeURIComponent(
-        conv.sessionId
-      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data = await res.json();
-
-      let backendMessages = [];
-
-      if (data.messages) {
-        backendMessages = data.messages.map((msg, index) => ({
-          id: msg.id || `local-${index}`,
-          from: msg.sender || "unknown",
-          message: msg.text || msg.content || "",
-          created_time: msg.createdAt
-            ? new Date(msg.createdAt).toISOString()
-            : new Date().toISOString(),
-        }));
+    // ✅ Facebook & Instagram via Graph API
+    if (["facebook", "instagram"].includes(selectedPage.type)) {
+      const token = pageAccessTokens[selectedPage.id];
+      if (!token) {
+        console.error("No token found for page", selectedPage.id);
+        return;
       }
 
-      setMessages((prevMessages) => ({
-        ...prevMessages,
-        [messageKey]: backendMessages, // use messageKey here
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
+      );
+      if (!res.ok) throw new Error(`Graph API error ${res.status}`);
+      const data = await res.json();
+
+      const rawMessages = data?.data?.reverse() || [];
+
+      const enrichedMessages = rawMessages.map((msg) => {
+        let displayName = "User";
+
+        if (selectedPage.type === "instagram") {
+          if (msg.from?.id === selectedPage.igId) {
+            displayName = selectedPage.name; // your business IG
+          } else {
+            displayName =
+              conv.userName ||
+              msg.from?.name ||
+              msg.from?.username ||
+              `Instagram User #${msg.from?.id?.slice(-4)}`;
+          }
+        } else {
+          if (msg.from?.name === selectedPage.name) {
+            displayName = selectedPage.name;
+          } else {
+            displayName = msg.from?.name || "User";
+          }
+        }
+
+        return {
+          ...msg,
+          displayName,
+        };
+      });
+
+      setMessages((prev) => ({
+        ...prev,
+        [conv.id]: enrichedMessages,
       }));
 
-      // selectedConversation already set with messageKey above
-    } catch (err) {
-      console.error("Error fetching Widget messages", err);
-      alert("Failed to fetch Widget messages.");
+      setSelectedConversation(conv); // ✅ make sure UI updates
+      return;
     }
 
-    return;
-  }
-
-  // --- Other platform logic (Facebook, Instagram, etc.) ---
-  try {
+    // ✅ Other custom platforms (fallback to your backend)
     const platformUrl = `/admin/chat/list?conversationId=${encodeURIComponent(
       conv.id
     )}`;
@@ -459,73 +464,23 @@ const localMessagesNotInBackend = prevConvMessages.filter(
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
-    let platformMessages = [];
+    const platformMessages = (data.messages || []).map((msg, index) => ({
+      id: msg.id || `local-${index}`,
+      from: msg.sender || "unknown",
+      message: msg.text || msg.content || "",
+      created_time: msg.createdAt
+        ? new Date(msg.createdAt).toISOString()
+        : new Date().toISOString(),
+    }));
 
-    if (data.messages) {
-      platformMessages = data.messages.map((msg, index) => ({
-        id: msg.id || `local-${index}`,
-        from: msg.sender || "unknown",
-        message: msg.text || msg.content || "",
-        created_time: msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
-      }));
-    }
-
-    setMessages((prevMessages) => ({
-      ...prevMessages,
+    setMessages((prev) => ({
+      ...prev,
       [conv.id]: platformMessages,
     }));
-
     setSelectedConversation(conv);
   } catch (err) {
-    console.error("Error fetching platform messages", err);
+    console.error("Error fetching messages:", err);
     alert("Failed to fetch messages.");
-  }
-
-  // ✅ Facebook & Instagram
-  try {
-    const token = pageAccessTokens[selectedPage.id];
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-    );
-    const data = await res.json();
-    const rawMessages = data?.data?.reverse() || [];
-
-    const enrichedMessages = rawMessages.map((msg) => {
-      let displayName = "User";
-
-      if (selectedPage.type === "instagram") {
-        if (msg.from?.id === selectedPage.igId) {
-          displayName = selectedPage.name;
-        } else {
-          displayName =
-            conv.userName ||
-            msg.from?.name ||
-            msg.from?.username ||
-            `Instagram User #${msg.from?.id?.slice(-4)}`;
-        }
-      } else {
-        if (msg.from?.name === selectedPage.name) {
-          displayName = selectedPage.name;
-        } else {
-          displayName = msg.from?.name || "User";
-        }
-      }
-
-      return {
-        ...msg,
-        displayName,
-      };
-    });
-
-    setMessages((prevMessages) => ({
-      ...prevMessages,
-      [conv.id]: enrichedMessages,
-    }));
-  } catch (error) {
-    alert("Error fetching messages.");
-    console.error(error);
   }
 };
 
