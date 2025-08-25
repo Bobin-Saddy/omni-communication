@@ -669,37 +669,21 @@ return (
         </div>
 
         {/* Nav Buttons */}
-        <button
-          onClick={() => setActiveTab("home")}
-          className="btn-nav"
-          style={{
-            backgroundColor: activeTab === "home" ? "#dbeafe" : "transparent",
-            fontWeight: activeTab === "home" ? "700" : "500",
-          }}
-        >
-          🏠 Home
-        </button>
-        <button
-          onClick={() => setActiveTab("settings")}
-          className="btn-nav"
-          style={{
-            backgroundColor: activeTab === "settings" ? "#dbeafe" : "transparent",
-            fontWeight: activeTab === "settings" ? "700" : "500",
-          }}
-        >
-          ⚙️ Settings
-        </button>
-        <button
-          onClick={() => setActiveTab("conversations")}
-          className="btn-nav"
-          style={{
-            backgroundColor:
-              activeTab === "conversations" ? "#dbeafe" : "transparent",
-            fontWeight: activeTab === "conversations" ? "700" : "500",
-          }}
-        >
-          💬 Conversations
-        </button>
+        {["home", "settings", "conversations"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className="btn-nav"
+            style={{
+              backgroundColor: activeTab === tab ? "#dbeafe" : "transparent",
+              fontWeight: activeTab === tab ? "700" : "500",
+            }}
+          >
+            {tab === "home" && "🏠 Home"}
+            {tab === "settings" && "⚙️ Settings"}
+            {tab === "conversations" && "💬 Conversations"}
+          </button>
+        ))}
       </div>
 
       {/* Right Content Area */}
@@ -741,24 +725,10 @@ return (
               >
                 {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
               </button>
-
-              {/* Facebook Pages */}
               {fbConnected && fbPages.map((page) => (
-                <div
-                  key={page.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "260px",
-                    margin: "6px auto",
-                  }}
-                >
+                <div key={page.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "260px", margin: "6px auto" }}>
                   <button
-                    onClick={() => {
-                      setSelectedPage(page);
-                      fetchConversations(page);
-                    }}
+                    onClick={() => fetchConversations(page)}
                     className="btn-nav"
                     style={{
                       background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
@@ -773,7 +743,6 @@ return (
               ))}
 
               <br />
-
               {/* Instagram Connect */}
               <button
                 onClick={handleInstagramLogin}
@@ -782,24 +751,10 @@ return (
               >
                 {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
               </button>
-
-              {/* Instagram Pages */}
               {igConnected && igPages.map((page) => (
-                <div
-                  key={page.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "260px",
-                    margin: "6px auto",
-                  }}
-                >
+                <div key={page.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "260px", margin: "6px auto" }}>
                   <button
-                    onClick={() => {
-                      setSelectedPage(page);
-                      fetchConversations(page);
-                    }}
+                    onClick={() => fetchConversations(page)}
                     className="btn-nav"
                     style={{
                       background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
@@ -814,7 +769,6 @@ return (
               ))}
 
               <br />
-
               {/* WhatsApp Connect */}
               <button
                 onClick={handleWhatsAppConnect}
@@ -839,212 +793,93 @@ return (
 
         {/* CONVERSATIONS TAB */}
         {activeTab === "conversations" && (
-          <div
-            style={{
-              height: 600,
-              border: "1px solid #e5e7eb",
-              borderRadius: 18,
-              overflow: "hidden",
-              background: "#f9fafb",
-              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-              display: "flex",
-            }}
-          >
+          <div style={{ height: 600, border: "1px solid #e5e7eb", borderRadius: 18, overflow: "hidden", background: "#f9fafb", boxShadow: "0 6px 20px rgba(0,0,0,0.05)", display: "flex" }}>
             {/* Conversations List */}
-            <div
-              style={{
-                width: "28%",
-                borderRight: "1px solid #e5e7eb",
-                overflowY: "auto",
-                background: "#fff",
-              }}
-            >
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#f3f4f6",
-                  fontWeight: "700",
-                  color: "#0f172a",
-                }}
-              >
+            <div style={{ width: "28%", borderRight: "1px solid #e5e7eb", overflowY: "auto", background: "#fff" }}>
+              <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", background: "#f3f4f6", fontWeight: "700", color: "#0f172a" }}>
                 All Conversations
               </div>
 
-       {loadingConversations ? (
-  <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
-) : conversations.length === 0 ? (
-  <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
-) : (
-  conversations.map((conv) => {
-    const preview =
-      conv.lastMessage || conv.snippet || conv.preview || conv.last_text || "";
-
-    return (
-      <div
-        key={`${conv.platform}-${conv.id}`}
-        onClick={() => fetchMessages(conv)}
-        style={{
-          padding: "12px 16px",
-          cursor: "pointer",
-          backgroundColor:
-            selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
-          borderBottom: "1px solid #eee",
-          transition: "all 0.25s ease",
-        }}
-      >
-        <div style={{ fontWeight: 600, color: "#1e293b" }}>
-          {conv.userName || "User"}
-        </div>
-        <div style={{ fontSize: 12, color: "#475569", marginBottom: 4 }}>
-          {conv.platform?.toUpperCase()} - {conv.pageName || conv.businessName || "Unknown Source"}
-        </div>
-        {preview && (
-          <div
-            style={{
-              fontSize: 13,
-              color: "#64748b",
-              marginTop: 2,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {preview}
-          </div>
-        )}
-      </div>
-    );
-  })
-)}
-
+              {loadingConversations ? (
+                <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
+              ) : conversations.length === 0 ? (
+                <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
+              ) : (
+                conversations.map((conv) => {
+                  const key = `${conv.platform}-${conv.pageId}-${conv.id || conv.sessionId}`;
+                  const preview = conv.lastMessage || conv.snippet || conv.preview || conv.last_text || "";
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => fetchMessages(conv)}
+                      style={{
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        backgroundColor: selectedConversation?.messageKey === key ? "#dbeafe" : "transparent",
+                        borderBottom: "1px solid #eee",
+                        transition: "all 0.25s ease",
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                        {conv.userName || "User"}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 4 }}>
+                        {conv.platform?.toUpperCase()} - {conv.pageName || conv.businessName || "Unknown Source"}
+                      </div>
+                      {preview && (
+                        <div style={{ fontSize: 13, color: "#64748b", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {preview}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             {/* Chat Area */}
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                background: "#f1f5f9",
-              }}
-            >
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#ffffff",
-                  fontWeight: "800",
-                  fontSize: 16,
-                }}
-              >
-                {selectedConversation
-                  ? selectedConversation.userName || "User"
-                  : "Chat"}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f1f5f9" }}>
+              <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", background: "#ffffff", fontWeight: "800", fontSize: 16 }}>
+                {selectedConversation ? selectedConversation.userName || "User" : "Chat"}
               </div>
 
               {/* Messages */}
-              <div
-                style={{
-                  flex: 1,
-                  padding: 20,
-                  overflowY: "auto",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
-                {(messages[selectedConversation?.messageKey || selectedConversation?.id] || []).map(
-                  (msg) => {
-                    const fromId = msg.from?.id || msg.from;
-                    const isMe = fromId === "me" || fromId === selectedPage?.id;
+              <div style={{ flex: 1, padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+                {(messages[selectedConversation?.messageKey || selectedConversation?.id] || []).map((msg) => {
+                  const fromId = msg.from?.id || msg.from;
+                  const isMe = fromId === "me" || fromId === selectedPage?.id;
 
-                    return (
-                      <div
-                        key={msg.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: isMe ? "flex-end" : "flex-start",
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: "12px 16px",
-                            borderRadius: 20,
-                            maxWidth: "70%",
-                            fontSize: 14,
-                            lineHeight: "20px",
-                            background: isMe ? "#2563eb" : "#ffffff",
-                            color: isMe ? "#ffffff" : "#0f172a",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {!isMe && (
-                            <div
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                marginBottom: 4,
-                                color: "#334155",
-                              }}
-                            >
-                              {msg.displayName || msg.from?.name || "User"}
-                            </div>
-                          )}
-                          <div>{msg.message || msg.text || msg.body}</div>
-                        </div>
+                  return (
+                    <div key={msg.id} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start" }}>
+                      <div style={{ padding: "12px 16px", borderRadius: 20, maxWidth: "70%", fontSize: 14, lineHeight: "20px", background: isMe ? "#2563eb" : "#ffffff", color: isMe ? "#ffffff" : "#0f172a", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", wordBreak: "break-word" }}>
+                        {!isMe && (
+                          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4, color: "#334155" }}>
+                            {msg.displayName || msg.from?.name || "User"}
+                          </div>
+                        )}
+                        <div>{msg.message || msg.text || msg.body}</div>
                       </div>
-                    );
-                  }
-                )}
+                    </div>
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </div>
 
               {/* Input */}
-              <div
-                style={{
-                  display: "flex",
-                  padding: 14,
-                  borderTop: "1px solid #e5e7eb",
-                  background: "#fff",
-                }}
-              >
+              <div style={{ display: "flex", padding: 14, borderTop: "1px solid #e5e7eb", background: "#fff" }}>
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  style={{
-                    flex: 1,
-                    padding: "14px 18px",
-                    borderRadius: 25,
-                    border: "1px solid #d1d5db",
-                    fontSize: 15,
-                    outline: "none",
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") sendMessage();
-                  }}
+                  style={{ flex: 1, padding: "14px 18px", borderRadius: 25, border: "1px solid #d1d5db", fontSize: 15, outline: "none" }}
+                  onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
                   disabled={sendingMessage}
                 />
                 <button
-                  onClick={() =>
-                    !sendingMessage && newMessage.trim() && sendMessage()
-                  }
+                  onClick={() => !sendingMessage && newMessage.trim() && sendMessage()}
                   disabled={sendingMessage || !newMessage.trim()}
-                  style={{
-                    marginLeft: 12,
-                    padding: "12px 22px",
-                    background: sendingMessage
-                      ? "#9ca3af"
-                      : "linear-gradient(135deg,#2563eb,#1e40af)",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 50,
-                    fontWeight: "600",
-                    cursor: sendingMessage ? "not-allowed" : "pointer",
-                  }}
+                  style={{ marginLeft: 12, padding: "12px 22px", background: sendingMessage ? "#9ca3af" : "linear-gradient(135deg,#2563eb,#1e40af)", color: "white", border: "none", borderRadius: 50, fontWeight: "600", cursor: sendingMessage ? "not-allowed" : "pointer" }}
                 >
                   {sendingMessage ? "..." : "➤"}
                 </button>
