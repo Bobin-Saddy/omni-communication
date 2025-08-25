@@ -14,6 +14,10 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
+const [connectedPages, setConnectedPages] = useState([]); 
+const [allConversations, setAllConversations] = useState([]);
+
+// HELPER: connect a page (FB/IG)
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -699,9 +703,16 @@ const sendMessage = async () => {
 };
 
 
+const connectPage = (type, page) => {
+  const newPage = { ...page, platform: type };
 
+  // avoid duplicates
+  setConnectedPages((prev) => {
+    if (prev.some((p) => p.id === newPage.id)) return prev;
+    return [...prev, newPage];
+  });
 
-
+}
   
 return (
   <div
