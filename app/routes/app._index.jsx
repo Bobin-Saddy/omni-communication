@@ -253,68 +253,67 @@ const fetchConversations = async (page) => {
   setLoadingConversations(true);
   try {
     const token = pageAccessTokens[page.id];
-    setSelectedPage(page);
-    setSelectedConversation(null);
-    setMessages([]);
+    if (!token) {
+      console.warn("No access token for page:", page);
+      return;
+    }
 
-    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-    const urlWithPlatform =
+    const baseUrl = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,snippet&access_token=${token}`;
+    const url =
       page.type === "instagram"
-        ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-        : url;
+        ? `${baseUrl}&platform=instagram`
+        : baseUrl;
 
-    const res = await fetch(urlWithPlatform);
+    const res = await fetch(url);
     const data = await res.json();
+    if (!data?.data) {
+      console.warn("No conversations found:", data);
+      return;
+    }
 
     let convs = [];
 
     if (page.type === "instagram") {
-      const enriched = await Promise.all(
-        (data.data || []).map(async (conv) => {
+      convs = await Promise.all(
+        data.data.map(async (conv) => {
           const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&limit=5&access_token=${token}`
           );
           const msgData = await msgRes.json();
           const messages = msgData?.data || [];
+
           const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-          let userName = "Instagram User";
-          if (otherMsg) {
-            userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-          }
+          let userName = otherMsg?.from?.name || otherMsg?.from?.username || "Instagram User";
 
           return {
             ...conv,
-            userName,
-            businessName: page.name,
             pageId: page.id,
             platform: "instagram",
-            preview: messages[0]?.message || "",
+            businessName: page.name,
             prettyName: userName,
+            preview: messages[0]?.message || "",
           };
         })
       );
-      convs = enriched;
     } else {
-      convs = (data.data || []).map((conv) => ({
+      convs = data.data.map((conv) => ({
         ...conv,
-        businessName: page.name,
         pageId: page.id,
         platform: "facebook",
-        preview: conv.snippet || "",
+        businessName: page.name,
         prettyName:
           conv.participants?.data?.find((p) => p.id !== page.id)?.name || "Facebook User",
+        preview: conv.snippet || "",
       }));
     }
 
-    // ✅ Merge into global conversation list
+    // ✅ merge into global list (replace old convs for same page)
     setAllConversations((prev) => {
-      // remove old convs from this page before adding new
       const filtered = prev.filter((c) => c.pageId !== page.id);
       return [...filtered, ...convs];
     });
-  } catch (error) {
-    alert("Error fetching conversations.");
-    console.error(error);
+  } catch (err) {
+    console.error("Error fetching conversations:", err);
   } finally {
     setLoadingConversations(false);
   }
@@ -725,16 +724,18 @@ const sendMessage = async () => {
 };
 
 
-const connectPage = (type, page) => {
-  const newPage = { ...page, platform: type };
+const connectPage = async (type, page) => {
+  const newPage = { ...page, type }; // ensure type stored
 
-  // avoid duplicates
   setConnectedPages((prev) => {
     if (prev.some((p) => p.id === newPage.id)) return prev;
     return [...prev, newPage];
   });
 
-}
+  // ✅ immediately fetch its conversations
+  await fetchConversations(newPage);
+};
+
   
 return (
   <div
