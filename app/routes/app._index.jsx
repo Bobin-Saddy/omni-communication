@@ -734,7 +734,7 @@ return (
         textShadow: "0 2px 8px rgba(0,0,0,0.08)",
       }}
     >
-      {/* ✨ Omni-Communication Dashboard */}
+      ✨ Omni-Communication Dashboard
     </h1>
 
     {/* Main Layout */}
@@ -823,8 +823,8 @@ return (
               👋 Welcome to Omni-Communication
             </h2>
             <p style={{ color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-              Manage conversations from <b>Facebook, Instagram, WhatsApp</b>, and
-              your <b>chat widget</b> – all unified in one beautiful dashboard.
+              Manage conversations from <b>Facebook, Instagram</b> and your{" "}
+              <b>chat widget</b> – all unified in one beautiful dashboard.
             </p>
             <p style={{ marginTop: 16, color: "#475569", fontSize: 16 }}>
               Use <b>Settings</b> to connect your channels or head over to{" "}
@@ -834,210 +834,242 @@ return (
         )}
 
         {/* SETTINGS TAB */}
-{/* SETTINGS TAB */}
-{activeTab === "settings" && (
-  <div style={{ textAlign: "center" }}>
-    {/* Facebook */}
-    <div style={{ marginBottom: 20 }}>
-      <button
-        onClick={handleFacebookLogin}
-        disabled={fbConnected}
-        className="btn-primary"
-      >
-        {fbConnected ? "Facebook Connected ✅" : "🔵 Connect Facebook"}
-      </button>
-      {fbConnected && fbPages.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          {fbPages.map((page) => (
-            <div key={page.id} style={{ marginBottom: 8 }}>
-              <span style={{ marginRight: 10 }}>📘 {page.name}</span>
+        {activeTab === "settings" && (
+          <div style={{ textAlign: "center" }}>
+            {/* Facebook Section */}
+            <div style={{ marginBottom: 20 }}>
               <button
+                onClick={handleFacebookLogin}
+                disabled={fbConnected}
                 className="btn-primary"
-                style={{ padding: "6px 14px", fontSize: 13 }}
-                onClick={() => connectPage(page, "facebook")}
               >
-                {connectedPages.some((p) => p.id === page.id)
-                  ? "Connected ✅"
-                  : "Connect Page"}
+                {fbConnected ? "Facebook Connected ✅" : "🔵 Connect Facebook"}
               </button>
+              {fbConnected && fbPages.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  {fbPages.map((page) => (
+                    <div key={page.id} style={{ marginBottom: 8 }}>
+                      <span style={{ marginRight: 10 }}>📘 {page.name}</span>
+                      <button
+                        className="btn-primary"
+                        style={{ padding: "6px 14px", fontSize: 13 }}
+                        onClick={() => connectPage(page, "facebook")}
+                      >
+                        {connectedPages.some((p) => p.id === page.id)
+                          ? "Connected ✅"
+                          : "Connect Page"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-    </div>
 
-    {/* Instagram */}
-    <div style={{ marginBottom: 20 }}>
-      <button
-        onClick={handleInstagramLogin}
-        disabled={igConnected}
-        className="btn-primary"
-      >
-        {igConnected ? "Instagram Connected ✅" : "📸 Connect Instagram"}
-      </button>
-      {igConnected && igPages.length > 0 && (
-        <div style={{ marginTop: 10 }}>
-          {igPages.map((page) => (
-            <div key={page.id} style={{ marginBottom: 8 }}>
-              <span style={{ marginRight: 10 }}>📸 {page.name}</span>
+            {/* Instagram Section */}
+            <div style={{ marginBottom: 20 }}>
               <button
+                onClick={handleInstagramLogin}
+                disabled={igConnected}
                 className="btn-primary"
-                style={{ padding: "6px 14px", fontSize: 13 }}
-                onClick={() => connectPage(page, "instagram")}
               >
-                {connectedPages.some((p) => p.id === page.id)
-                  ? "Connected ✅"
-                  : "Connect Page"}
+                {igConnected ? "Instagram Connected ✅" : "📸 Connect Instagram"}
               </button>
+              {igConnected && igPages.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  {igPages.map((page) => (
+                    <div key={page.id} style={{ marginBottom: 8 }}>
+                      <span style={{ marginRight: 10 }}>📸 {page.name}</span>
+                      <button
+                        className="btn-primary"
+                        style={{ padding: "6px 14px", fontSize: 13 }}
+                        onClick={() => connectPage(page, "instagram")}
+                      >
+                        {connectedPages.some((p) => p.id === page.id)
+                          ? "Connected ✅"
+                          : "Connect Page"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </div>
-)}
+          </div>
+        )}
 
         {/* CONVERSATIONS TAB */}
-{/* CONVERSATIONS TAB */}
-{activeTab === "conversations" && (
-  <div
-    style={{
-      height: 600,
-      border: "1px solid #e5e7eb",
-      borderRadius: 18,
-      overflow: "hidden",
-      background: "#f9fafb",
-    }}
-  >
-    {connectedPages.length === 0 ? (
-      <div
-        style={{
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#64748b",
-          fontSize: 16,
-        }}
-      >
-        ⚠️ No pages connected. Go to Settings to connect.
-      </div>
-    ) : (
-      <div style={{ display: "flex", height: "100%" }}>
-        {/* Conversations List */}
-        <div
-          style={{
-            width: "30%",
-            borderRight: "1px solid #e5e7eb",
-            background: "#fff",
-            overflowY: "auto",
-          }}
-        >
-          <div
-            style={{
-              padding: "14px 16px",
-              borderBottom: "1px solid #e5e7eb",
-              background: "#f3f4f6",
-              fontWeight: "700",
-            }}
-          >
-            Conversations
-          </div>
-          {conversations.length === 0 ? (
-            <div style={{ padding: 14, color: "#6b7280" }}>
-              No conversations found
-            </div>
-          ) : (
-            conversations.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => fetchMessages(conv)}
-                style={{
-                  padding: "12px 16px",
-                  cursor: "pointer",
-                  borderBottom: "1px solid #eee",
-                  backgroundColor:
-                    selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>{conv.userName || "User"}</div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#64748b",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {conv.lastMessage || ""}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Chat Area */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-          {selectedConversation ? (
-            <>
-              {/* Chat Header */}
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#fff",
-                  fontWeight: "700",
-                }}
-              >
-                {selectedConversation.userName || "User"}
-              </div>
-
-              {/* Messages */}
-              <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
-                {(messages[selectedConversation.id] || []).map((msg) => (
-                  <div key={msg.id}>
-                    <b>{msg.from?.name || "User"}:</b> {msg.text}
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#64748b",
-              }}
-            >
-              👈 Select a conversation
-            </div>
-          )}
-        </div>
-      </div>
-    )}
-  </div>
-)}
-
-        {/* If Conversations tab is open but no channel selected */}
-        {activeTab === "conversations" && !selectedPage && (
+        {activeTab === "conversations" && (
           <div
             style={{
               height: 600,
               border: "1px solid #e5e7eb",
               borderRadius: 18,
-              background: "#f8fafc",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#64748b",
-              fontSize: 16,
-              fontWeight: "500",
+              overflow: "hidden",
+              background: "#f9fafb",
             }}
           >
-            👈 Select a channel from the left to view conversations
+            {connectedPages.length === 0 ? (
+              <div
+                style={{
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#64748b",
+                  fontSize: 16,
+                }}
+              >
+                ⚠️ No pages connected. Go to Settings to connect.
+              </div>
+            ) : (
+              <div style={{ display: "flex", height: "100%" }}>
+                {/* Conversations List */}
+                <div
+                  style={{
+                    width: "30%",
+                    borderRight: "1px solid #e5e7eb",
+                    background: "#fff",
+                    overflowY: "auto",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderBottom: "1px solid #e5e7eb",
+                      background: "#f3f4f6",
+                      fontWeight: "700",
+                    }}
+                  >
+                    Conversations
+                  </div>
+                  {loadingConversations ? (
+                    <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
+                  ) : conversations.length === 0 ? (
+                    <div style={{ padding: 14, color: "#6b7280" }}>
+                      No conversations found
+                    </div>
+                  ) : (
+                    conversations.map((conv) => (
+                      <div
+                        key={conv.id}
+                        onClick={() => fetchMessages(conv)}
+                        style={{
+                          padding: "12px 16px",
+                          cursor: "pointer",
+                          borderBottom: "1px solid #eee",
+                          backgroundColor:
+                            selectedConversation?.id === conv.id
+                              ? "#dbeafe"
+                              : "transparent",
+                        }}
+                      >
+                        <div style={{ fontWeight: 600 }}>
+                          {conv.userName || "User"}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: "#64748b",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {conv.lastMessage || ""}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Chat Area */}
+                <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                  {selectedConversation ? (
+                    <>
+                      {/* Chat Header */}
+                      <div
+                        style={{
+                          padding: "14px 16px",
+                          borderBottom: "1px solid #e5e7eb",
+                          background: "#fff",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {selectedConversation.userName || "User"}
+                      </div>
+
+                      {/* Messages */}
+                      <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
+                        {(messages[selectedConversation.id] || []).map((msg) => (
+                          <div key={msg.id}>
+                            <b>{msg.from?.name || "User"}:</b> {msg.text}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Input */}
+                      <div
+                        style={{
+                          display: "flex",
+                          padding: 14,
+                          borderTop: "1px solid #e5e7eb",
+                          background: "#fff",
+                        }}
+                      >
+                        <input
+                          type="text"
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Type a message..."
+                          style={{
+                            flex: 1,
+                            padding: "14px 18px",
+                            borderRadius: 25,
+                            border: "1px solid #d1d5db",
+                            fontSize: 15,
+                            outline: "none",
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") sendMessage();
+                          }}
+                        />
+                        <button
+                          onClick={() =>
+                            !sendingMessage && newMessage.trim() && sendMessage()
+                          }
+                          disabled={sendingMessage || !newMessage.trim()}
+                          style={{
+                            marginLeft: 12,
+                            padding: "12px 22px",
+                            background: sendingMessage
+                              ? "#9ca3af"
+                              : "linear-gradient(135deg,#2563eb,#1e40af)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 50,
+                            fontWeight: "600",
+                            cursor: sendingMessage ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {sendingMessage ? "..." : "➤"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#64748b",
+                      }}
+                    >
+                      👈 Select a conversation
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1068,16 +1100,6 @@ return (
         background: linear-gradient(135deg,#1e293b,#111827);
         transform: translateY(-2px);
       }
-      .btn-nav {
-        text-align: left;
-        padding: 16px 20px;
-        border: none;
-        background: transparent;
-        font-size: 15px;
-        cursor: pointer;
-        font-weight: 500;
-        color
-
       .btn-nav {
         text-align: left;
         padding: 16px 18px;
