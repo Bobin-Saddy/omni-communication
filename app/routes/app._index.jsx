@@ -14,9 +14,11 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
-const [connectedPages, setConnectedPages] = useState({
+const [allConversations, setAllConversations] = useState({
   facebook: [],
   instagram: [],
+  whatsapp: [],
+  widget: [],
 });
 
   // Loading states
@@ -249,55 +251,60 @@ const handleWhatsAppConnect = async () => {
     }
   };
 
-  const fetchConversations = async (page) => {
-    setLoadingConversations(true);
-    try {
-      const token = pageAccessTokens[page.id];
-      setSelectedPage(page);
-      setSelectedConversation(null);
-      setMessages([]);
+const fetchConversations = async (page) => {
+  setLoadingConversations(true);
+  try {
+    const token = pageAccessTokens[page.id];
+    const url =
+      page.type === "instagram"
+        ? `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=participants&access_token=${token}`
+        : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
 
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      const urlWithPlatform =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : url;
+    const res = await fetch(url);
+    const data = await res.json();
 
-      const res = await fetch(urlWithPlatform);
-      const data = await res.json();
+    let convos = [];
+    if (page.type === "instagram") {
+      convos = await Promise.all(
+        (data.data || []).map(async (conv) => {
+          const msgRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+          );
+          const msgData = await msgRes.json();
+          const messages = msgData?.data || [];
+          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
 
-      if (page.type === "instagram") {
-        const enriched = await Promise.all(
-          (data.data || []).map(async (conv) => {
-            const msgRes = await fetch(
-              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
-            );
-            const msgData = await msgRes.json();
-            const messages = msgData?.data || [];
-            const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-            let userName = "Instagram User";
-            if (otherMsg) {
-              userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-            }
-
-            return {
-              ...conv,
-              userName,
-              businessName: page.name,
-            };
-          })
-        );
-        setConversations(enriched);
-      } else {
-        setConversations(data.data || []);
-      }
-    } catch (error) {
-      alert("Error fetching conversations.");
-      console.error(error);
-    } finally {
-      setLoadingConversations(false);
+          return {
+            ...conv,
+            userName: otherMsg?.from?.name || otherMsg?.from?.username || "Instagram User",
+            businessName: page.name,
+            pageId: page.id,
+            platform: "instagram",
+          };
+        })
+      );
+    } else {
+      convos = (data.data || []).map((c) => ({
+        ...c,
+        businessName: page.name,
+        pageId: page.id,
+        platform: page.type,
+      }));
     }
-  };
+
+    // ✅ Merge into correct bucket
+    setAllConversations((prev) => ({
+      ...prev,
+      [page.type]: [...prev[page.type], ...convos],
+    }));
+  } catch (error) {
+    alert("Error fetching conversations.");
+    console.error(error);
+  } finally {
+    setLoadingConversations(false);
+  }
+};
+
 
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
@@ -985,75 +992,63 @@ return (
                   Conversations
                 </div>
 
-                {loadingConversations ? (
-                  <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
-                ) : conversations.length === 0 ? (
-                  <div style={{ padding: 14, color: "#6b7280" }}>
-                    No conversations
-                  </div>
-                ) : (
-                  conversations.map((conv) => {
-                    const prettyName =
-                      selectedPage?.type === "instagram"
-                        ? conv.userName || conv.user?.username || "IG User"
-                        : selectedPage?.type === "whatsapp"
-                        ? conv.userName ||
-                          conv.contacts?.[0]?.wa_id ||
-                          conv.userNumber ||
-                          "WhatsApp User"
-                        : selectedPage?.type === "widget"
-                        ? conv.userName ||
-                          conv.meta?.name ||
-                          conv.user?.name ||
-                          "Widget User"
-                        : conv.participants?.data
-                            ?.map((p) => p.name)
-                            .filter(Boolean)
-                            .join(", ") || "Facebook User";
+      {mergedConversations.length === 0 ? (
+  <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
+) : (
+  mergedConversations.map((conv) => {
+    const prettyName =
+      conv.platform === "instagram"
+        ? conv.userName || "IG User"
+        : conv.platform === "whatsapp"
+        ? conv.userName || conv.userNumber || "WhatsApp User"
+        : conv.platform === "widget"
+        ? conv.userName || "Widget User"
+        : conv.participants?.data?.map((p) => p.name).filter(Boolean).join(", ") || "Facebook User";
 
-                    const preview =
-                      conv.lastMessage ||
-                      conv.snippet ||
-                      conv.preview ||
-                      conv.last_text ||
-                      "";
+    const preview =
+      conv.lastMessage ||
+      conv.snippet ||
+      conv.preview ||
+      conv.last_text ||
+      "";
 
-                    return (
-                      <div
-                        key={conv.id || conv.thread_id}
-                        onClick={() => fetchMessages(conv)}
-                        style={{
-                          padding: "12px 16px",
-                          cursor: "pointer",
-                          backgroundColor:
-                            selectedConversation?.id === conv.id
-                              ? "#dbeafe"
-                              : "transparent",
-                          borderBottom: "1px solid #eee",
-                          transition: "all 0.25s ease",
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, color: "#1e293b" }}>
-                          {prettyName}
-                        </div>
-                        {preview && (
-                          <div
-                            style={{
-                              fontSize: 13,
-                              color: "#64748b",
-                              marginTop: 2,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {preview}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
+    return (
+      <div
+        key={conv.id || conv.thread_id}
+        onClick={() => {
+          setSelectedConversation(conv);
+          fetchMessages(conv);
+        }}
+        style={{
+          padding: "12px 16px",
+          cursor: "pointer",
+          backgroundColor:
+            selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <div style={{ fontWeight: 600, color: "#1e293b" }}>
+          {prettyName} <small>({conv.businessName})</small>
+        </div>
+        {preview && (
+          <div
+            style={{
+              fontSize: 13,
+              color: "#64748b",
+              marginTop: 2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {preview}
+          </div>
+        )}
+      </div>
+    );
+  })
+)}
+
               </div>
 
               {/* Chat Area */}
