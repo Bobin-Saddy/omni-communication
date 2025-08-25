@@ -14,6 +14,43 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
+// Keep track of pages the user has connected
+const [connectedPages, setConnectedPages] = useState([]);
+
+// Called when user clicks "Connect" for a page
+const connectPage = (page) => {
+  // Avoid duplicate connections
+  if (!connectedPages.some((p) => p.id === page.id)) {
+    setConnectedPages((prev) => [...prev, page]);
+
+    // Optional: fetch conversations for this page immediately
+    fetchConversationsForPage(page);
+  }
+};
+
+// Example: fetch conversations for a given page
+const fetchConversationsForPage = async (page) => {
+  try {
+    // Replace with your actual API call logic
+    const res = await fetch(`/api/conversations/${page.id}`);
+    const data = await res.json();
+
+    // Merge these conversations into allConversations state
+    setAllConversations((prev) => [
+      ...prev,
+      ...data.map((conv) => ({
+        ...conv,
+        pageId: page.id,
+        prettyName: `${page.name} - ${conv.name || conv.id}`,
+      })),
+    ]);
+  } catch (err) {
+    console.error("Failed to fetch conversations for page:", page, err);
+  }
+};
+
+// Also add a state for storing all conversations
+const [allConversations, setAllConversations] = useState([]);
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
