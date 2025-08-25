@@ -249,8 +249,11 @@ const fetchConversations = async (page) => {
   setLoadingConversations(true);
   try {
     setSelectedPage(page);
-    setSelectedConversation(null);
-    setMessages({});
+
+    // ⚠️ Pehle aap ye kar rahe the jo reset kar raha tha:
+    // setSelectedConversation(null);
+    // setMessages({});
+    // setConversations([]);
 
     let enriched = [];
 
@@ -260,6 +263,7 @@ const fetchConversations = async (page) => {
         page.type === "instagram"
           ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
           : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+
       const res = await fetch(url);
       const data = await res.json();
 
@@ -272,9 +276,15 @@ const fetchConversations = async (page) => {
             );
             const msgData = await msgRes.json();
             const otherMsg = msgData.data.find((m) => m.from?.id !== page.igId);
-            if (otherMsg) userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+            if (otherMsg)
+              userName =
+                otherMsg.from?.name ||
+                otherMsg.from?.username ||
+                "Instagram User";
           } else if (page.type === "facebook") {
-            const otherUser = conv.participants?.data?.find((p) => p.id !== page.id);
+            const otherUser = conv.participants?.data?.find(
+              (p) => p.id !== page.id
+            );
             if (otherUser) userName = otherUser.name || "Facebook User";
           }
 
@@ -288,7 +298,6 @@ const fetchConversations = async (page) => {
         })
       );
     } else if (page.type === "whatsapp") {
-      // Example: fetch WhatsApp conversations from your API
       const res = await fetch(`/api/whatsapp/conversations?pageId=${page.id}`);
       const data = await res.json();
       enriched = (data.data || []).map((conv) => ({
@@ -310,8 +319,12 @@ const fetchConversations = async (page) => {
       }));
     }
 
-    // Merge new conversations with existing
-    setConversations((prev) => [...prev, ...enriched]);
+    // ✅ Merge without duplicates
+    setConversations((prev) => {
+      const existingIds = new Set(prev.map((c) => c.id));
+      const newOnes = enriched.filter((c) => !existingIds.has(c.id));
+      return [...prev, ...newOnes];
+    });
   } catch (err) {
     console.error(err);
     alert("Error fetching conversations.");
