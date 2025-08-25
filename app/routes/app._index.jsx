@@ -249,67 +249,55 @@ const handleWhatsAppConnect = async () => {
     }
   };
 
-const fetchConversations = async (page) => {
-  setLoadingConversations(true);
-  try {
-    const token = pageAccessTokens[page.id];
-    setSelectedPage(page);
-    setSelectedConversation(null);
-    setMessages([]);
+  const fetchConversations = async (page) => {
+    setLoadingConversations(true);
+    try {
+      const token = pageAccessTokens[page.id];
+      setSelectedPage(page);
+      setSelectedConversation(null);
+      setMessages([]);
 
-    // FB/IG API URL
-    const url =
-      page.type === "instagram"
-        ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-        : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      const urlWithPlatform =
+        page.type === "instagram"
+          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
+          : url;
 
-    const res = await fetch(url);
-    const data = await res.json();
+      const res = await fetch(urlWithPlatform);
+      const data = await res.json();
 
-    let enriched = [];
+      if (page.type === "instagram") {
+        const enriched = await Promise.all(
+          (data.data || []).map(async (conv) => {
+            const msgRes = await fetch(
+              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+            );
+            const msgData = await msgRes.json();
+            const messages = msgData?.data || [];
+            const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+            let userName = "Instagram User";
+            if (otherMsg) {
+              userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+            }
 
-    if (page.type === "instagram") {
-      enriched = await Promise.all(
-        (data.data || []).map(async (conv) => {
-          const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
-          );
-          const msgData = await msgRes.json();
-          const messages = msgData?.data || [];
-
-          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-          let userName = "Instagram User";
-          if (otherMsg) {
-            userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-          }
-
-          return {
-            ...conv,
-            userName,
-            businessName: page.name,
-          };
-        })
-      );
-    } else {
-      enriched = data.data || [];
+            return {
+              ...conv,
+              userName,
+              businessName: page.name,
+            };
+          })
+        );
+        setConversations(enriched);
+      } else {
+        setConversations(data.data || []);
+      }
+    } catch (error) {
+      alert("Error fetching conversations.");
+      console.error(error);
+    } finally {
+      setLoadingConversations(false);
     }
-
-    // ✅ merge conversations instead of overwriting
-    setConversations((prev) => ({
-      ...prev,
-      [page.type]: {
-        ...(prev[page.type] || {}),
-        [page.id]: enriched,
-      },
-    }));
-  } catch (error) {
-    alert("Error fetching conversations.");
-    console.error(error);
-  } finally {
-    setLoadingConversations(false);
-  }
-};
-
+  };
 
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
@@ -650,38 +638,34 @@ const sendMessage = async () => {
 
     let recipientId;
 
-if (selectedPage.type === "instagram") {
-  // Get conversation participants for Instagram thread
-  const convoRes = await fetch(
-    `https://graph.facebook.com/v18.0/${selectedConversation.id}?fields=participants&access_token=${token}`
-  );
-  const convoData = await convoRes.json();
+    if (selectedPage.type === "instagram") {
+      // Get recipient for Instagram
+      const msgRes = await fetch(
+        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
+      );
+      const msgData = await msgRes.json();
+      const sender = msgData?.data?.find(
+        (m) => m.from?.id !== selectedPage.igId
+      );
+      if (!sender) {
+        alert("Recipient not found for Instagram");
+        return;
+      }
+      recipientId = sender.from.id;
 
-  const participants = convoData?.participants?.data || [];
-  const recipient = participants.find((p) => p.id !== selectedPage.igId);
-
-  if (!recipient) {
-    alert("Recipient not found for Instagram");
-    return;
-  }
-
-  recipientId = recipient.id;
-
-  // Send message
-  await fetch(
-    `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messaging_product: "instagram",
-        recipient: { id: recipientId },
-        message: { text: newMessage },
-      }),
-    }
-  );
-}
- else {
+      await fetch(
+        `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messaging_product: "instagram",
+            recipient: { id: recipientId },
+            message: { text: newMessage },
+          }),
+        }
+      );
+    } else {
       // Get recipient for Facebook
       const participants = selectedConversation.participants?.data || [];
       const recipient = participants.find(
@@ -718,22 +702,16 @@ if (selectedPage.type === "instagram") {
   }
 };
 
-const connectPage = (page, type) => {
+
+const connectPage = (page, platform) => {
   setConnectedPages((prev) => ({
     ...prev,
-    [type]: [...(prev[type] || []), page],
+    [platform]: [...prev[platform], page],
   }));
 
-  // 👇 Page type set karo
-  const pageWithType = { ...page, type };
-
-  // 👇 Selected page banado
-  setSelectedPage(pageWithType);
-
-  // 👇 Conversations turant fetch karo
-  fetchConversations(pageWithType);
+  // select first connected page by default
+  setSelectedPage({ ...page, type: platform });
 };
-
 
   
 return (
@@ -1292,6 +1270,8 @@ return (
     `}</style>
   </div>
 );
+
+
 
 
 
