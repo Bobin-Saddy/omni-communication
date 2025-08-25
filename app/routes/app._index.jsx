@@ -1027,108 +1027,58 @@ return (
                     <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
                   ) : (
                     Object.entries(conversations || {}).map(([platform, pages]) =>
-                      Object.entries(pages || {}).map(([pageId, convs]) => {
-                        const pageInfo = (connectedPages?.[platform] || []).find(
-                          (p) => String(p.id) === String(pageId)
-                        );
+  Object.entries(pages || {}).map(([pageId, convs]) => {
+    const pageInfo = connectedPages[platform]?.find((p) => p.id === pageId);
 
-                        return (
-                          <div key={pageId}>
-                            {/* Page Header */}
-                            <div
-                              style={{
-                                padding: "10px 14px",
-                                background: "#e2e8f0",
-                                fontWeight: 600,
-                                color: "#1e293b",
-                              }}
-                            >
-                              {platform.toUpperCase()} – {pageInfo?.name || pageId}
-                            </div>
+    return (
+      <div key={pageId}>
+        {/* Page Header */}
+        <div
+          style={{
+            padding: "10px 14px",
+            background: "#e2e8f0",
+            fontWeight: 600,
+            color: "#1e293b",
+          }}
+        >
+          {platform.toUpperCase()} – {pageInfo?.name}
+        </div>
 
-                            {/* List of conversations */}
-                            {(convs || []).length === 0 ? (
-                              <div style={{ padding: 14, color: "#6b7280" }}>
-                                No conversations
-                              </div>
-                            ) : (
-                              (convs || []).map((conv) => {
-                                const prettyName =
-                                  platform === "instagram"
-                                    ? conv.userName ||
-                                      conv.user?.username ||
-                                      "IG User"
-                                    : platform === "whatsapp"
-                                    ? conv.userName ||
-                                      conv.contacts?.[0]?.wa_id ||
-                                      conv.userNumber ||
-                                      "WhatsApp User"
-                                    : platform === "widget"
-                                    ? conv.userName ||
-                                      conv.meta?.name ||
-                                      conv.user?.name ||
-                                      "Widget User"
-                                    : conv.participants?.data
-                                        ?.map((p) => p.name)
-                                        .filter(Boolean)
-                                        .join(", ") || "Facebook User";
-
-                                const preview =
-                                  conv.lastMessage ||
-                                  conv.snippet ||
-                                  conv.preview ||
-                                  conv.last_text ||
-                                  "";
-
-                                return (
-                                  <div
-                                    key={conv.id || conv.thread_id}
-                                    onClick={() => {
-                                      setSelectedConversation(conv);
-                                      setSelectedPage(pageInfo); // so isMe works
-                                      fetchMessages(conv);
-                                    }}
-                                    style={{
-                                      padding: "12px 16px",
-                                      cursor: "pointer",
-                                      backgroundColor:
-                                        selectedConversation?.id === conv.id
-                                          ? "#dbeafe"
-                                          : "transparent",
-                                      borderBottom: "1px solid #eee",
-                                      transition: "all 0.25s ease",
-                                    }}
-                                  >
-                                    <div
-                                      style={{
-                                        fontWeight: 600,
-                                        color: "#1e293b",
-                                      }}
-                                    >
-                                      {prettyName}
-                                    </div>
-                                    {preview && (
-                                      <div
-                                        style={{
-                                          fontSize: 13,
-                                          color: "#64748b",
-                                          marginTop: 2,
-                                          whiteSpace: "nowrap",
-                                          overflow: "hidden",
-                                          textOverflow: "ellipsis",
-                                        }}
-                                      >
-                                        {preview}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        );
-                      })
-                    )
+        {/* Conversations List */}
+        {Array.isArray(convs) && convs.length > 0 ? (
+          convs.map((conv) => (
+            <div
+              key={conv.id}
+              onClick={() => {
+                setSelectedConversation(conv);
+                setSelectedPage(pageInfo);
+                fetchMessages(conv);
+              }}
+              style={{
+                padding: "12px 16px",
+                cursor: "pointer",
+                backgroundColor:
+                  selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
+                borderBottom: "1px solid #eee",
+              }}
+            >
+              <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                {conv.userName ||
+                  conv.participants?.data?.map((p) => p.name).join(", ") ||
+                  "User"}
+              </div>
+              <div style={{ fontSize: 13, color: "#64748b" }}>
+                {conv.lastMessage || conv.snippet || ""}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
+        )}
+      </div>
+    );
+  })
+)
                   )}
                 </div>
 
