@@ -704,15 +704,22 @@ const sendMessage = async () => {
 };
 
 
-const connectPage = (page, platform) => {
+const connectPage = (page, type) => {
   setConnectedPages((prev) => ({
     ...prev,
-    [platform]: [...prev[platform], page],
+    [type]: [...(prev[type] || []), page],
   }));
 
-  // select first connected page by default
-  setSelectedPage({ ...page, type: platform });
+  // 👇 Page type set karo
+  const pageWithType = { ...page, type };
+
+  // 👇 Selected page banado
+  setSelectedPage(pageWithType);
+
+  // 👇 Conversations turant fetch karo
+  fetchConversations(pageWithType);
 };
+
 
   
 return (
