@@ -14,8 +14,7 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
-const [selectedFbPage, setSelectedFbPage] = useState(null);
-const [selectedIgPage, setSelectedIgPage] = useState(null);
+const [allConversations, setAllConversations] = useState([]); // all platforms' conversations
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -1010,52 +1009,53 @@ return (
                 All Conversations
               </div>
 
-              {loadingConversations ? (
-                <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
-              ) : allConversations.length === 0 ? (
-                <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
-              ) : (
-                allConversations.map((conv) => {
-                  const preview =
-                    conv.lastMessage || conv.snippet || conv.preview || conv.last_text || "";
+       {loadingConversations ? (
+  <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
+) : conversations.length === 0 ? (
+  <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
+) : (
+  conversations.map((conv) => {
+    const preview =
+      conv.lastMessage || conv.snippet || conv.preview || conv.last_text || "";
 
-                  return (
-                    <div
-                      key={`${conv.platform}-${conv.id}`}
-                      onClick={() => fetchMessages(conv)}
-                      style={{
-                        padding: "12px 16px",
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
-                        borderBottom: "1px solid #eee",
-                        transition: "all 0.25s ease",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600, color: "#1e293b" }}>
-                        {conv.userName || "User"}
-                      </div>
-                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 4 }}>
-                        {conv.platform?.toUpperCase()} - {conv.pageName || conv.businessName || "Unknown Source"}
-                      </div>
-                      {preview && (
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: "#64748b",
-                            marginTop: 2,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {preview}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+    return (
+      <div
+        key={`${conv.platform}-${conv.id}`}
+        onClick={() => fetchMessages(conv)}
+        style={{
+          padding: "12px 16px",
+          cursor: "pointer",
+          backgroundColor:
+            selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
+          borderBottom: "1px solid #eee",
+          transition: "all 0.25s ease",
+        }}
+      >
+        <div style={{ fontWeight: 600, color: "#1e293b" }}>
+          {conv.userName || "User"}
+        </div>
+        <div style={{ fontSize: 12, color: "#475569", marginBottom: 4 }}>
+          {conv.platform?.toUpperCase()} - {conv.pageName || conv.businessName || "Unknown Source"}
+        </div>
+        {preview && (
+          <div
+            style={{
+              fontSize: 13,
+              color: "#64748b",
+              marginTop: 2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {preview}
+          </div>
+        )}
+      </div>
+    );
+  })
+)}
+
             </div>
 
             {/* Chat Area */}
