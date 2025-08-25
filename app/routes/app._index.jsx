@@ -14,7 +14,7 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
-
+ const [connectedPages, setConnectedPages] = useState([]);
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
