@@ -338,7 +338,7 @@ const fetchConversations = async (page) => {
 const fetchMessages = async (conv) => {
   if (!conv) return;
 
-  // 🔹 Unique key for this conversation (platform + pageId + conversationId/sessionId)
+  // ✅ Use a consistent unique key for every conversation
   const messageKey =
     conv.platform === "widget"
       ? `${conv.platform}-${conv.pageId}-${conv.sessionId}`
@@ -351,17 +351,11 @@ const fetchMessages = async (conv) => {
 
     // ===== WIDGET =====
     if (conv.platform === "widget") {
-      if (!conv.sessionId || !conv.storeDomain) {
-        console.error("Widget conversation missing sessionId or storeDomain");
-        return;
-      }
+      if (!conv.sessionId || !conv.storeDomain) return;
 
       const res = await fetch(
-        `/api/chat?session_id=${encodeURIComponent(
-          conv.sessionId
-        )}&store_domain=${encodeURIComponent(conv.storeDomain)}`
+        `/api/chat?session_id=${encodeURIComponent(conv.sessionId)}&store_domain=${encodeURIComponent(conv.storeDomain)}`
       );
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
       convMessages = (data.messages || []).map((msg, i) => ({
@@ -373,15 +367,12 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
     }
+
     // ===== WHATSAPP =====
     else if (conv.platform === "whatsapp") {
-      if (!conv.userNumber) {
-        console.error("WhatsApp conversation missing userNumber");
-        return;
-      }
+      if (!conv.userNumber) return;
 
       const res = await fetch(`/get-messages?number=${conv.userNumber}`);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
       convMessages = (data.messages || []).map((msg, i) => ({
@@ -395,18 +386,15 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
     }
+
     // ===== FACEBOOK / INSTAGRAM =====
     else if (conv.platform === "facebook" || conv.platform === "instagram") {
       const token = pageAccessTokens[conv.pageId];
-      if (!token) {
-        console.error(`Missing token for page ${conv.pageName}`);
-        return;
-      }
+      if (!token) return;
 
       const res = await fetch(
         `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
       );
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
       convMessages = (data?.data || []).reverse().map((msg) => {
@@ -421,31 +409,26 @@ const fetchMessages = async (conv) => {
           displayName = msg.from?.name || "User";
         }
 
-        return {
-          ...msg,
-          displayName,
-        };
+        return { ...msg, displayName };
       });
-    } else {
-      console.warn("Unknown platform:", conv.platform);
-      return;
     }
 
-    // 🔹 Merge new messages into state without overwriting old messages
+    // ===== Save messages to state with unique key =====
     setMessages((prev) => {
       const prevConvMessages = prev[messageKey] || [];
 
-      // Keep unique messages by id
+      // Merge without duplicates
       const merged = [...prevConvMessages];
       convMessages.forEach((msg) => {
         if (!merged.some((m) => m.id === msg.id)) merged.push(msg);
       });
 
+      // Sort by created_time
+      merged.sort((a, b) => new Date(a.created_time) - new Date(b.created_time));
+
       return {
         ...prev,
-        [messageKey]: merged.sort(
-          (a, b) => new Date(a.created_time) - new Date(b.created_time)
-        ),
+        [messageKey]: merged,
       };
     });
   } catch (err) {
@@ -453,6 +436,7 @@ const fetchMessages = async (conv) => {
     alert("Failed to fetch messages.");
   }
 };
+
 
 
 
