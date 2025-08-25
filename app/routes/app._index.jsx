@@ -727,7 +727,7 @@ return (
         textShadow: "0 2px 8px rgba(0,0,0,0.08)",
       }}
     >
-      ✨ Omni-Communication Dashboard
+      {/* ✨ Omni-Communication Dashboard */}
     </h1>
 
     {/* Main Layout */}
