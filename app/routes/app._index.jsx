@@ -257,7 +257,6 @@ const fetchConversations = async (page) => {
     setSelectedConversation(null);
     setMessages([]);
 
-    // FB/IG API URL
     const url =
       page.type === "instagram"
         ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
@@ -280,7 +279,10 @@ const fetchConversations = async (page) => {
           const otherMsg = messages.find((m) => m.from?.id !== page.igId);
           let userName = "Instagram User";
           if (otherMsg) {
-            userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+            userName =
+              otherMsg.from?.name ||
+              otherMsg.from?.username ||
+              "Instagram User";
           }
 
           return {
@@ -294,7 +296,7 @@ const fetchConversations = async (page) => {
       enriched = data.data || [];
     }
 
-    // ✅ merge conversations instead of overwriting
+    // ✅ Instead of overwrite, MERGE convos
     setConversations((prev) => ({
       ...prev,
       [page.type]: {
