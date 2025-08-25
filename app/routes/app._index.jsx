@@ -896,13 +896,13 @@ return (
   >
     <button
       onClick={() => {
-        setSelectedFbPage(page);    // for button highlight
-        setSelectedPage(page);      // for conversation fetching
-        fetchConversations(page);   // load conversations
+        setSelectedPage(page);          // unified selected page
+        setSelectedConversation(null);   // reset previous chat
+        fetchConversations(page);       // load conversations
       }}
       className="btn-nav"
       style={{
-        background: selectedFbPage?.id === page.id ? "#dbeafe" : "#fff",
+        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
         border: "1px solid #ccc",
         flex: 1,
       }}
@@ -938,13 +938,13 @@ return (
   >
     <button
       onClick={() => {
-        setSelectedIgPage(page);    // for button highlight
-        setSelectedPage(page);      // for conversation fetching
-        fetchConversations(page);   // load conversations
+        setSelectedPage(page);          // unified selected page
+        setSelectedConversation(null);   // reset previous chat
+        fetchConversations(page);       // load conversations
       }}
       className="btn-nav"
       style={{
-        background: selectedIgPage?.id === page.id ? "#dbeafe" : "#fff",
+        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
         border: "1px solid #ccc",
         flex: 1,
       }}
@@ -954,6 +954,7 @@ return (
     <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
   </div>
 ))}
+
       <br />
 
       {/* WhatsApp & Widget */}
