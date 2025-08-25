@@ -258,10 +258,11 @@ const handleWhatsAppConnect = async () => {
       setMessages([]);
 
       const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      const urlWithPlatform =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : url;
+  const urlWithPlatform =
+  page.type === "instagram"
+    ? `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=participants&access_token=${token}`
+    : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+
 
       const res = await fetch(urlWithPlatform);
       const data = await res.json();
@@ -703,15 +704,22 @@ const sendMessage = async () => {
 };
 
 
-const connectPage = (page, platform) => {
+const connectPage = (page, type) => {
   setConnectedPages((prev) => ({
     ...prev,
-    [platform]: [...prev[platform], page],
+    [type]: [...(prev[type] || []), page],
   }));
 
-  // select first connected page by default
-  setSelectedPage({ ...page, type: platform });
+  // 👇 Page type set karo
+  const pageWithType = { ...page, type };
+
+  // 👇 Selected page banado
+  setSelectedPage(pageWithType);
+
+  // 👇 Conversations turant fetch karo
+  fetchConversations(pageWithType);
 };
+
 
   
 return (
@@ -1266,6 +1274,8 @@ return (
       .btn-nav:hover {
         background: #f1f5f9;
         border-radius: 8px;
+
+
       }
     `}</style>
   </div>
