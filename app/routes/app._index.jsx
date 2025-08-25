@@ -14,6 +14,10 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
+const [connectedPages, setConnectedPages] = useState({
+  facebook: [],
+  instagram: [],
+});
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -700,6 +704,12 @@ const sendMessage = async () => {
 
 
 
+const connectPage = (page, platform) => {
+  setConnectedPages((prev) => ({
+    ...prev,
+    [platform]: [...prev[platform], page],
+  }));
+};
 
 
   
@@ -854,13 +864,15 @@ return (
                     }}
                   >
                     <span>📘 {page.name}</span>
-                    <button
-                      className="btn-primary"
-                      style={{ padding: "6px 14px", fontSize: 13, width: "auto" }}
-                      onClick={() => connectPage(page, "facebook")}
-                    >
-                      Connect
-                    </button>
+<button
+  className="btn-primary"
+  style={{ padding: "6px 14px", fontSize: 13, width: "auto" }}
+  onClick={() => connectPage(page, "facebook")}
+  disabled={connectedPages.facebook.some((p) => p.id === page.id)}
+>
+  {connectedPages.facebook.some((p) => p.id === page.id) ? "✅ Connected" : "Connect"}
+</button>
+
                   </div>
                 ))}
               </div>
@@ -892,13 +904,15 @@ return (
                     }}
                   >
                     <span>📸 {page.name}</span>
-                    <button
-                      className="btn-primary"
-                      style={{ padding: "6px 14px", fontSize: 13, width: "auto" }}
-                      onClick={() => connectPage(page, "instagram")}
-                    >
-                      Connect
-                    </button>
+    <button
+  className="btn-primary"
+  style={{ padding: "6px 14px", fontSize: 13, width: "auto" }}
+  onClick={() => connectPage(page, "instagram")}
+  disabled={connectedPages.instagram.some((p) => p.id === page.id)}
+>
+  {connectedPages.instagram.some((p) => p.id === page.id) ? "✅ Connected" : "Connect"}
+</button>
+
                   </div>
                 ))}
               </div>
