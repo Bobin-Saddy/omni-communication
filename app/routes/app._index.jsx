@@ -14,6 +14,8 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
+const [selectedFbPage, setSelectedFbPage] = useState(null);
+const [selectedIgPage, setSelectedIgPage] = useState(null);
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -866,100 +868,106 @@ return (
         )}
 
         {/* SETTINGS TAB */}
-        {activeTab === "settings" && (
-          <div>
-            <h3 style={{ fontWeight: 700, marginBottom: 10 }}>Platform Connections</h3>
-            <div style={{ textAlign: "center" }}>
-              <button
-                onClick={handleFacebookLogin}
-                disabled={fbConnected}
-                className="btn-primary"
-              >
-                {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
-              </button>
-              <br />
-{/* Facebook Pages */}
-{fbConnected && fbPages.map((page) => (
-  <div key={page.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "260px", margin: "6px auto" }}>
-    <button
-      onClick={() => fetchConversations(page)}
-      className="btn-nav"
-      style={{
-        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
-        border: "1px solid #ccc",
-        flex: 1,
-      }}
-    >
-      📘 {page.name}
-    </button>
-    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+{/* SETTINGS TAB */}
+{activeTab === "settings" && (
+  <div>
+    <h3 style={{ fontWeight: 700, marginBottom: 10 }}>Platform Connections</h3>
+    <div style={{ textAlign: "center" }}>
+      {/* Facebook Connect */}
+      <button
+        onClick={handleFacebookLogin}
+        disabled={fbConnected}
+        className="btn-primary"
+      >
+        {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+      </button>
+
+      {/* Facebook Pages */}
+      {fbConnected && fbPages.map((page) => (
+        <div
+          key={page.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "260px",
+            margin: "6px auto",
+          }}
+        >
+          <button
+            onClick={() => setSelectedFbPage(page)}
+            className="btn-nav"
+            style={{
+              background: selectedFbPage?.id === page.id ? "#dbeafe" : "#fff",
+              border: "1px solid #ccc",
+              flex: 1,
+            }}
+          >
+            📘 {page.name}
+          </button>
+          <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+        </div>
+      ))}
+
+      <br />
+
+      {/* Instagram Connect */}
+      <button
+        onClick={handleInstagramLogin}
+        disabled={igConnected}
+        className="btn-primary"
+      >
+        {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+      </button>
+
+      {/* Instagram Pages */}
+      {igConnected && igPages.map((page) => (
+        <div
+          key={page.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "260px",
+            margin: "6px auto",
+          }}
+        >
+          <button
+            onClick={() => setSelectedIgPage(page)}
+            className="btn-nav"
+            style={{
+              background: selectedIgPage?.id === page.id ? "#dbeafe" : "#fff",
+              border: "1px solid #ccc",
+              flex: 1,
+            }}
+          >
+            📸 {page.name}
+          </button>
+          <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+        </div>
+      ))}
+
+      <br />
+
+      {/* WhatsApp & Widget */}
+      <button
+        onClick={handleWhatsAppConnect}
+        disabled={waConnected}
+        className="btn-primary"
+      >
+        {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
+      </button>
+      <br />
+      <button
+        onClick={handleWidgetConnect}
+        disabled={widgetConnected}
+        className="btn-primary"
+      >
+        {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
+      </button>
+    </div>
   </div>
-))}
-
-{/* Instagram Pages */}
-{igConnected && igPages.map((page) => (
-  <div key={page.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "260px", margin: "6px auto" }}>
-    <button
-      onClick={() => fetchConversations(page)}
-      className="btn-nav"
-      style={{
-        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
-        border: "1px solid #ccc",
-        flex: 1,
-      }}
-    >
-      📸 {page.name}
-    </button>
-    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
-  </div>
-))}
-
-              <br />
-
-              <button
-                onClick={handleInstagramLogin}
-                disabled={igConnected}
-                className="btn-primary"
-              >
-                {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
-              </button>
-              <br />
-              {igConnected && igPages.map((page) => (
-                <button
-                  key={page.id}
-                  onClick={() => fetchConversations(page)}
-                  className="btn-nav"
-                  style={{
-                    width: "260px",
-                    margin: "6px auto",
-                    background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
-                    border: "1px solid #ccc",
-                  }}
-                >
-                  📸 {page.name}
-                </button>
-              ))}
-              <br />
-
-              <button
-                onClick={handleWhatsAppConnect}
-                disabled={waConnected}
-                className="btn-primary"
-              >
-                {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
-              </button>
-              <br />
-
-              <button
-                onClick={handleWidgetConnect}
-                disabled={widgetConnected}
-                className="btn-primary"
-              >
-                {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
-              </button>
-            </div>
-          </div>
-        )}
+)}
 
         {/* CONVERSATIONS TAB */}
         {activeTab === "conversations" && (
