@@ -890,7 +890,7 @@ return (
   onClick={() => connectPage(page, "facebook")}
   disabled={connectedPages.facebook.some((p) => p.id === page.id)}
 >
-  {connectedPages.facebook.some((p) => p.id === page.id) ? "✅ Connected" : "Connect"}
+  {connectedPages?.some((p) => p.id === page.id) ? "Connected" : "Connect"}
 </button>
 
                   </div>
@@ -930,7 +930,7 @@ return (
   onClick={() => connectPage(page, "instagram")}
   disabled={connectedPages.instagram.some((p) => p.id === page.id)}
 >
-  {connectedPages.instagram.some((p) => p.id === page.id) ? "✅ Connected" : "Connect"}
+ {connectedPages?.some((p) => p.id === page.id) ? "Connected" : "Connect"}
 </button>
 
                   </div>
