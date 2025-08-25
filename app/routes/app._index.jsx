@@ -1268,20 +1268,21 @@ return (
 
     {/* Styles */}
     <style>{`
-      .btn-primary {
-        background: linear-gradient(135deg,#111827,#1f2937);
-        color: white;
-        padding: 14px 26px;
-        border: none;
-        border-radius: 14px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        width: 260px;
-        margin: 10px 0;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      }
+.btn-primary {
+    background: linear-gradient(135deg,#111827,#1f2937);
+    color: white;
+    padding: 14px 26px;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 216px;
+    margin: 2px 0;
+    margin-right: 666px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
       .btn-primary:disabled {
         background: #9ca3af;
         cursor: not-allowed;
