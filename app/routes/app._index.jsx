@@ -872,7 +872,7 @@ return (
             </button>
             {fbConnected && (
               <div style={{ marginTop: 10 }}>
-                {fbPages.map((page) => (
+                {(Array.isArray(fbPages) ? fbPages : []).map((page) => (
                   <div
                     key={page.id}
                     style={{
@@ -913,7 +913,7 @@ return (
             </button>
             {igConnected && (
               <div style={{ marginTop: 10 }}>
-                {igPages.map((page) => (
+                {(Array.isArray(igPages) ? igPages : []).map((page) => (
                   <div
                     key={page.id}
                     style={{
@@ -966,7 +966,6 @@ return (
 
         {/* CONVERSATIONS TAB */}
         {activeTab === "conversations" && (
-          // If nothing connected at all, show hint, else show conversations UI
           ((connectedPages?.facebook?.length || 0) +
             (connectedPages?.instagram?.length || 0) +
             (connectedPages?.whatsapp?.length || 0) +
@@ -1031,6 +1030,8 @@ return (
                           (p) => String(p.id) === String(pageId)
                         );
 
+                        const convList = Array.isArray(convs) ? convs : [];
+
                         return (
                           <div key={pageId}>
                             {/* Page Header */}
@@ -1046,12 +1047,12 @@ return (
                             </div>
 
                             {/* List of conversations */}
-                            {(convs || []).length === 0 ? (
+                            {convList.length === 0 ? (
                               <div style={{ padding: 14, color: "#6b7280" }}>
                                 No conversations
                               </div>
                             ) : (
-                              (convs || []).map((conv) => {
+                              convList.map((conv) => {
                                 const prettyName =
                                   platform === "instagram"
                                     ? conv.userName ||
@@ -1174,9 +1175,16 @@ return (
                       gap: 12,
                     }}
                   >
-                    {(messages[
-                      selectedConversation?.messageKey || selectedConversation?.id
-                    ] || []).map((msg) => {
+                    {(Array.isArray(
+                      messages[
+                        selectedConversation?.messageKey || selectedConversation?.id
+                      ]
+                    )
+                      ? messages[
+                          selectedConversation?.messageKey || selectedConversation?.id
+                        ]
+                      : []
+                    ).map((msg) => {
                       const fromId = msg.from?.id || msg.from;
                       const isMe = fromId === "me" || fromId === selectedPage?.id;
 
@@ -1326,9 +1334,8 @@ return (
         background: transparent;
         font-size: 15px;
         cursor: pointer;
-        font-weight: 500;
-        transition: all 0.2s ease;
-      }
+       
+
       .btn-nav:hover {
         background: #f1f5f9;
         border-radius: 8px;
