@@ -14,10 +14,6 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
-const [connectedPages, setConnectedPages] = useState([]); 
-const [allConversations, setAllConversations] = useState([]);
-
-// HELPER: connect a page (FB/IG)
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -249,93 +245,70 @@ const handleWhatsAppConnect = async () => {
     }
   };
 
-const fetchConversations = async (page) => {
-  setLoadingConversations(true);
-  try {
-    const token = pageAccessTokens[page.id];
-    if (!token) {
-      console.warn("No access token for page:", page);
-      return;
+  const fetchConversations = async (page) => {
+    setLoadingConversations(true);
+    try {
+      const token = pageAccessTokens[page.id];
+      setSelectedPage(page);
+      setSelectedConversation(null);
+      setMessages([]);
+
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      const urlWithPlatform =
+        page.type === "instagram"
+          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
+          : url;
+
+      const res = await fetch(urlWithPlatform);
+      const data = await res.json();
+
+      if (page.type === "instagram") {
+        const enriched = await Promise.all(
+          (data.data || []).map(async (conv) => {
+            const msgRes = await fetch(
+              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+            );
+            const msgData = await msgRes.json();
+            const messages = msgData?.data || [];
+            const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+            let userName = "Instagram User";
+            if (otherMsg) {
+              userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+            }
+
+            return {
+              ...conv,
+              userName,
+              businessName: page.name,
+            };
+          })
+        );
+        setConversations(enriched);
+      } else {
+        setConversations(data.data || []);
+      }
+    } catch (error) {
+      alert("Error fetching conversations.");
+      console.error(error);
+    } finally {
+      setLoadingConversations(false);
     }
-
-    const baseUrl = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,snippet&access_token=${token}`;
-    const url =
-      page.type === "instagram"
-        ? `${baseUrl}&platform=instagram`
-        : baseUrl;
-
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!data?.data) {
-      console.warn("No conversations found:", data);
-      return;
-    }
-
-    let convs = [];
-
-    if (page.type === "instagram") {
-      convs = await Promise.all(
-        data.data.map(async (conv) => {
-          const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&limit=5&access_token=${token}`
-          );
-          const msgData = await msgRes.json();
-          const messages = msgData?.data || [];
-
-          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-          let userName = otherMsg?.from?.name || otherMsg?.from?.username || "Instagram User";
-
-          return {
-            ...conv,
-            pageId: page.id,
-            platform: "instagram",
-            businessName: page.name,
-            prettyName: userName,
-            preview: messages[0]?.message || "",
-          };
-        })
-      );
-    } else {
-      convs = data.data.map((conv) => ({
-        ...conv,
-        pageId: page.id,
-        platform: "facebook",
-        businessName: page.name,
-        prettyName:
-          conv.participants?.data?.find((p) => p.id !== page.id)?.name || "Facebook User",
-        preview: conv.snippet || "",
-      }));
-    }
-
-    // ✅ merge into global list (replace old convs for same page)
-    setAllConversations((prev) => {
-      const filtered = prev.filter((c) => c.pageId !== page.id);
-      return [...filtered, ...convs];
-    });
-  } catch (err) {
-    console.error("Error fetching conversations:", err);
-  } finally {
-    setLoadingConversations(false);
-  }
-};
-
+  };
 
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
 
-  // Use conv.id unless widget sessionId is required
-  const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
+  // Determine message key (for widget use sessionId, otherwise use conversation id)
+   const messageKey = selectedPage.type === "widget" ? conv.sessionId : conv.id;
   setSelectedConversation({ ...conv, messageKey });
 
-  try {
-    // ✅ Widget
-    if (selectedPage.type === "widget") {
-      if (!conv.sessionId || !conv.storeDomain) return;
+  if (selectedPage.type === "widget") {
+    if (!conv.sessionId || !conv.storeDomain) return;
 
+    try {
       const url = `/api/chat?session_id=${encodeURIComponent(
         conv.sessionId
       )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
-
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
@@ -349,20 +322,23 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-      setMessages((prev) => ({
-        ...prev,
+      setMessages((prevMessages) => ({
+        ...prevMessages,
         [messageKey]: backendMessages,
       }));
+    } catch (err) {
+      console.error("Widget fetch failed:", err);
+    }
+    return;
+  }
+
+  // ✅ WhatsApp
+  if (selectedPage.type === "whatsapp") {
+    if (!conv.userNumber) {
+      console.error("WhatsApp conversation missing userNumber");
       return;
     }
-
-    // ✅ WhatsApp
-    if (selectedPage.type === "whatsapp") {
-      if (!conv.userNumber) {
-        console.error("WhatsApp conversation missing userNumber");
-        return;
-      }
-
+    try {
       const res = await fetch(`/get-messages?number=${conv.userNumber}`);
       if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
@@ -378,85 +354,79 @@ const fetchMessages = async (conv) => {
           : new Date().toISOString(),
       }));
 
-      setMessages((prev) => {
-        const prevConvMessages = prev[conv.id] || [];
+      setMessages((prevMessages) => {
+        const prevConvMessages = prevMessages[conv.id] || [];
 
-        // keep local unsynced messages
-        const localMessagesNotInBackend = prevConvMessages.filter(
-          (localMsg) =>
-            localMsg.id &&
-            typeof localMsg.id === "string" &&
-            localMsg.id.startsWith("local-") &&
-            !backendMessages.some(
-              (bm) =>
-                bm.message?.trim() === localMsg.message?.trim() &&
-                Math.abs(
-                  new Date(bm.created_time) - new Date(localMsg.created_time)
-                ) < 5000
-            )
-        );
+const localMessagesNotInBackend = prevConvMessages.filter(
+  (localMsg) =>
+    localMsg.id &&
+    typeof localMsg.id === "string" &&
+    localMsg.id.startsWith("local-") &&
+    !backendMessages.some(
+      (bm) =>
+        bm.message?.trim() === localMsg.message?.trim() &&
+        Math.abs(
+          new Date(bm.created_time) - new Date(localMsg.created_time)
+        ) < 5000
+    )
+);
 
         return {
-          ...prev,
+          ...prevMessages,
           [conv.id]: [...backendMessages, ...localMessagesNotInBackend],
         };
       });
+    } catch (err) {
+      console.error("Error fetching WhatsApp messages", err);
+      alert("Failed to fetch WhatsApp messages.");
+    }
+    return;
+  }
+
+  // ✅ Widget
+  if (selectedPage.type === "widget") {
+    if (!conv.sessionId || !conv.storeDomain) {
+      console.error("Widget conversation missing sessionId or storeDomain");
       return;
     }
 
-    // ✅ Facebook & Instagram via Graph API
-    if (["facebook", "instagram"].includes(selectedPage.type)) {
-      const token = pageAccessTokens[selectedPage.id];
-      if (!token) {
-        console.error("No token found for page", selectedPage.id);
-        return;
-      }
-
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-      );
-      if (!res.ok) throw new Error(`Graph API error ${res.status}`);
+    try {
+      const url = `/api/chat?session_id=${encodeURIComponent(
+        conv.sessionId
+      )}&store_domain=${encodeURIComponent(conv.storeDomain)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
 
-      const rawMessages = data?.data?.reverse() || [];
+      let backendMessages = [];
 
-      const enrichedMessages = rawMessages.map((msg) => {
-        let displayName = "User";
+      if (data.messages) {
+        backendMessages = data.messages.map((msg, index) => ({
+          id: msg.id || `local-${index}`,
+          from: msg.sender || "unknown",
+          message: msg.text || msg.content || "",
+          created_time: msg.createdAt
+            ? new Date(msg.createdAt).toISOString()
+            : new Date().toISOString(),
+        }));
+      }
 
-        if (selectedPage.type === "instagram") {
-          if (msg.from?.id === selectedPage.igId) {
-            displayName = selectedPage.name; // your business IG
-          } else {
-            displayName =
-              conv.userName ||
-              msg.from?.name ||
-              msg.from?.username ||
-              `Instagram User #${msg.from?.id?.slice(-4)}`;
-          }
-        } else {
-          if (msg.from?.name === selectedPage.name) {
-            displayName = selectedPage.name;
-          } else {
-            displayName = msg.from?.name || "User";
-          }
-        }
-
-        return {
-          ...msg,
-          displayName,
-        };
-      });
-
-      setMessages((prev) => ({
-        ...prev,
-        [conv.id]: enrichedMessages,
+      setMessages((prevMessages) => ({
+        ...prevMessages,
+        [messageKey]: backendMessages, // use messageKey here
       }));
 
-      setSelectedConversation(conv); // ✅ make sure UI updates
-      return;
+      // selectedConversation already set with messageKey above
+    } catch (err) {
+      console.error("Error fetching Widget messages", err);
+      alert("Failed to fetch Widget messages.");
     }
 
-    // ✅ Other custom platforms (fallback to your backend)
+    return;
+  }
+
+  // --- Other platform logic (Facebook, Instagram, etc.) ---
+  try {
     const platformUrl = `/admin/chat/list?conversationId=${encodeURIComponent(
       conv.id
     )}`;
@@ -464,23 +434,73 @@ const fetchMessages = async (conv) => {
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
-    const platformMessages = (data.messages || []).map((msg, index) => ({
-      id: msg.id || `local-${index}`,
-      from: msg.sender || "unknown",
-      message: msg.text || msg.content || "",
-      created_time: msg.createdAt
-        ? new Date(msg.createdAt).toISOString()
-        : new Date().toISOString(),
-    }));
+    let platformMessages = [];
 
-    setMessages((prev) => ({
-      ...prev,
+    if (data.messages) {
+      platformMessages = data.messages.map((msg, index) => ({
+        id: msg.id || `local-${index}`,
+        from: msg.sender || "unknown",
+        message: msg.text || msg.content || "",
+        created_time: msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
+      }));
+    }
+
+    setMessages((prevMessages) => ({
+      ...prevMessages,
       [conv.id]: platformMessages,
     }));
+
     setSelectedConversation(conv);
   } catch (err) {
-    console.error("Error fetching messages:", err);
+    console.error("Error fetching platform messages", err);
     alert("Failed to fetch messages.");
+  }
+
+  // ✅ Facebook & Instagram
+  try {
+    const token = pageAccessTokens[selectedPage.id];
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
+    );
+    const data = await res.json();
+    const rawMessages = data?.data?.reverse() || [];
+
+    const enrichedMessages = rawMessages.map((msg) => {
+      let displayName = "User";
+
+      if (selectedPage.type === "instagram") {
+        if (msg.from?.id === selectedPage.igId) {
+          displayName = selectedPage.name;
+        } else {
+          displayName =
+            conv.userName ||
+            msg.from?.name ||
+            msg.from?.username ||
+            `Instagram User #${msg.from?.id?.slice(-4)}`;
+        }
+      } else {
+        if (msg.from?.name === selectedPage.name) {
+          displayName = selectedPage.name;
+        } else {
+          displayName = msg.from?.name || "User";
+        }
+      }
+
+      return {
+        ...msg,
+        displayName,
+      };
+    });
+
+    setMessages((prevMessages) => ({
+      ...prevMessages,
+      [conv.id]: enrichedMessages,
+    }));
+  } catch (error) {
+    alert("Error fetching messages.");
+    console.error(error);
   }
 };
 
@@ -679,17 +699,8 @@ const sendMessage = async () => {
 };
 
 
-const connectPage = async (type, page) => {
-  const newPage = { ...page, type }; // ensure type stored
 
-  setConnectedPages((prev) => {
-    if (prev.some((p) => p.id === newPage.id)) return prev;
-    return [...prev, newPage];
-  });
 
-  // ✅ immediately fetch its conversations
-  await fetchConversations(newPage);
-};
 
   
 return (
@@ -755,6 +766,7 @@ return (
           🚀 Navigation
         </div>
 
+        {/* Nav Buttons */}
         <button
           onClick={() => setActiveTab("home")}
           className="btn-nav"
@@ -793,7 +805,14 @@ return (
         {/* HOME TAB */}
         {activeTab === "home" && (
           <div>
-            <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 16, color: "#1e293b" }}>
+            <h2
+              style={{
+                fontSize: 26,
+                fontWeight: 800,
+                marginBottom: 16,
+                color: "#1e293b",
+              }}
+            >
               👋 Welcome to Omni-Communication
             </h2>
             <p style={{ color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
@@ -809,82 +828,68 @@ return (
 
         {/* SETTINGS TAB */}
         {activeTab === "settings" && (
-          <div>
-            {/* Facebook Connect */}
-            <div style={{ marginBottom: 20 }}>
-              <button
-                onClick={handleFacebookLogin}
-                disabled={fbConnected}
-                className="btn-primary"
-              >
-                {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
-              </button>
-              {fbConnected && (
-                <div style={{ marginTop: 12 }}>
-                  <h3 style={{ fontWeight: 700, marginBottom: 6 }}>Facebook Pages</h3>
-                  {fbPages.map((page) => (
-                    <div
-                      key={page.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "6px 0",
-                      }}
-                    >
-                      <span>📘 {page.name}</span>
-                      <button
-                        className="btn-primary"
-                        onClick={() => connectPage("facebook", page)}
-                        disabled={connectedPages.some((p) => p.id === page.id)}
-                      >
-                        {connectedPages.some((p) => p.id === page.id)
-                          ? "✅ Connected"
-                          : "Connect"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div style={{ textAlign: "center" }}>
+            {/* Facebook */}
+            <button
+              onClick={handleFacebookLogin}
+              disabled={fbConnected}
+              className="btn-primary"
+            >
+              {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+            </button>
 
-            {/* Instagram Connect */}
-            <div style={{ marginBottom: 20 }}>
-              <button
-                onClick={handleInstagramLogin}
-                disabled={igConnected}
-                className="btn-primary"
-              >
-                {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
-              </button>
-              {igConnected && (
-                <div style={{ marginTop: 12 }}>
-                  <h3 style={{ fontWeight: 700, marginBottom: 6 }}>Instagram Pages</h3>
-                  {igPages.map((page) => (
-                    <div
-                      key={page.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "6px 0",
-                      }}
-                    >
-                      <span>📸 {page.name}</span>
-                      <button
-                        className="btn-primary"
-                        onClick={() => connectPage("instagram", page)}
-                        disabled={connectedPages.some((p) => p.id === page.id)}
-                      >
-                        {connectedPages.some((p) => p.id === page.id)
-                          ? "✅ Connected"
-                          : "Connect"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            {fbConnected && (
+              <div style={{ marginTop: 16 }}>
+                <h3 style={{ marginBottom: 8 }}>📘 Facebook Pages</h3>
+                {fbPages.map((page) => (
+                  <button
+                    key={page.id}
+                    onClick={() => connectPage(page)}
+                    className="btn-primary"
+                    style={{
+                      backgroundColor: connectedPages.some((p) => p.id === page.id)
+                        ? "#16a34a"
+                        : undefined,
+                    }}
+                  >
+                    {connectedPages.some((p) => p.id === page.id)
+                      ? `✅ ${page.name} Connected`
+                      : `➕ Connect ${page.name}`}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Instagram */}
+            <button
+              onClick={handleInstagramLogin}
+              disabled={igConnected}
+              className="btn-primary"
+            >
+              {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+            </button>
+
+            {igConnected && (
+              <div style={{ marginTop: 16 }}>
+                <h3 style={{ marginBottom: 8 }}>📸 Instagram Pages</h3>
+                {igPages.map((page) => (
+                  <button
+                    key={page.id}
+                    onClick={() => connectPage(page)}
+                    className="btn-primary"
+                    style={{
+                      backgroundColor: connectedPages.some((p) => p.id === page.id)
+                        ? "#16a34a"
+                        : undefined,
+                    }}
+                  >
+                    {connectedPages.some((p) => p.id === page.id)
+                      ? `✅ ${page.name} Connected`
+                      : `➕ Connect ${page.name}`}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* WhatsApp */}
             <button
@@ -894,7 +899,6 @@ return (
             >
               {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
             </button>
-            <br />
 
             {/* Widget */}
             <button
@@ -911,17 +915,19 @@ return (
         {activeTab === "conversations" && (
           <div
             style={{
+              display: "flex",
               height: 600,
               border: "1px solid #e5e7eb",
               borderRadius: 18,
-              display: "flex",
+              overflow: "hidden",
               background: "#f9fafb",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
             }}
           >
-            {/* Conversation List */}
+            {/* Conversations List */}
             <div
               style={{
-                width: "30%",
+                width: "28%",
                 borderRight: "1px solid #e5e7eb",
                 overflowY: "auto",
                 background: "#fff",
@@ -938,6 +944,7 @@ return (
               >
                 Conversations
               </div>
+
               {loadingConversations ? (
                 <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
               ) : allConversations.length === 0 ? (
@@ -962,19 +969,18 @@ return (
                     <div style={{ fontWeight: 600, color: "#1e293b" }}>
                       {conv.prettyName}
                     </div>
-                    {conv.preview && (
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: "#64748b",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {conv.preview}
-                      </div>
-                    )}
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#64748b",
+                        marginTop: 2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {conv.preview}
+                    </div>
                   </div>
                 ))
               )}
@@ -1004,7 +1010,9 @@ return (
                 }}
               >
                 <span style={{ fontSize: 18 }}>
-                  {selectedConversation ? selectedConversation.prettyName : "Chat"}
+                  {selectedConversation
+                    ? selectedConversation.prettyName || "User"
+                    : "Chat"}
                 </span>
               </div>
 
@@ -1023,7 +1031,8 @@ return (
                   selectedConversation?.messageKey || selectedConversation?.id
                 ] || []).map((msg) => {
                   const fromId = msg.from?.id || msg.from;
-                  const isMe = fromId === "me" || fromId === selectedPage?.id;
+                  const isMe =
+                    fromId === "me" || fromId === selectedConversation?.pageId;
 
                   return (
                     <div
@@ -1142,14 +1151,14 @@ return (
       .btn-primary {
         background: linear-gradient(135deg,#111827,#1f2937);
         color: white;
-        padding: 12px 20px;
+        padding: 14px 26px;
         border: none;
-        border-radius: 12px;
-        font-size: 14px;
+        border-radius: 14px;
+        font-size: 15px;
         font-weight: 600;
         cursor: pointer;
-        width: 220px;
-        margin: 6px 0;
+        width: 260px;
+        margin: 10px 0;
         transition: all 0.3s ease;
         box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       }
@@ -1179,6 +1188,7 @@ return (
     `}</style>
   </div>
 );
+
 
 
 
