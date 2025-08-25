@@ -650,34 +650,38 @@ const sendMessage = async () => {
 
     let recipientId;
 
-    if (selectedPage.type === "instagram") {
-      // Get recipient for Instagram
-      const msgRes = await fetch(
-        `https://graph.facebook.com/v18.0/${selectedConversation.id}/messages?fields=from&access_token=${token}`
-      );
-      const msgData = await msgRes.json();
-      const sender = msgData?.data?.find(
-        (m) => m.from?.id !== selectedPage.igId
-      );
-      if (!sender) {
-        alert("Recipient not found for Instagram");
-        return;
-      }
-      recipientId = sender.from.id;
+if (selectedPage.type === "instagram") {
+  // Get conversation participants for Instagram thread
+  const convoRes = await fetch(
+    `https://graph.facebook.com/v18.0/${selectedConversation.id}?fields=participants&access_token=${token}`
+  );
+  const convoData = await convoRes.json();
 
-      await fetch(
-        `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messaging_product: "instagram",
-            recipient: { id: recipientId },
-            message: { text: newMessage },
-          }),
-        }
-      );
-    } else {
+  const participants = convoData?.participants?.data || [];
+  const recipient = participants.find((p) => p.id !== selectedPage.igId);
+
+  if (!recipient) {
+    alert("Recipient not found for Instagram");
+    return;
+  }
+
+  recipientId = recipient.id;
+
+  // Send message
+  await fetch(
+    `https://graph.facebook.com/v18.0/me/messages?access_token=${token}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "instagram",
+        recipient: { id: recipientId },
+        message: { text: newMessage },
+      }),
+    }
+  );
+}
+ else {
       // Get recipient for Facebook
       const participants = selectedConversation.participants?.data || [];
       const recipient = participants.find(
