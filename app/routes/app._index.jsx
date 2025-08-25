@@ -338,29 +338,52 @@ const fetchConversations = async (page) => {
 const fetchMessages = async (conv) => {
   if (!conv) return;
 
-  // Unique key for this conversation
-  const messageKey = `${conv.platform}-${conv.pageId}-${conv.id}`;
+  // 🔹 Unique key for this conversation (platform + pageId + conversationId/sessionId)
+  const messageKey =
+    conv.platform === "widget"
+      ? `${conv.platform}-${conv.pageId}-${conv.sessionId}`
+      : `${conv.platform}-${conv.pageId}-${conv.id}`;
+
   setSelectedConversation({ ...conv, messageKey });
 
   try {
     let convMessages = [];
 
+    // ===== WIDGET =====
     if (conv.platform === "widget") {
-      if (!conv.sessionId || !conv.storeDomain) return;
+      if (!conv.sessionId || !conv.storeDomain) {
+        console.error("Widget conversation missing sessionId or storeDomain");
+        return;
+      }
+
       const res = await fetch(
-        `/api/chat?session_id=${encodeURIComponent(conv.sessionId)}&store_domain=${encodeURIComponent(conv.storeDomain)}`
+        `/api/chat?session_id=${encodeURIComponent(
+          conv.sessionId
+        )}&store_domain=${encodeURIComponent(conv.storeDomain)}`
       );
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
+
       convMessages = (data.messages || []).map((msg, i) => ({
         id: msg.id || `local-${i}`,
         from: msg.sender || "unknown",
         message: msg.text || msg.content || "",
-        created_time: msg.createdAt ? new Date(msg.createdAt).toISOString() : new Date().toISOString(),
+        created_time: msg.createdAt
+          ? new Date(msg.createdAt).toISOString()
+          : new Date().toISOString(),
       }));
-    } else if (conv.platform === "whatsapp") {
-      if (!conv.userNumber) return;
+    }
+    // ===== WHATSAPP =====
+    else if (conv.platform === "whatsapp") {
+      if (!conv.userNumber) {
+        console.error("WhatsApp conversation missing userNumber");
+        return;
+      }
+
       const res = await fetch(`/get-messages?number=${conv.userNumber}`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
+
       convMessages = (data.messages || []).map((msg, i) => ({
         id: msg.id || `local-${i}`,
         from: { id: msg.sender || "unknown" },
@@ -371,14 +394,24 @@ const fetchMessages = async (conv) => {
           ? new Date(msg.createdAt).toISOString()
           : new Date().toISOString(),
       }));
-    } else if (conv.platform === "facebook" || conv.platform === "instagram") {
+    }
+    // ===== FACEBOOK / INSTAGRAM =====
+    else if (conv.platform === "facebook" || conv.platform === "instagram") {
       const token = pageAccessTokens[conv.pageId];
+      if (!token) {
+        console.error(`Missing token for page ${conv.pageName}`);
+        return;
+      }
+
       const res = await fetch(
         `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
       );
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
+
       convMessages = (data?.data || []).reverse().map((msg) => {
         let displayName = "User";
+
         if (conv.platform === "instagram") {
           displayName =
             msg.from?.id === conv.igId
@@ -387,17 +420,36 @@ const fetchMessages = async (conv) => {
         } else {
           displayName = msg.from?.name || "User";
         }
-        return { ...msg, displayName };
+
+        return {
+          ...msg,
+          displayName,
+        };
       });
+    } else {
+      console.warn("Unknown platform:", conv.platform);
+      return;
     }
 
-    // Save messages with unique key
-    setMessages((prev) => ({
-      ...prev,
-      [messageKey]: convMessages,
-    }));
+    // 🔹 Merge new messages into state without overwriting old messages
+    setMessages((prev) => {
+      const prevConvMessages = prev[messageKey] || [];
+
+      // Keep unique messages by id
+      const merged = [...prevConvMessages];
+      convMessages.forEach((msg) => {
+        if (!merged.some((m) => m.id === msg.id)) merged.push(msg);
+      });
+
+      return {
+        ...prev,
+        [messageKey]: merged.sort(
+          (a, b) => new Date(a.created_time) - new Date(b.created_time)
+        ),
+      };
+    });
   } catch (err) {
-    console.error("Error fetching messages", err);
+    console.error("Error fetching messages for conversation:", conv, err);
     alert("Failed to fetch messages.");
   }
 };
