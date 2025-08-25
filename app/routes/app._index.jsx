@@ -249,36 +249,57 @@ const handleWhatsAppConnect = async () => {
     }
   };
 
-  const fetchConversations = async (page) => {
-    setLoadingConversations(true);
-    try {
-      const token = pageAccessTokens[page.id];
-      setSelectedPage(page);
-      setSelectedConversation(null);
-      setMessages([]);
+const fetchConversations = async (page) => {
+  setLoadingConversations(true);
+  try {
+    // Token resolve karo
+    const token = pageAccessTokens[page.id] || pageAccessTokens[page.igId];
+    if (!token) {
+      console.error("❌ No access token found for page:", page);
+      setLoadingConversations(false);
+      return;
+    }
 
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-  const urlWithPlatform =
-  page.type === "instagram"
-    ? `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=participants&access_token=${token}`
-    : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+    // Reset state
+    setSelectedPage(page);
+    setSelectedConversation(null);
+    setMessages([]);
 
+    // Correct API endpoint
+    const pageId = page.type === "instagram" ? page.igId : page.id;
+    const url = `https://graph.facebook.com/v18.0/${pageId}/conversations?fields=participants&access_token=${token}`;
 
-      const res = await fetch(urlWithPlatform);
-      const data = await res.json();
+    console.log("👉 Fetching conversations for:", pageId, page.type);
+    console.log("👉 URL:", url);
 
-      if (page.type === "instagram") {
-        const enriched = await Promise.all(
-          (data.data || []).map(async (conv) => {
+    // API Call
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) {
+      console.error("❌ Graph API Error:", data.error);
+      alert("Error: " + data.error.message);
+      return;
+    }
+
+    // Handle Instagram conversations with enriched usernames
+    if (page.type === "instagram") {
+      const enriched = await Promise.all(
+        (data.data || []).map(async (conv) => {
+          try {
             const msgRes = await fetch(
               `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
             );
             const msgData = await msgRes.json();
             const messages = msgData?.data || [];
+
             const otherMsg = messages.find((m) => m.from?.id !== page.igId);
             let userName = "Instagram User";
             if (otherMsg) {
-              userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+              userName =
+                otherMsg.from?.name ||
+                otherMsg.from?.username ||
+                "Instagram User";
             }
 
             return {
@@ -286,19 +307,24 @@ const handleWhatsAppConnect = async () => {
               userName,
               businessName: page.name,
             };
-          })
-        );
-        setConversations(enriched);
-      } else {
-        setConversations(data.data || []);
-      }
-    } catch (error) {
-      alert("Error fetching conversations.");
-      console.error(error);
-    } finally {
-      setLoadingConversations(false);
+          } catch (innerErr) {
+            console.error("❌ Error fetching IG messages:", innerErr);
+            return { ...conv, userName: "Instagram User" };
+          }
+        })
+      );
+      setConversations(enriched);
+    } else {
+      // Normal FB pages
+      setConversations(data.data || []);
     }
-  };
+  } catch (error) {
+    alert("Error fetching conversations.");
+    console.error("❌ Exception:", error);
+  } finally {
+    setLoadingConversations(false);
+  }
+};
 
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
