@@ -245,55 +245,81 @@ const handleWhatsAppConnect = async () => {
     }
   };
 
-  const fetchConversations = async (page) => {
-    setLoadingConversations(true);
-    try {
-      const token = pageAccessTokens[page.id];
-      setSelectedPage(page);
-      setSelectedConversation(null);
-      setMessages([]);
+const fetchConversations = async (page) => {
+  setLoadingConversations(true);
+  try {
+    const token = pageAccessTokens[page.id];
+    setSelectedPage(page);
 
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      const urlWithPlatform =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : url;
+    // selectedConversation reset karenge sirf UI ke liye
+    setSelectedConversation(null);
 
-      const res = await fetch(urlWithPlatform);
-      const data = await res.json();
+    // Messages reset karenge sirf us page ke liye
+    setMessages({});
 
-      if (page.type === "instagram") {
-        const enriched = await Promise.all(
-          (data.data || []).map(async (conv) => {
-            const msgRes = await fetch(
-              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
-            );
-            const msgData = await msgRes.json();
-            const messages = msgData?.data || [];
-            const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-            let userName = "Instagram User";
-            if (otherMsg) {
-              userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
-            }
+    // URL setup
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+    const urlWithPlatform =
+      page.type === "instagram"
+        ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
+        : url;
 
-            return {
-              ...conv,
-              userName,
-              businessName: page.name,
-            };
-          })
-        );
-        setConversations(enriched);
-      } else {
-        setConversations(data.data || []);
-      }
-    } catch (error) {
-      alert("Error fetching conversations.");
-      console.error(error);
-    } finally {
-      setLoadingConversations(false);
+    const res = await fetch(urlWithPlatform);
+    const data = await res.json();
+
+    if (page.type === "instagram") {
+      // Instagram conversations me userName extract karna
+      const enriched = await Promise.all(
+        (data.data || []).map(async (conv) => {
+          const msgRes = await fetch(
+            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+          );
+          const msgData = await msgRes.json();
+          const messages = msgData?.data || [];
+          const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+
+          let userName = "Instagram User";
+          if (otherMsg) {
+            userName =
+              otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+          }
+
+          return {
+            ...conv,
+            userName,
+            businessName: page.name,
+            platform: "instagram",
+          };
+        })
+      );
+
+      // Append karenge existing conversations ke sath
+      setConversations((prev) => [...prev, ...enriched]);
+    } else {
+      // Facebook conversations me participants se userName extract karna
+      const enriched = (data.data || []).map((conv) => {
+        let userName = "Facebook User";
+        const otherUser = conv.participants?.data?.find((p) => p.id !== page.id);
+        if (otherUser) {
+          userName = otherUser.name || "Facebook User";
+        }
+        return {
+          ...conv,
+          userName,
+          businessName: page.name,
+          platform: "facebook",
+        };
+      });
+
+      setConversations((prev) => [...prev, ...enriched]);
     }
-  };
+  } catch (error) {
+    alert("Error fetching conversations.");
+    console.error(error);
+  } finally {
+    setLoadingConversations(false);
+  }
+};
 
 const fetchMessages = async (conv) => {
   if (!selectedPage) return;
