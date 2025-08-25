@@ -703,14 +703,15 @@ const sendMessage = async () => {
 };
 
 
-
 const connectPage = (page, platform) => {
   setConnectedPages((prev) => ({
     ...prev,
     [platform]: [...prev[platform], page],
   }));
-};
 
+  // select first connected page by default
+  setSelectedPage({ ...page, type: platform });
+};
 
   
 return (
