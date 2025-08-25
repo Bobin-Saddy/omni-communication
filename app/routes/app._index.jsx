@@ -17,6 +17,8 @@ const [widgetConnected, setWidgetConnected] = useState(false);
 const [connectedPages, setConnectedPages] = useState({
   facebook: [],
   instagram: [],
+  whatsapp: [],
+  widget: []
 });
 
   // Loading states
