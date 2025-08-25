@@ -258,10 +258,11 @@ const handleWhatsAppConnect = async () => {
       setMessages([]);
 
       const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      const urlWithPlatform =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : url;
+  const urlWithPlatform =
+  page.type === "instagram"
+    ? `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=participants&access_token=${token}`
+    : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+
 
       const res = await fetch(urlWithPlatform);
       const data = await res.json();
