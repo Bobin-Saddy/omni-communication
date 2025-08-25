@@ -883,31 +883,35 @@ return (
       </button>
 
       {/* Facebook Pages */}
-      {fbConnected && fbPages.map((page) => (
-        <div
-          key={page.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "260px",
-            margin: "6px auto",
-          }}
-        >
-          <button
-            onClick={() => setSelectedFbPage(page)}
-            className="btn-nav"
-            style={{
-              background: selectedFbPage?.id === page.id ? "#dbeafe" : "#fff",
-              border: "1px solid #ccc",
-              flex: 1,
-            }}
-          >
-            📘 {page.name}
-          </button>
-          <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
-        </div>
-      ))}
+{fbConnected && fbPages.map((page) => (
+  <div
+    key={page.id}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "260px",
+      margin: "6px auto",
+    }}
+  >
+    <button
+      onClick={() => {
+        setSelectedFbPage(page);    // for button highlight
+        setSelectedPage(page);      // for conversation fetching
+        fetchConversations(page);   // load conversations
+      }}
+      className="btn-nav"
+      style={{
+        background: selectedFbPage?.id === page.id ? "#dbeafe" : "#fff",
+        border: "1px solid #ccc",
+        flex: 1,
+      }}
+    >
+      📘 {page.name}
+    </button>
+    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+  </div>
+))}
 
       <br />
 
@@ -921,32 +925,35 @@ return (
       </button>
 
       {/* Instagram Pages */}
-      {igConnected && igPages.map((page) => (
-        <div
-          key={page.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "260px",
-            margin: "6px auto",
-          }}
-        >
-          <button
-            onClick={() => setSelectedIgPage(page)}
-            className="btn-nav"
-            style={{
-              background: selectedIgPage?.id === page.id ? "#dbeafe" : "#fff",
-              border: "1px solid #ccc",
-              flex: 1,
-            }}
-          >
-            📸 {page.name}
-          </button>
-          <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
-        </div>
-      ))}
-
+{igConnected && igPages.map((page) => (
+  <div
+    key={page.id}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "260px",
+      margin: "6px auto",
+    }}
+  >
+    <button
+      onClick={() => {
+        setSelectedIgPage(page);    // for button highlight
+        setSelectedPage(page);      // for conversation fetching
+        fetchConversations(page);   // load conversations
+      }}
+      className="btn-nav"
+      style={{
+        background: selectedIgPage?.id === page.id ? "#dbeafe" : "#fff",
+        border: "1px solid #ccc",
+        flex: 1,
+      }}
+    >
+      📸 {page.name}
+    </button>
+    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+  </div>
+))}
       <br />
 
       {/* WhatsApp & Widget */}
