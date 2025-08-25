@@ -14,43 +14,6 @@ export default function SocialChatDashboard() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
 const [widgetConnected, setWidgetConnected] = useState(false);
-// Keep track of pages the user has connected
-const [connectedPages, setConnectedPages] = useState([]);
-
-// Called when user clicks "Connect" for a page
-const connectPage = (page) => {
-  // Avoid duplicate connections
-  if (!connectedPages.some((p) => p.id === page.id)) {
-    setConnectedPages((prev) => [...prev, page]);
-
-    // Optional: fetch conversations for this page immediately
-    fetchConversationsForPage(page);
-  }
-};
-
-// Example: fetch conversations for a given page
-const fetchConversationsForPage = async (page) => {
-  try {
-    // Replace with your actual API call logic
-    const res = await fetch(`/api/conversations/${page.id}`);
-    const data = await res.json();
-
-    // Merge these conversations into allConversations state
-    setAllConversations((prev) => [
-      ...prev,
-      ...data.map((conv) => ({
-        ...conv,
-        pageId: page.id,
-        prettyName: `${page.name} - ${conv.name || conv.id}`,
-      })),
-    ]);
-  } catch (err) {
-    console.error("Failed to fetch conversations for page:", page, err);
-  }
-};
-
-// Also add a state for storing all conversations
-const [allConversations, setAllConversations] = useState([]);
 
   // Loading states
   const [loadingPages, setLoadingPages] = useState(false);
@@ -865,86 +828,76 @@ return (
 
         {/* SETTINGS TAB */}
         {activeTab === "settings" && (
-          <div style={{ textAlign: "center" }}>
-            {/* Facebook */}
-            <button
-              onClick={handleFacebookLogin}
-              disabled={fbConnected}
-              className="btn-primary"
-            >
-              {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
-            </button>
+          <div>
+            <h3 style={{ fontWeight: 700, marginBottom: 10 }}>Platform Connections</h3>
+            <div style={{ textAlign: "center" }}>
+              <button
+                onClick={handleFacebookLogin}
+                disabled={fbConnected}
+                className="btn-primary"
+              >
+                {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+              </button>
+              <br />
+              {fbConnected && fbPages.map((page) => (
+                <button
+                  key={page.id}
+                  onClick={() => fetchConversations(page)}
+                  className="btn-nav"
+                  style={{
+                    width: "260px",
+                    margin: "6px auto",
+                    background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
+                    border: "1px solid #ccc",
+                  }}
+                >
+                  📘 {page.name}
+                </button>
+              ))}
+              <br />
 
-            {fbConnected && (
-              <div style={{ marginTop: 16 }}>
-                <h3 style={{ marginBottom: 8 }}>📘 Facebook Pages</h3>
-                {fbPages.map((page) => (
-                  <button
-                    key={page.id}
-                    onClick={() => connectPage(page)}
-                    className="btn-primary"
-                    style={{
-                      backgroundColor: connectedPages.some((p) => p.id === page.id)
-                        ? "#16a34a"
-                        : undefined,
-                    }}
-                  >
-                    {connectedPages.some((p) => p.id === page.id)
-                      ? `✅ ${page.name} Connected`
-                      : `➕ Connect ${page.name}`}
-                  </button>
-                ))}
-              </div>
-            )}
+              <button
+                onClick={handleInstagramLogin}
+                disabled={igConnected}
+                className="btn-primary"
+              >
+                {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+              </button>
+              <br />
+              {igConnected && igPages.map((page) => (
+                <button
+                  key={page.id}
+                  onClick={() => fetchConversations(page)}
+                  className="btn-nav"
+                  style={{
+                    width: "260px",
+                    margin: "6px auto",
+                    background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
+                    border: "1px solid #ccc",
+                  }}
+                >
+                  📸 {page.name}
+                </button>
+              ))}
+              <br />
 
-            {/* Instagram */}
-            <button
-              onClick={handleInstagramLogin}
-              disabled={igConnected}
-              className="btn-primary"
-            >
-              {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
-            </button>
+              <button
+                onClick={handleWhatsAppConnect}
+                disabled={waConnected}
+                className="btn-primary"
+              >
+                {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
+              </button>
+              <br />
 
-            {igConnected && (
-              <div style={{ marginTop: 16 }}>
-                <h3 style={{ marginBottom: 8 }}>📸 Instagram Pages</h3>
-                {igPages.map((page) => (
-                  <button
-                    key={page.id}
-                    onClick={() => connectPage(page)}
-                    className="btn-primary"
-                    style={{
-                      backgroundColor: connectedPages.some((p) => p.id === page.id)
-                        ? "#16a34a"
-                        : undefined,
-                    }}
-                  >
-                    {connectedPages.some((p) => p.id === page.id)
-                      ? `✅ ${page.name} Connected`
-                      : `➕ Connect ${page.name}`}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* WhatsApp */}
-            <button
-              onClick={handleWhatsAppConnect}
-              disabled={waConnected}
-              className="btn-primary"
-            >
-              {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
-            </button>
-
-            {/* Widget */}
-            <button
-              onClick={handleWidgetConnect}
-              disabled={widgetConnected}
-              className="btn-primary"
-            >
-              {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
-            </button>
+              <button
+                onClick={handleWidgetConnect}
+                disabled={widgetConnected}
+                className="btn-primary"
+              >
+                {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -952,13 +905,13 @@ return (
         {activeTab === "conversations" && (
           <div
             style={{
-              display: "flex",
               height: 600,
               border: "1px solid #e5e7eb",
               borderRadius: 18,
               overflow: "hidden",
               background: "#f9fafb",
               boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+              display: "flex",
             }}
           >
             {/* Conversations List */}
@@ -979,47 +932,59 @@ return (
                   color: "#0f172a",
                 }}
               >
-                Conversations
+                All Conversations
               </div>
 
               {loadingConversations ? (
                 <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
-              ) : allConversations.length === 0 ? (
+              ) : conversations.length === 0 ? (
                 <div style={{ padding: 14, color: "#6b7280" }}>
                   No conversations
                 </div>
               ) : (
-                allConversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => fetchMessages(conv)}
-                    style={{
-                      padding: "12px 16px",
-                      cursor: "pointer",
-                      backgroundColor:
-                        selectedConversation?.id === conv.id
-                          ? "#dbeafe"
-                          : "transparent",
-                      borderBottom: "1px solid #eee",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, color: "#1e293b" }}>
-                      {conv.prettyName}
-                    </div>
+                conversations.map((conv) => {
+                  const preview =
+                    conv.lastMessage ||
+                    conv.snippet ||
+                    conv.preview ||
+                    conv.last_text ||
+                    "";
+
+                  return (
                     <div
+                      key={conv.id}
+                      onClick={() => fetchMessages(conv)}
                       style={{
-                        fontSize: 13,
-                        color: "#64748b",
-                        marginTop: 2,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        backgroundColor:
+                          selectedConversation?.id === conv.id
+                            ? "#dbeafe"
+                            : "transparent",
+                        borderBottom: "1px solid #eee",
+                        transition: "all 0.25s ease",
                       }}
                     >
-                      {conv.preview}
+                      <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                        {conv.userName || conv.businessName || "User"}
+                      </div>
+                      {preview && (
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: "#64748b",
+                            marginTop: 2,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {preview}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -1032,7 +997,6 @@ return (
                 background: "#f1f5f9",
               }}
             >
-              {/* Chat Header */}
               <div
                 style={{
                   padding: "14px 16px",
@@ -1040,17 +1004,11 @@ return (
                   background: "#ffffff",
                   fontWeight: "800",
                   fontSize: 16,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  color: "#0f172a",
                 }}
               >
-                <span style={{ fontSize: 18 }}>
-                  {selectedConversation
-                    ? selectedConversation.prettyName || "User"
-                    : "Chat"}
-                </span>
+                {selectedConversation
+                  ? selectedConversation.userName || "User"
+                  : "Chat"}
               </div>
 
               {/* Messages */}
@@ -1069,7 +1027,7 @@ return (
                 ] || []).map((msg) => {
                   const fromId = msg.from?.id || msg.from;
                   const isMe =
-                    fromId === "me" || fromId === selectedConversation?.pageId;
+                    fromId === "me" || fromId === selectedPage?.id;
 
                   return (
                     <div
@@ -1105,22 +1063,6 @@ return (
                           </div>
                         )}
                         <div>{msg.message || msg.text || msg.body}</div>
-                        {msg.created_time && (
-                          <small
-                            style={{
-                              display: "block",
-                              marginTop: 6,
-                              fontSize: 11,
-                              opacity: 0.65,
-                              textAlign: isMe ? "right" : "left",
-                            }}
-                          >
-                            {new Date(msg.created_time).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </small>
-                        )}
                       </div>
                     </div>
                   );
@@ -1149,7 +1091,6 @@ return (
                     border: "1px solid #d1d5db",
                     fontSize: 15,
                     outline: "none",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.06) inset",
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") sendMessage();
@@ -1204,23 +1145,17 @@ return (
         cursor: not-allowed;
         box-shadow: none;
       }
-      .btn-primary:not(:disabled):hover {
-        background: linear-gradient(135deg,#1e293b,#111827);
-        transform: translateY(-2px);
-      }
       .btn-nav {
         text-align: left;
-        padding: 16px 20px;
+        padding: 12px 18px;
         border: none;
-        background: transparent;
         font-size: 15px;
         cursor: pointer;
         font-weight: 500;
-        transition: all 0.2s ease;
+        background: #fff;
       }
       .btn-nav:hover {
         background: #f1f5f9;
-        border-radius: 8px;
       }
     `}</style>
   </div>
