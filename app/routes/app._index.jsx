@@ -743,7 +743,7 @@ return (
         backdropFilter: "blur(20px)",
       }}
     >
-      {/* Left Sidebar Navigation */}
+      {/* Sidebar Navigation */}
       <div
         style={{
           width: "20%",
@@ -766,7 +766,6 @@ return (
           🚀 Navigation
         </div>
 
-        {/* Nav Buttons */}
         <button
           onClick={() => setActiveTab("home")}
           className="btn-nav"
@@ -800,204 +799,253 @@ return (
         </button>
       </div>
 
-      {/* Right Content Area */}
+      {/* Content Area */}
       <div style={{ flex: 1, padding: 28, background: "#fff" }}>
-        {/* HOME TAB */}
+        {/* HOME */}
         {activeTab === "home" && (
           <div>
-            <h2
-              style={{
-                fontSize: 26,
-                fontWeight: 800,
-                marginBottom: 16,
-                color: "#1e293b",
-              }}
-            >
+            <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 16, color: "#1e293b" }}>
               👋 Welcome to Omni-Communication
             </h2>
             <p style={{ color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
               Manage conversations from <b>Facebook, Instagram, WhatsApp</b>, and
               your <b>chat widget</b> – all unified in one beautiful dashboard.
             </p>
-            <p style={{ marginTop: 16, color: "#475569", fontSize: 16 }}>
-              Use <b>Settings</b> to connect your channels or head over to{" "}
-              <b>Conversations</b> to start chatting.
-            </p>
           </div>
         )}
 
-        {/* SETTINGS TAB */}
-{/* SETTINGS TAB */}
-{activeTab === "settings" && (
-  <div style={{ textAlign: "center" }}>
-    <button
-      onClick={handleFacebookLogin}
-      disabled={fbConnected}
-      className="btn-primary"
-    >
-      {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
-    </button>
-
-    {/* Facebook Pages */}
-    {fbConnected && fbPages.length > 0 && (
-      <div style={{ marginTop: 12 }}>
-        <h4 style={{ fontWeight: "700", color: "#1e293b" }}>Facebook Pages</h4>
-        {fbPages.map((page) => (
-          <div
-            key={page.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              background: "#f9fafb",
-              padding: "10px 14px",
-              margin: "8px 0",
-              borderRadius: 10,
-              border: "1px solid #e5e7eb",
-            }}
-          >
-            <span style={{ fontWeight: 500 }}>{page.name}</span>
+        {/* SETTINGS */}
+        {activeTab === "settings" && (
+          <div style={{ textAlign: "center" }}>
+            {/* Facebook */}
             <button
+              onClick={handleFacebookLogin}
+              disabled={fbConnected}
               className="btn-primary"
-              style={{ padding: "8px 14px", width: "auto" }}
-              onClick={() => {
-                setSelectedPage(page);
-                setActiveTab("conversations");
-                fetchConversations(page);
-              }}
             >
-              Connect Page
+              {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+            </button>
+
+            {fbConnected && fbPages.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <h4 style={{ fontWeight: "700", color: "#1e293b" }}>Facebook Pages</h4>
+                {fbPages.map((page) => (
+                  <div
+                    key={page.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background: "#f9fafb",
+                      padding: "10px 14px",
+                      margin: "8px 0",
+                      borderRadius: 10,
+                      border: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{page.name}</span>
+                    <button
+                      className="btn-primary"
+                      style={{ padding: "8px 14px", width: "auto" }}
+                      onClick={() => {
+                        setConnectedPages((prev) => [...prev, page]); // ✅ just store connected page
+                      }}
+                    >
+                      Connect Page
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Instagram */}
+            <button
+              onClick={handleInstagramLogin}
+              disabled={igConnected}
+              className="btn-primary"
+              style={{ marginTop: 20 }}
+            >
+              {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+            </button>
+
+            {igConnected && igPages.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <h4 style={{ fontWeight: "700", color: "#1e293b" }}>Instagram Pages</h4>
+                {igPages.map((page) => (
+                  <div
+                    key={page.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background: "#f9fafb",
+                      padding: "10px 14px",
+                      margin: "8px 0",
+                      borderRadius: 10,
+                      border: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{page.name}</span>
+                    <button
+                      className="btn-primary"
+                      style={{ padding: "8px 14px", width: "auto" }}
+                      onClick={() => {
+                        setConnectedPages((prev) => [...prev, page]); // ✅ no redirect
+                      }}
+                    >
+                      Connect Page
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* WhatsApp */}
+            <button
+              onClick={handleWhatsAppConnect}
+              disabled={waConnected}
+              className="btn-primary"
+              style={{ marginTop: 20 }}
+            >
+              {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
+            </button>
+
+            {/* Widget */}
+            <button
+              onClick={handleWidgetConnect}
+              disabled={widgetConnected}
+              className="btn-primary"
+              style={{ marginTop: 20 }}
+            >
+              {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
             </button>
           </div>
-        ))}
-      </div>
-    )}
-
-    <br />
-    <button
-      onClick={handleInstagramLogin}
-      disabled={igConnected}
-      className="btn-primary"
-    >
-      {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
-    </button>
-
-    {/* Instagram Pages */}
-    {igConnected && igPages.length > 0 && (
-      <div style={{ marginTop: 12 }}>
-        <h4 style={{ fontWeight: "700", color: "#1e293b" }}>Instagram Pages</h4>
-        {igPages.map((page) => (
-          <div
-            key={page.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              background: "#f9fafb",
-              padding: "10px 14px",
-              margin: "8px 0",
-              borderRadius: 10,
-              border: "1px solid #e5e7eb",
-            }}
-          >
-            <span style={{ fontWeight: 500 }}>{page.name}</span>
-            <button
-              className="btn-primary"
-              style={{ padding: "8px 14px", width: "auto" }}
-              onClick={() => {
-                setSelectedPage(page);
-                setActiveTab("conversations");
-                fetchConversations(page);
-              }}
-            >
-              Connect Page
-            </button>
-          </div>
-        ))}
-      </div>
-    )}
-
-    <br />
-    <button
-      onClick={handleWhatsAppConnect}
-      disabled={waConnected}
-      className="btn-primary"
-    >
-      {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
-    </button>
-
-    <br />
-    <button
-      onClick={handleWidgetConnect}
-      disabled={widgetConnected}
-      className="btn-primary"
-    >
-      {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
-    </button>
-  </div>
-)}
-
-{/* CONVERSATIONS TAB (Without Channels sidebar) */}
-{activeTab === "conversations" && selectedPage && (
-  <div
-    style={{
-      display: "flex",
-      height: 600,
-      border: "1px solid #e5e7eb",
-      borderRadius: 18,
-      overflow: "hidden",
-      background: "#f9fafb",
-      boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-    }}
-  >
-    {/* Conversations + Chat Area (No Channels now) */}
-    <div style={{ flex: 1, display: "flex" }}>
-      {/* Conversations List */}
-      <div
-        style={{
-          width: "28%",
-          borderRight: "1px solid #e5e7eb",
-          overflowY: "auto",
-          background: "#fff",
-        }}
-      >
-        <div
-          style={{
-            padding: "14px 16px",
-            borderBottom: "1px solid #e5e7eb",
-            background: "#f3f4f6",
-            fontWeight: "700",
-            color: "#0f172a",
-          }}
-        >
-          Conversations
-        </div>
-
-        {/* same conversation mapping logic */}
-        {loadingConversations ? (
-          <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
-        ) : conversations.length === 0 ? (
-          <div style={{ padding: 14, color: "#6b7280" }}>
-            No conversations
-          </div>
-        ) : (
-          conversations.map((conv) => {
-            // ... keep your existing prettyName + preview logic here
-          })
         )}
-      </div>
 
-      {/* Chat Area - unchanged */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f1f5f9" }}>
-        {/* Chat header + messages + input (same as before) */}
-      </div>
-    </div>
-  </div>
-)}
+        {/* CONVERSATIONS */}
+        {activeTab === "conversations" && connectedPages.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              height: 600,
+              border: "1px solid #e5e7eb",
+              borderRadius: 18,
+              overflow: "hidden",
+              background: "#f9fafb",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+            }}
+          >
+            {/* Conversations List */}
+            <div
+              style={{
+                width: "28%",
+                borderRight: "1px solid #e5e7eb",
+                overflowY: "auto",
+                background: "#fff",
+              }}
+            >
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderBottom: "1px solid #e5e7eb",
+                  background: "#f3f4f6",
+                  fontWeight: "700",
+                  color: "#0f172a",
+                }}
+              >
+                Conversations
+              </div>
 
+              {loadingConversations ? (
+                <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
+              ) : conversations.length === 0 ? (
+                <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
+              ) : (
+                conversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    onClick={() => fetchMessages(conv)}
+                    style={{
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      backgroundColor:
+                        selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                      {conv.userName || conv.from?.name || "User"}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#64748b",
+                        marginTop: 2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {conv.lastMessage || ""}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
 
-        {/* If Conversations tab is open but no channel selected */}
-        {activeTab === "conversations" && !selectedPage && (
+            {/* Chat Area */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#f1f5f9" }}>
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderBottom: "1px solid #e5e7eb",
+                  background: "#fff",
+                  fontWeight: "700",
+                }}
+              >
+                {selectedConversation?.userName || "Chat"}
+              </div>
+
+              {/* Messages */}
+              <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
+                {(messages[selectedConversation?.id] || []).map((msg) => (
+                  <div key={msg.id} style={{ marginBottom: 10 }}>
+                    <b>{msg.from?.name || "User"}:</b> {msg.message || msg.text}
+                  </div>
+                ))}
+              </div>
+
+              {/* Input */}
+              <div style={{ display: "flex", padding: 14, borderTop: "1px solid #e5e7eb", background: "#fff" }}>
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  style={{ flex: 1, padding: "10px", borderRadius: 20, border: "1px solid #d1d5db" }}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim()}
+                  style={{
+                    marginLeft: 10,
+                    padding: "10px 20px",
+                    background: "linear-gradient(135deg,#2563eb,#1e40af)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 20,
+                  }}
+                >
+                  ➤
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* If no pages connected */}
+        {activeTab === "conversations" && connectedPages.length === 0 && (
           <div
             style={{
               height: 600,
@@ -1009,10 +1057,9 @@ return (
               justifyContent: "center",
               color: "#64748b",
               fontSize: 16,
-              fontWeight: "500",
             }}
           >
-            👈 Select a channel from the left to view conversations
+            ⚠️ Please connect a page from Settings first
           </div>
         )}
       </div>
@@ -1023,25 +1070,17 @@ return (
       .btn-primary {
         background: linear-gradient(135deg,#111827,#1f2937);
         color: white;
-        padding: 14px 26px;
+        padding: 12px 20px;
         border: none;
-        border-radius: 14px;
-        font-size: 15px;
+        border-radius: 12px;
+        font-size: 14px;
         font-weight: 600;
         cursor: pointer;
-        width: 260px;
-        margin: 10px 0;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       }
       .btn-primary:disabled {
         background: #9ca3af;
         cursor: not-allowed;
-        box-shadow: none;
-      }
-      .btn-primary:not(:disabled):hover {
-        background: linear-gradient(135deg,#1e293b,#111827);
-        transform: translateY(-2px);
       }
       .btn-nav {
         text-align: left;
@@ -1050,17 +1089,6 @@ return (
         background: transparent;
         font-size: 15px;
         cursor: pointer;
-        font-weight: 500;
-        color
-
-      .btn-nav {
-        text-align: left;
-        padding: 16px 18px;
-        border: none;
-        background: transparent;
-        font-size: 15px;
-        cursor: pointer;
-        font-weight: 500;
         transition: all 0.2s ease;
       }
       .btn-nav:hover {
@@ -1070,6 +1098,7 @@ return (
     `}</style>
   </div>
 );
+
 
 
 
