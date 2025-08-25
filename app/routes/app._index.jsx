@@ -741,22 +741,7 @@ const sendMessage = async () => {
 
 
 
-// Page button click
-const handleSelectPage = async (page) => {
-  setSelectedPage(page);           // highlight the page
-  setSelectedConversation(null);   // reset chat
-  setLoadingConversations(true);
 
-  try {
-    const res = await fetchConversations(page); // fetch messages for this page
-    setConversations(res.data || []);           // update conversations state
-  } catch (err) {
-    console.error("Error fetching conversations:", err);
-    setConversations([]);
-  } finally {
-    setLoadingConversations(false);
-  }
-};
 
   
 return (
@@ -883,7 +868,8 @@ return (
         )}
 
         {/* SETTINGS TAB */}
-        {activeTab === "settings" && (
+{/* SETTINGS TAB */}
+{activeTab === "settings" && (
   <div>
     <h3 style={{ fontWeight: 700, marginBottom: 10 }}>Platform Connections</h3>
     <div style={{ textAlign: "center" }}>
@@ -897,33 +883,35 @@ return (
       </button>
 
       {/* Facebook Pages */}
-      {fbConnected &&
-        fbPages.map((page) => (
-          <div
-            key={page.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "260px",
-              margin: "6px auto",
-            }}
-          >
-        <button
-  onClick={() => handleSelectPage(page)}
-  className="btn-nav"
-  style={{
-    background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
-    border: "1px solid #ccc",
-    flex: 1,
-  }}
->
-  📘 {page.name}
-</button>
-
-            <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
-          </div>
-        ))}
+{fbConnected && fbPages.map((page) => (
+  <div
+    key={page.id}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "260px",
+      margin: "6px auto",
+    }}
+  >
+    <button
+      onClick={() => {
+        setSelectedPage(page);          // unified selected page
+        setSelectedConversation(null);   // reset previous chat
+        fetchConversations(page);       // load conversations
+      }}
+      className="btn-nav"
+      style={{
+        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
+        border: "1px solid #ccc",
+        flex: 1,
+      }}
+    >
+      📘 {page.name}
+    </button>
+    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+  </div>
+))}
 
       <br />
 
@@ -937,46 +925,35 @@ return (
       </button>
 
       {/* Instagram Pages */}
-      {igConnected &&
-        igPages.map((page) => (
-          <div
-            key={page.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              width: "260px",
-              margin: "6px auto",
-            }}
-          >
-            <button
-              onClick={async () => {
-                setSelectedPage(page);
-                setSelectedConversation(null);
-                setLoadingConversations(true);
-
-                try {
-                  const res = await fetchConversations(page);
-                  setConversations(res.data || []);
-                } catch (err) {
-                  console.error("Failed to load conversations", err);
-                  setConversations([]);
-                } finally {
-                  setLoadingConversations(false);
-                }
-              }}
-              className="btn-nav"
-              style={{
-                background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
-                border: "1px solid #ccc",
-                flex: 1,
-              }}
-            >
-              📸 {page.name}
-            </button>
-            <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
-          </div>
-        ))}
+{igConnected && igPages.map((page) => (
+  <div
+    key={page.id}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "260px",
+      margin: "6px auto",
+    }}
+  >
+    <button
+      onClick={() => {
+        setSelectedPage(page);          // unified selected page
+        setSelectedConversation(null);   // reset previous chat
+        fetchConversations(page);       // load conversations
+      }}
+      className="btn-nav"
+      style={{
+        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
+        border: "1px solid #ccc",
+        flex: 1,
+      }}
+    >
+      📸 {page.name}
+    </button>
+    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+  </div>
+))}
 
       <br />
 
@@ -1000,7 +977,6 @@ return (
   </div>
 )}
 
-
         {/* CONVERSATIONS TAB */}
         {activeTab === "conversations" && (
           <div
@@ -1015,7 +991,6 @@ return (
             }}
           >
             {/* Conversations List */}
-           {/* Conversations List */}
 <div
   style={{
     width: "28%",
@@ -1039,9 +1014,7 @@ return (
   {loadingConversations ? (
     <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
   ) : conversations.length === 0 ? (
-    <div style={{ padding: 14, color: "#6b7280" }}>
-      {selectedPage ? "No conversations" : "Select a platform page to see conversations"}
-    </div>
+    <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
   ) : (
     conversations.map((conv) => {
       const preview =
@@ -1050,7 +1023,7 @@ return (
       return (
         <div
           key={conv.id}
-          onClick={() => setSelectedConversation(conv)}
+          onClick={() => fetchMessages(conv)}
           style={{
             padding: "12px 16px",
             cursor: "pointer",
@@ -1126,9 +1099,12 @@ return (
                   gap: 12,
                 }}
               >
-                {(messages[selectedConversation?.messageKey || selectedConversation?.id] || []).map((msg) => {
+                {(messages[
+                  selectedConversation?.messageKey || selectedConversation?.id
+                ] || []).map((msg) => {
                   const fromId = msg.from?.id || msg.from;
-                  const isMe = fromId === "me" || fromId === selectedPage?.id;
+                  const isMe =
+                    fromId === "me" || fromId === selectedPage?.id;
 
                   return (
                     <div
@@ -1261,7 +1237,6 @@ return (
     `}</style>
   </div>
 );
-
 
 
 
