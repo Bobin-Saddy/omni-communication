@@ -766,7 +766,6 @@ return (
           🚀 Navigation
         </div>
 
-        {/* Nav Buttons */}
         <button
           onClick={() => setActiveTab("home")}
           className="btn-nav"
@@ -829,6 +828,7 @@ return (
         {/* SETTINGS TAB */}
         {activeTab === "settings" && (
           <div style={{ textAlign: "center" }}>
+            {/* Facebook */}
             <button
               onClick={handleFacebookLogin}
               disabled={fbConnected}
@@ -836,7 +836,37 @@ return (
             >
               {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
             </button>
-            <br />
+            {fbConnected && (
+              <div style={{ marginTop: 10 }}>
+                {fbPages.map((page) => (
+                  <div
+                    key={page.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      margin: "6px auto",
+                      padding: "10px 14px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      width: 280,
+                      background: "#f9fafb",
+                    }}
+                  >
+                    <span>📘 {page.name}</span>
+                    <button
+                      className="btn-primary"
+                      style={{ padding: "6px 14px", fontSize: 13, width: "auto" }}
+                      onClick={() => connectPage(page, "facebook")}
+                    >
+                      Connect
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Instagram */}
             <button
               onClick={handleInstagramLogin}
               disabled={igConnected}
@@ -844,7 +874,37 @@ return (
             >
               {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
             </button>
-            <br />
+            {igConnected && (
+              <div style={{ marginTop: 10 }}>
+                {igPages.map((page) => (
+                  <div
+                    key={page.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      margin: "6px auto",
+                      padding: "10px 14px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      width: 280,
+                      background: "#f9fafb",
+                    }}
+                  >
+                    <span>📸 {page.name}</span>
+                    <button
+                      className="btn-primary"
+                      style={{ padding: "6px 14px", fontSize: 13, width: "auto" }}
+                      onClick={() => connectPage(page, "instagram")}
+                    >
+                      Connect
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* WhatsApp */}
             <button
               onClick={handleWhatsAppConnect}
               disabled={waConnected}
@@ -852,7 +912,8 @@ return (
             >
               {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
             </button>
-            <br />
+
+            {/* Widget */}
             <button
               onClick={handleWidgetConnect}
               disabled={widgetConnected}
@@ -876,84 +937,7 @@ return (
               boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
             }}
           >
-            {/* Channels Sidebar */}
-            <div
-              style={{
-                width: "22%",
-                background: "#f9fafb",
-                borderRight: "1px solid #e5e7eb",
-                overflowY: "auto",
-              }}
-            >
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#f3f4f6",
-                  fontWeight: "700",
-                  color: "#0f172a",
-                }}
-              >
-                Channels
-              </div>
-
-              {[...fbPages, ...igPages].map((page) => (
-                <div
-                  key={page.id}
-                  onClick={() => fetchConversations(page)}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedPage?.id === page.id ? "#dbeafe" : "transparent",
-                    borderBottom: "1px solid #eee",
-                    fontWeight: "500",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  {page.type === "facebook" && "📘"}
-                  {page.type === "instagram" && "📸"}
-                  {page.name}
-                </div>
-              ))}
-
-              {waConnected && (
-                <div
-                  onClick={handleWhatsAppConnect}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedPage?.type === "whatsapp" ? "#dbeafe" : "transparent",
-                    borderBottom: "1px solid #eee",
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  💬 WhatsApp
-                </div>
-              )}
-
-              {widgetConnected && (
-                <div
-                  onClick={handleWidgetConnect}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedPage?.type === "widget" ? "#dbeafe" : "transparent",
-                    borderBottom: "1px solid #eee",
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  🧩 Chat Widget
-                </div>
-              )}
-            </div>
-
-            {/* Conversations + Chat Area */}
+            {/* Only Conversations + Chat (NO channels sidebar) */}
             <div style={{ flex: 1, display: "flex" }}>
               {/* Conversations List */}
               <div
@@ -986,11 +970,7 @@ return (
                   conversations.map((conv) => {
                     const prettyName =
                       selectedPage?.type === "instagram"
-                        ? `${conv.businessName || "You"} ↔️ ${
-                            conv.userName ||
-                            conv.user?.username ||
-                            "IG User"
-                          }`
+                        ? conv.userName || conv.user?.username || "IG User"
                         : selectedPage?.type === "whatsapp"
                         ? conv.userName ||
                           conv.contacts?.[0]?.wa_id ||
@@ -1001,15 +981,10 @@ return (
                           conv.meta?.name ||
                           conv.user?.name ||
                           "Widget User"
-                        : (conv.participants?.data
+                        : conv.participants?.data
                             ?.map((p) => p.name)
                             .filter(Boolean)
-                            .join(", ")) ||
-                          conv.user?.name ||
-                          conv.sender?.name ||
-                          conv.recipient?.name ||
-                          conv.from?.name ||
-                          "Facebook User";
+                            .join(", ") || "Facebook User";
 
                     const preview =
                       conv.lastMessage ||
@@ -1081,29 +1056,9 @@ return (
                 >
                   <span style={{ fontSize: 18 }}>
                     {selectedConversation
-                      ? (selectedPage?.type === "instagram"
-                          ? selectedConversation.userName ||
-                            selectedConversation.user?.username ||
-                            "IG User"
-                          : selectedPage?.type === "whatsapp"
-                          ? selectedConversation.userName ||
-                            selectedConversation.contacts?.[0]?.wa_id ||
-                            selectedConversation.userNumber ||
-                            "WhatsApp User"
-                          : selectedPage?.type === "widget"
-                          ? selectedConversation.userName ||
-                            selectedConversation.meta?.name ||
-                            selectedConversation.user?.name ||
-                            "Widget User"
-                          : (selectedConversation.participants?.data
-                              ?.map((p) => p.name)
-                              .filter(Boolean)
-                              .join(", ")) ||
-                            selectedConversation.user?.name ||
-                            selectedConversation.sender?.name ||
-                            selectedConversation.recipient?.name ||
-                            selectedConversation.from?.name ||
-                            "Facebook User")
+                      ? selectedConversation.userName ||
+                        selectedConversation.user?.name ||
+                        "User"
                       : "Chat"}
                   </span>
                 </div>
@@ -1144,7 +1099,6 @@ return (
                             color: isMe ? "#ffffff" : "#0f172a",
                             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                             wordBreak: "break-word",
-                            transition: "transform .15s ease",
                           }}
                         >
                           {!isMe && (
@@ -1227,14 +1181,7 @@ return (
                       borderRadius: 50,
                       fontWeight: "600",
                       cursor: sendingMessage ? "not-allowed" : "pointer",
-                      transition: "transform 0.2s ease, background 0.3s ease",
                     }}
-                    onMouseDown={(e) =>
-                      (e.currentTarget.style.transform = "scale(0.95)")
-                    }
-                    onMouseUp={(e) =>
-                      (e.currentTarget.style.transform = "scale(1)")
-                    }
                   >
                     {sendingMessage ? "..." : "➤"}
                   </button>
@@ -1244,7 +1191,7 @@ return (
           </div>
         )}
 
-        {/* If Conversations tab is open but no channel selected */}
+        {/* If Conversations tab open but no selection */}
         {activeTab === "conversations" && !selectedPage && (
           <div
             style={{
@@ -1260,7 +1207,7 @@ return (
               fontWeight: "500",
             }}
           >
-            👈 Select a channel from the left to view conversations
+            👈 Connect a page or channel from Settings first
           </div>
         )}
       </div>
@@ -1294,16 +1241,6 @@ return (
       .btn-nav {
         text-align: left;
         padding: 16px 20px;
-        border: none;
-        background: transparent;
-        font-size: 15px;
-        cursor: pointer;
-        font-weight: 500;
-        color
-
-      .btn-nav {
-        text-align: left;
-        padding: 16px 18px;
         border: none;
         background: transparent;
         font-size: 15px;
