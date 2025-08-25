@@ -741,8 +741,24 @@ const sendMessage = async () => {
 
 
 
+// Page button click
+const handleSelectPage = async (page) => {
+  setSelectedPage(page);           // highlight the page
+  setSelectedConversation(null);   // reset chat
+  setLoadingConversations(true);
 
+  try {
+    const res = await fetchConversations(page); // fetch messages for this page
+    setConversations(res.data || []);           // update conversations state
+  } catch (err) {
+    console.error("Error fetching conversations:", err);
+    setConversations([]);
+  } finally {
+    setLoadingConversations(false);
+  }
+};
 
+  
 return (
   <div
     className="social-chat-dashboard"
@@ -868,114 +884,122 @@ return (
 
         {/* SETTINGS TAB */}
         {activeTab === "settings" && (
-          <div>
-            <h3 style={{ fontWeight: 700, marginBottom: 10 }}>Platform Connections</h3>
-            <div style={{ textAlign: "center" }}>
-              {/* Facebook Connect */}
-              <button
-                onClick={handleFacebookLogin}
-                disabled={fbConnected}
-                className="btn-primary"
-              >
-                {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
-              </button>
+  <div>
+    <h3 style={{ fontWeight: 700, marginBottom: 10 }}>Platform Connections</h3>
+    <div style={{ textAlign: "center" }}>
+      {/* Facebook Connect */}
+      <button
+        onClick={handleFacebookLogin}
+        disabled={fbConnected}
+        className="btn-primary"
+      >
+        {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+      </button>
 
-              {/* Facebook Pages */}
-              {fbConnected &&
-                fbPages.map((page) => (
-                  <div
-                    key={page.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "260px",
-                      margin: "6px auto",
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        setSelectedPage(page);          // highlight and fetch
-                        setSelectedConversation(null);   // reset chat
-                        fetchConversations(page);       // load conversations
-                      }}
-                      className="btn-nav"
-                      style={{
-                        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
-                        border: "1px solid #ccc",
-                        flex: 1,
-                      }}
-                    >
-                      📘 {page.name}
-                    </button>
-                    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
-                  </div>
-                ))}
+      {/* Facebook Pages */}
+      {fbConnected &&
+        fbPages.map((page) => (
+          <div
+            key={page.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "260px",
+              margin: "6px auto",
+            }}
+          >
+        <button
+  onClick={() => handleSelectPage(page)}
+  className="btn-nav"
+  style={{
+    background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
+    border: "1px solid #ccc",
+    flex: 1,
+  }}
+>
+  📘 {page.name}
+</button>
 
-              <br />
-
-              {/* Instagram Connect */}
-              <button
-                onClick={handleInstagramLogin}
-                disabled={igConnected}
-                className="btn-primary"
-              >
-                {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
-              </button>
-
-              {/* Instagram Pages */}
-              {igConnected &&
-                igPages.map((page) => (
-                  <div
-                    key={page.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "260px",
-                      margin: "6px auto",
-                    }}
-                  >
-                    <button
-                      onClick={() => {
-                        setSelectedPage(page);          // highlight and fetch
-                        setSelectedConversation(null);   // reset chat
-                        fetchConversations(page);       // load conversations
-                      }}
-                      className="btn-nav"
-                      style={{
-                        background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
-                        border: "1px solid #ccc",
-                        flex: 1,
-                      }}
-                    >
-                      📸 {page.name}
-                    </button>
-                    <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
-                  </div>
-                ))}
-
-              <br />
-
-              {/* WhatsApp & Widget */}
-              <button
-                onClick={handleWhatsAppConnect}
-                disabled={waConnected}
-                className="btn-primary"
-              >
-                {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
-              </button>
-              <br />
-              <button
-                onClick={handleWidgetConnect}
-                disabled={widgetConnected}
-                className="btn-primary"
-              >
-                {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
-              </button>
-            </div>
+            <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
           </div>
-        )}
+        ))}
+
+      <br />
+
+      {/* Instagram Connect */}
+      <button
+        onClick={handleInstagramLogin}
+        disabled={igConnected}
+        className="btn-primary"
+      >
+        {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+      </button>
+
+      {/* Instagram Pages */}
+      {igConnected &&
+        igPages.map((page) => (
+          <div
+            key={page.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "260px",
+              margin: "6px auto",
+            }}
+          >
+            <button
+              onClick={async () => {
+                setSelectedPage(page);
+                setSelectedConversation(null);
+                setLoadingConversations(true);
+
+                try {
+                  const res = await fetchConversations(page);
+                  setConversations(res.data || []);
+                } catch (err) {
+                  console.error("Failed to load conversations", err);
+                  setConversations([]);
+                } finally {
+                  setLoadingConversations(false);
+                }
+              }}
+              className="btn-nav"
+              style={{
+                background: selectedPage?.id === page.id ? "#dbeafe" : "#fff",
+                border: "1px solid #ccc",
+                flex: 1,
+              }}
+            >
+              📸 {page.name}
+            </button>
+            <span style={{ marginLeft: 8, color: "green", fontWeight: "700" }}>✅</span>
+          </div>
+        ))}
+
+      <br />
+
+      {/* WhatsApp & Widget */}
+      <button
+        onClick={handleWhatsAppConnect}
+        disabled={waConnected}
+        className="btn-primary"
+      >
+        {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
+      </button>
+      <br />
+      <button
+        onClick={handleWidgetConnect}
+        disabled={widgetConnected}
+        className="btn-primary"
+      >
+        {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
+      </button>
+    </div>
+  </div>
+)}
+
 
         {/* CONVERSATIONS TAB */}
         {activeTab === "conversations" && (
@@ -991,78 +1015,82 @@ return (
             }}
           >
             {/* Conversations List */}
+           {/* Conversations List */}
+<div
+  style={{
+    width: "28%",
+    borderRight: "1px solid #e5e7eb",
+    overflowY: "auto",
+    background: "#fff",
+  }}
+>
+  <div
+    style={{
+      padding: "14px 16px",
+      borderBottom: "1px solid #e5e7eb",
+      background: "#f3f4f6",
+      fontWeight: "700",
+      color: "#0f172a",
+    }}
+  >
+    All Conversations
+  </div>
+
+  {loadingConversations ? (
+    <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
+  ) : conversations.length === 0 ? (
+    <div style={{ padding: 14, color: "#6b7280" }}>
+      {selectedPage ? "No conversations" : "Select a platform page to see conversations"}
+    </div>
+  ) : (
+    conversations.map((conv) => {
+      const preview =
+        conv.lastMessage || conv.snippet || conv.preview || conv.last_text || "";
+
+      return (
+        <div
+          key={conv.id}
+          onClick={() => setSelectedConversation(conv)}
+          style={{
+            padding: "12px 16px",
+            cursor: "pointer",
+            backgroundColor:
+              selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
+            borderBottom: "1px solid #eee",
+            transition: "all 0.25s ease",
+          }}
+        >
+          {/* User Name */}
+          <div style={{ fontWeight: 600, color: "#1e293b" }}>
+            {conv.userName || "User"}
+          </div>
+
+          {/* Platform + Page / Source */}
+          <div style={{ fontSize: 12, color: "#475569", marginBottom: 4 }}>
+            {conv.platform?.toUpperCase() || "UNKNOWN"} - {conv.pageName || conv.businessName || "Unknown Source"}
+          </div>
+
+          {/* Message Preview */}
+          {preview && (
             <div
               style={{
-                width: "28%",
-                borderRight: "1px solid #e5e7eb",
-                overflowY: "auto",
-                background: "#fff",
+                fontSize: 13,
+                color: "#64748b",
+                marginTop: 2,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}
             >
-              <div
-                style={{
-                  padding: "14px 16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#f3f4f6",
-                  fontWeight: "700",
-                  color: "#0f172a",
-                }}
-              >
-                All Conversations
-              </div>
-
-              {loadingConversations ? (
-                <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
-              ) : conversations.length === 0 ? (
-                <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
-              ) : (
-                conversations.map((conv) => {
-                  const preview =
-                    conv.lastMessage || conv.snippet || conv.preview || conv.last_text || "";
-
-                  return (
-                    <div
-                      key={conv.id}
-                      onClick={() => setSelectedConversation(conv)}
-                      style={{
-                        padding: "12px 16px",
-                        cursor: "pointer",
-                        backgroundColor:
-                          selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
-                        borderBottom: "1px solid #eee",
-                        transition: "all 0.25s ease",
-                      }}
-                    >
-                      {/* User Name */}
-                      <div style={{ fontWeight: 600, color: "#1e293b" }}>
-                        {conv.userName || "User"}
-                      </div>
-
-                      {/* Platform + Page / Source */}
-                      <div style={{ fontSize: 12, color: "#475569", marginBottom: 4 }}>
-                        {conv.platform?.toUpperCase() || "UNKNOWN"} - {conv.pageName || conv.businessName || "Unknown Source"}
-                      </div>
-
-                      {/* Message Preview */}
-                      {preview && (
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: "#64748b",
-                            marginTop: 2,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          {preview}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+              {preview}
             </div>
+          )}
+        </div>
+      );
+    })
+  )}
+</div>
+
 
             {/* Chat Area */}
             <div
@@ -1233,6 +1261,8 @@ return (
     `}</style>
   </div>
 );
+
+
 
 
 
