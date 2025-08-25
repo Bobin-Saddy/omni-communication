@@ -247,6 +247,7 @@ const handleWhatsAppConnect = async () => {
   };
 
 // --- FETCH CONVERSATIONS ---
+// --- FETCH CONVERSATIONS ---
 const fetchConversations = async (page) => {
   if (!page) return;
   setSelectedPage(page);
@@ -268,9 +269,7 @@ const fetchConversations = async (page) => {
       newConversations = (data.data || []).map((conv) => {
         let userName = "User";
 
-        if (page.type === "instagram") {
-          // We fetch user name later when fetching messages
-        } else if (page.type === "facebook") {
+        if (page.type === "facebook") {
           const otherUser = conv.participants?.data?.find((p) => p.id !== page.id);
           if (otherUser) userName = otherUser.name || "Facebook User";
         }
@@ -281,19 +280,23 @@ const fetchConversations = async (page) => {
           platform: page.type,
           pageId: page.id,
           pageName: page.name,
+          conversationId: conv.id,
         };
       });
-    } else if (page.type === "whatsapp") {
+    } 
+    else if (page.type === "whatsapp") {
       const res = await fetch(`/api/whatsapp/conversations?pageId=${page.id}`);
       const data = await res.json();
       newConversations = (data.data || []).map((conv) => ({
         ...conv,
-        userName: conv.userName || "WhatsApp User",
+        userName: conv.userName || conv.number || "WhatsApp User",
         platform: "whatsapp",
         pageId: page.id,
         pageName: page.name || "WhatsApp",
+        conversationId: conv.id || conv.number,
       }));
-    } else if (page.type === "widget") {
+    } 
+    else if (page.type === "widget") {
       const res = await fetch(`/api/widget/conversations?pageId=${page.id}`);
       const data = await res.json();
       newConversations = (data.data || []).map((conv) => ({
@@ -302,24 +305,25 @@ const fetchConversations = async (page) => {
         platform: "widget",
         pageId: page.id,
         pageName: page.name || "Chat Widget",
+        conversationId: conv.sessionId,
       }));
     }
 
-    // Merge with existing conversations without duplicates
+    // Merge conversations into existing list without duplicates
     setConversations((prev) => {
-      const existingIds = new Set(prev.map((c) => `${c.platform}-${c.pageId}-${c.id || c.sessionId}`));
+      const existingKeys = new Set(prev.map(c => `${c.platform}-${c.pageId}-${c.conversationId}`));
       const merged = [...prev];
 
-      newConversations.forEach((c) => {
-        const key = `${c.platform}-${c.pageId}-${c.id || c.sessionId}`;
-        if (!existingIds.has(key)) merged.push(c);
+      newConversations.forEach(c => {
+        const key = `${c.platform}-${c.pageId}-${c.conversationId}`;
+        if (!existingKeys.has(key)) merged.push(c);
       });
 
       return merged;
     });
   } catch (err) {
-    console.error(err);
-    alert("Error fetching conversations.");
+    console.error("Error fetching conversations:", err);
+    alert("Failed to fetch conversations.");
   } finally {
     setLoadingConversations(false);
   }
@@ -329,20 +333,15 @@ const fetchConversations = async (page) => {
 const fetchMessages = async (conv) => {
   if (!conv) return;
 
-  const messageKey =
-    conv.platform === "widget"
-      ? `${conv.platform}-${conv.pageId}-${conv.sessionId}`
-      : `${conv.platform}-${conv.pageId}-${conv.id}`;
-
+  const messageKey = `${conv.platform}-${conv.pageId}-${conv.conversationId}`;
   setSelectedConversation({ ...conv, messageKey });
 
   try {
     let convMessages = [];
 
-    // Widget
     if (conv.platform === "widget") {
-      if (!conv.sessionId || !conv.storeDomain) return;
-      const res = await fetch(`/api/chat?session_id=${conv.sessionId}&store_domain=${conv.storeDomain}`);
+      if (!conv.conversationId || !conv.storeDomain) return;
+      const res = await fetch(`/api/chat?session_id=${conv.conversationId}&store_domain=${conv.storeDomain}`);
       const data = await res.json();
       convMessages = (data.messages || []).map((msg, i) => ({
         id: msg.id || `local-${i}`,
@@ -350,9 +349,7 @@ const fetchMessages = async (conv) => {
         message: msg.text || msg.content || "",
         created_time: msg.createdAt ? new Date(msg.createdAt).toISOString() : new Date().toISOString(),
       }));
-    }
-
-    // WhatsApp
+    } 
     else if (conv.platform === "whatsapp") {
       if (!conv.userNumber) return;
       const res = await fetch(`/get-messages?number=${conv.userNumber}`);
@@ -361,19 +358,13 @@ const fetchMessages = async (conv) => {
         id: msg.id || `local-${i}`,
         from: { id: msg.sender || "unknown" },
         message: msg.content || "",
-        created_time: msg.timestamp
-          ? new Date(msg.timestamp).toISOString()
-          : msg.createdAt
-          ? new Date(msg.createdAt).toISOString()
-          : new Date().toISOString(),
+        created_time: msg.timestamp ? new Date(msg.timestamp).toISOString() : new Date().toISOString(),
       }));
-    }
-
-    // Facebook / Instagram
+    } 
     else if (conv.platform === "facebook" || conv.platform === "instagram") {
       const token = pageAccessTokens[conv.pageId];
       if (!token) return;
-      const res = await fetch(`https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`);
+      const res = await fetch(`https://graph.facebook.com/v18.0/${conv.conversationId}/messages?fields=from,message,created_time&access_token=${token}`);
       const data = await res.json();
       convMessages = (data?.data || []).reverse().map((msg) => {
         let displayName = "User";
@@ -386,13 +377,13 @@ const fetchMessages = async (conv) => {
       });
     }
 
-    // Merge messages with previous messages
+    // Merge messages without duplicates
     setMessages((prev) => {
       const prevConvMessages = prev[messageKey] || [];
       const merged = [...prevConvMessages];
 
       convMessages.forEach((msg) => {
-        if (!merged.some((m) => m.id === msg.id)) merged.push(msg);
+        if (!merged.some(m => m.id === msg.id)) merged.push(msg);
       });
 
       merged.sort((a, b) => new Date(a.created_time) - new Date(b.created_time));
