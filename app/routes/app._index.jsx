@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-
+ import Settings from "./app.settings";
 export default function SocialChatDashboard() {
+ 
   const [activeTab, setActiveTab] = useState("settings"); // 
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
@@ -704,264 +705,162 @@ const sendMessage = async () => {
 
   
 return (
-  <div
-    className="social-chat-dashboard"
-    style={{
-      fontFamily: "Inter, Arial, sans-serif",
-      maxWidth: 1400,
-      margin: "auto",
-      padding: "20px",
-      background: "linear-gradient(135deg, #e0e7ff, #fef2f2)",
-      minHeight: "100vh",
-    }}
-  >
-    {/* Header */}
-    <h1
+ <div
+      className="social-chat-dashboard"
       style={{
-        textAlign: "center",
-        marginBottom: "30px",
-        fontSize: "36px",
-        fontWeight: "900",
-        color: "#0f172a",
-        letterSpacing: "-0.7px",
-        textShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        fontFamily: "Inter, Arial, sans-serif",
+        maxWidth: 1400,
+        margin: "auto",
+        padding: "20px",
+        background: "linear-gradient(135deg, #e0e7ff, #fef2f2)",
+        minHeight: "100vh",
       }}
     >
-      ✨ Omni-Communication Dashboard
-    </h1>
-
-    {/* Main Layout */}
-    <div
-      style={{
-        display: "flex",
-        minHeight: 680,
-        border: "1px solid rgba(0,0,0,0.05)",
-        borderRadius: 24,
-        overflow: "hidden",
-        background: "rgba(255,255,255,0.9)",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
-        backdropFilter: "blur(20px)",
-      }}
-    >
-      {/* Left Sidebar Navigation */}
-      <div
+      {/* Header */}
+      <h1
         style={{
-          width: "20%",
-          background: "linear-gradient(180deg,#f9fafb,#f3f4f6)",
-          borderRight: "1px solid #e5e7eb",
-          display: "flex",
-          flexDirection: "column",
+          textAlign: "center",
+          marginBottom: "30px",
+          fontSize: "36px",
+          fontWeight: "900",
+          color: "#0f172a",
+          letterSpacing: "-0.7px",
+          textShadow: "0 2px 8px rgba(0,0,0,0.08)",
         }}
       >
+        ✨ Omni-Communication Dashboard
+      </h1>
+
+      {/* Main Layout */}
+      <div
+        style={{
+          display: "flex",
+          minHeight: 680,
+          border: "1px solid rgba(0,0,0,0.05)",
+          borderRadius: 24,
+          overflow: "hidden",
+          background: "rgba(255,255,255,0.9)",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        {/* Left Sidebar Navigation */}
         <div
           style={{
-            padding: "18px",
-            borderBottom: "1px solid #e5e7eb",
-            background: "#f1f5f9",
-            fontWeight: "700",
-            fontSize: 16,
-            color: "#111827",
+            width: "20%",
+            background: "linear-gradient(180deg,#f9fafb,#f3f4f6)",
+            borderRight: "1px solid #e5e7eb",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          🚀 Navigation
-        </div>
-
-        {/* Nav Buttons */}
-        <button
-          onClick={() => setActiveTab("home")}
-          className="btn-nav"
-          style={{
-            backgroundColor: activeTab === "home" ? "#dbeafe" : "transparent",
-            fontWeight: activeTab === "home" ? "700" : "500",
-          }}
-        >
-          🏠 Home
-        </button>
-        <button
-          onClick={() => setActiveTab("settings")}
-          className="btn-nav"
-          style={{
-            backgroundColor: activeTab === "settings" ? "#dbeafe" : "transparent",
-            fontWeight: activeTab === "settings" ? "700" : "500",
-          }}
-        >
-          ⚙️ Settings
-        </button>
-        <button
-          onClick={() => setActiveTab("conversations")}
-          className="btn-nav"
-          style={{
-            backgroundColor:
-              activeTab === "conversations" ? "#dbeafe" : "transparent",
-            fontWeight: activeTab === "conversations" ? "700" : "500",
-          }}
-        >
-          💬 Conversations
-        </button>
-      </div>
-
-      {/* Right Content Area */}
-      <div style={{ flex: 1, padding: 28, background: "#fff" }}>
-        {/* HOME TAB */}
-        {activeTab === "home" && (
-          <div>
-            <h2
-              style={{
-                fontSize: 26,
-                fontWeight: 800,
-                marginBottom: 16,
-                color: "#1e293b",
-              }}
-            >
-              👋 Welcome to Omni-Communication
-            </h2>
-            <p style={{ color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-              Manage conversations from <b>Facebook, Instagram, WhatsApp</b>, and
-              your <b>chat widget</b> – all unified in one beautiful dashboard.
-            </p>
-            <p style={{ marginTop: 16, color: "#475569", fontSize: 16 }}>
-              Use <b>Settings</b> to connect your channels or head over to{" "}
-              <b>Conversations</b> to start chatting.
-            </p>
-          </div>
-        )}
-
-        {/* SETTINGS TAB */}
-        {activeTab === "settings" && (
-          <div style={{ textAlign: "center" }}>
-            <button
-              onClick={handleFacebookLogin}
-              disabled={fbConnected}
-              className="btn-primary"
-            >
-              {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
-            </button>
-            <br />
-            <button
-              onClick={handleInstagramLogin}
-              disabled={igConnected}
-              className="btn-primary"
-            >
-              {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
-            </button>
-            <br />
-            <button
-              onClick={handleWhatsAppConnect}
-              disabled={waConnected}
-              className="btn-primary"
-            >
-              {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
-            </button>
-            <br />
-            <button
-              onClick={handleWidgetConnect}
-              disabled={widgetConnected}
-              className="btn-primary"
-            >
-              {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
-            </button>
-          </div>
-        )}
-
-        {/* CONVERSATIONS TAB */}
-        {activeTab === "conversations" && selectedPage && (
           <div
             style={{
-              display: "flex",
-              height: 600,
-              border: "1px solid #e5e7eb",
-              borderRadius: 18,
-              overflow: "hidden",
-              background: "#f9fafb",
-              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+              padding: "18px",
+              borderBottom: "1px solid #e5e7eb",
+              background: "#f1f5f9",
+              fontWeight: "700",
+              fontSize: 16,
+              color: "#111827",
             }}
           >
-            {/* Channels Sidebar */}
-            <div
-              style={{
-                width: "22%",
-                background: "#f9fafb",
-                borderRight: "1px solid #e5e7eb",
-                overflowY: "auto",
-              }}
-            >
-              <div
+            🚀 Navigation
+          </div>
+
+          {/* Nav Buttons */}
+          <button
+            onClick={() => setActiveTab("home")}
+            className="btn-nav"
+            style={{
+              backgroundColor: activeTab === "home" ? "#dbeafe" : "transparent",
+              fontWeight: activeTab === "home" ? "700" : "500",
+            }}
+          >
+            🏠 Home
+          </button>
+
+          <button
+            onClick={() => setActiveTab("settings")}
+            className="btn-nav"
+            style={{
+              backgroundColor: activeTab === "settings" ? "#dbeafe" : "transparent",
+              fontWeight: activeTab === "settings" ? "700" : "500",
+            }}
+          >
+            ⚙️ Settings
+          </button>
+
+          <button
+            onClick={() => setActiveTab("conversations")}
+            className="btn-nav"
+            style={{
+              backgroundColor: activeTab === "conversations" ? "#dbeafe" : "transparent",
+              fontWeight: activeTab === "conversations" ? "700" : "500",
+            }}
+          >
+            💬 Conversations
+          </button>
+        </div>
+
+        {/* Right Content Area */}
+        <div style={{ flex: 1, padding: 28, background: "#fff" }}>
+          {/* HOME TAB */}
+          {activeTab === "home" && (
+            <div>
+              <h2
                 style={{
-                  padding: "14px 16px",
-                  borderBottom: "1px solid #e5e7eb",
-                  background: "#f3f4f6",
-                  fontWeight: "700",
-                  color: "#0f172a",
+                  fontSize: 26,
+                  fontWeight: 800,
+                  marginBottom: 16,
+                  color: "#1e293b",
                 }}
               >
-                Channels
-              </div>
-
-              {[...fbPages, ...igPages].map((page) => (
-                <div
-                  key={page.id}
-                  onClick={() => fetchConversations(page)}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedPage?.id === page.id ? "#dbeafe" : "transparent",
-                    borderBottom: "1px solid #eee",
-                    fontWeight: "500",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  {page.type === "facebook" && "📘"}
-                  {page.type === "instagram" && "📸"}
-                  {page.name}
-                </div>
-              ))}
-
-              {waConnected && (
-                <div
-                  onClick={handleWhatsAppConnect}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedPage?.type === "whatsapp" ? "#dbeafe" : "transparent",
-                    borderBottom: "1px solid #eee",
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  💬 WhatsApp
-                </div>
-              )}
-
-              {widgetConnected && (
-                <div
-                  onClick={handleWidgetConnect}
-                  style={{
-                    padding: "12px 16px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      selectedPage?.type === "widget" ? "#dbeafe" : "transparent",
-                    borderBottom: "1px solid #eee",
-                    transition: "all 0.25s ease",
-                  }}
-                >
-                  🧩 Chat Widget
-                </div>
-              )}
+                👋 Welcome to Omni-Communication
+              </h2>
+              <p style={{ color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
+                Manage conversations from <b>Facebook, Instagram, WhatsApp</b>, and
+                your <b>chat widget</b> – all unified in one beautiful dashboard.
+              </p>
+              <p style={{ marginTop: 16, color: "#475569", fontSize: 16 }}>
+                Use <b>Settings</b> to connect your channels or head over to <b>Conversations</b> to start chatting.
+              </p>
             </div>
+          )}
 
-            {/* Conversations + Chat Area */}
-            <div style={{ flex: 1, display: "flex" }}>
-              {/* Conversations List */}
+          {/* SETTINGS TAB (moved to separate file) */}
+          {activeTab === "settings" && (
+            <Settings
+              fbConnected={fbConnected}
+              igConnected={igConnected}
+              waConnected={waConnected}
+              widgetConnected={widgetConnected}
+              handleFacebookLogin={handleFacebookLogin}
+              handleInstagramLogin={handleInstagramLogin}
+              handleWhatsAppConnect={handleWhatsAppConnect}
+              handleWidgetConnect={handleWidgetConnect}
+            />
+          )}
+
+          {/* CONVERSATIONS TAB */}
+          {activeTab === "conversations" && selectedPage && (
+            <div
+              style={{
+                display: "flex",
+                height: 600,
+                border: "1px solid #e5e7eb",
+                borderRadius: 18,
+                overflow: "hidden",
+                background: "#f9fafb",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+              }}
+            >
+              {/* Channels Sidebar */}
               <div
                 style={{
-                  width: "28%",
+                  width: "22%",
+                  background: "#f9fafb",
                   borderRight: "1px solid #e5e7eb",
                   overflowY: "auto",
-                  background: "#fff",
                 }}
               >
                 <div
@@ -973,350 +872,359 @@ return (
                     color: "#0f172a",
                   }}
                 >
-                  Conversations
+                  Channels
                 </div>
 
-                {loadingConversations ? (
-                  <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
-                ) : conversations.length === 0 ? (
-                  <div style={{ padding: 14, color: "#6b7280" }}>
-                    No conversations
+                {[...fbPages, ...igPages].map((page) => (
+                  <div
+                    key={page.id}
+                    onClick={() => fetchConversations(page)}
+                    style={{
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      backgroundColor: selectedPage?.id === page.id ? "#dbeafe" : "transparent",
+                      borderBottom: "1px solid #eee",
+                      fontWeight: "500",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.25s ease",
+                    }}
+                  >
+                    {page.type === "facebook" && "📘"}
+                    {page.type === "instagram" && "📸"}
+                    {page.name}
                   </div>
-                ) : (
-                  conversations.map((conv) => {
-                    const prettyName =
-                      selectedPage?.type === "instagram"
-                        ? `${conv.businessName || "You"} ↔️ ${
-                            conv.userName ||
-                            conv.user?.username ||
-                            "IG User"
-                          }`
-                        : selectedPage?.type === "whatsapp"
-                        ? conv.userName ||
-                          conv.contacts?.[0]?.wa_id ||
-                          conv.userNumber ||
-                          "WhatsApp User"
-                        : selectedPage?.type === "widget"
-                        ? conv.userName ||
-                          conv.meta?.name ||
-                          conv.user?.name ||
-                          "Widget User"
-                        : (conv.participants?.data
-                            ?.map((p) => p.name)
-                            .filter(Boolean)
-                            .join(", ")) ||
-                          conv.user?.name ||
-                          conv.sender?.name ||
-                          conv.recipient?.name ||
-                          conv.from?.name ||
-                          "Facebook User";
+                ))}
 
-                    const preview =
-                      conv.lastMessage ||
-                      conv.snippet ||
-                      conv.preview ||
-                      conv.last_text ||
-                      "";
+                {waConnected && (
+                  <div
+                    onClick={handleWhatsAppConnect}
+                    style={{
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      backgroundColor: selectedPage?.type === "whatsapp" ? "#dbeafe" : "transparent",
+                      borderBottom: "1px solid #eee",
+                      transition: "all 0.25s ease",
+                    }}
+                  >
+                    💬 WhatsApp
+                  </div>
+                )}
 
-                    return (
-                      <div
-                        key={conv.id || conv.thread_id}
-                        onClick={() => fetchMessages(conv)}
-                        style={{
-                          padding: "12px 16px",
-                          cursor: "pointer",
-                          backgroundColor:
-                            selectedConversation?.id === conv.id
-                              ? "#dbeafe"
-                              : "transparent",
-                          borderBottom: "1px solid #eee",
-                          transition: "all 0.25s ease",
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, color: "#1e293b" }}>
-                          {prettyName}
-                        </div>
-                        {preview && (
-                          <div
-                            style={{
-                              fontSize: 13,
-                              color: "#64748b",
-                              marginTop: 2,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {preview}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
+                {widgetConnected && (
+                  <div
+                    onClick={handleWidgetConnect}
+                    style={{
+                      padding: "12px 16px",
+                      cursor: "pointer",
+                      backgroundColor: selectedPage?.type === "widget" ? "#dbeafe" : "transparent",
+                      borderBottom: "1px solid #eee",
+                      transition: "all 0.25s ease",
+                    }}
+                  >
+                    🧩 Chat Widget
+                  </div>
                 )}
               </div>
 
-              {/* Chat Area */}
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  background: "#f1f5f9",
-                }}
-              >
-                {/* Chat Header */}
+              {/* Conversations + Chat Area */}
+              <div style={{ flex: 1, display: "flex" }}>
+                {/* Conversations List */}
                 <div
                   style={{
-                    padding: "14px 16px",
-                    borderBottom: "1px solid #e5e7eb",
-                    background: "#ffffff",
-                    fontWeight: "800",
-                    fontSize: 16,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    color: "#0f172a",
-                  }}
-                >
-                  <span style={{ fontSize: 18 }}>
-                    {selectedConversation
-                      ? (selectedPage?.type === "instagram"
-                          ? selectedConversation.userName ||
-                            selectedConversation.user?.username ||
-                            "IG User"
-                          : selectedPage?.type === "whatsapp"
-                          ? selectedConversation.userName ||
-                            selectedConversation.contacts?.[0]?.wa_id ||
-                            selectedConversation.userNumber ||
-                            "WhatsApp User"
-                          : selectedPage?.type === "widget"
-                          ? selectedConversation.userName ||
-                            selectedConversation.meta?.name ||
-                            selectedConversation.user?.name ||
-                            "Widget User"
-                          : (selectedConversation.participants?.data
-                              ?.map((p) => p.name)
-                              .filter(Boolean)
-                              .join(", ")) ||
-                            selectedConversation.user?.name ||
-                            selectedConversation.sender?.name ||
-                            selectedConversation.recipient?.name ||
-                            selectedConversation.from?.name ||
-                            "Facebook User")
-                      : "Chat"}
-                  </span>
-                </div>
-
-                {/* Messages */}
-                <div
-                  style={{
-                    flex: 1,
-                    padding: 20,
+                    width: "28%",
+                    borderRight: "1px solid #e5e7eb",
                     overflowY: "auto",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                  }}
-                >
-                  {(messages[
-                    selectedConversation?.messageKey || selectedConversation?.id
-                  ] || []).map((msg) => {
-                    const fromId = msg.from?.id || msg.from;
-                    const isMe = fromId === "me" || fromId === selectedPage?.id;
-
-                    return (
-                      <div
-                        key={msg.id}
-                        style={{
-                          display: "flex",
-                          justifyContent: isMe ? "flex-end" : "flex-start",
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: "12px 16px",
-                            borderRadius: 20,
-                            maxWidth: "70%",
-                            fontSize: 14,
-                            lineHeight: "20px",
-                            background: isMe ? "#2563eb" : "#ffffff",
-                            color: isMe ? "#ffffff" : "#0f172a",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                            wordBreak: "break-word",
-                            transition: "transform .15s ease",
-                          }}
-                        >
-                          {!isMe && (
-                            <div
-                              style={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                marginBottom: 4,
-                                color: "#334155",
-                              }}
-                            >
-                              {msg.displayName || msg.from?.name || "User"}
-                            </div>
-                          )}
-                          <div>{msg.message || msg.text || msg.body}</div>
-                          {msg.created_time && (
-                            <small
-                              style={{
-                                display: "block",
-                                marginTop: 6,
-                                fontSize: 11,
-                                opacity: 0.65,
-                                textAlign: isMe ? "right" : "left",
-                              }}
-                            >
-                              {new Date(msg.created_time).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </small>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                {/* Input */}
-                <div
-                  style={{
-                    display: "flex",
-                    padding: 14,
-                    borderTop: "1px solid #e5e7eb",
                     background: "#fff",
                   }}
                 >
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderBottom: "1px solid #e5e7eb",
+                      background: "#f3f4f6",
+                      fontWeight: "700",
+                      color: "#0f172a",
+                    }}
+                  >
+                    Conversations
+                  </div>
+
+                  {loadingConversations ? (
+                    <div style={{ padding: 14, color: "#6b7280" }}>Loading...</div>
+                  ) : conversations.length === 0 ? (
+                    <div style={{ padding: 14, color: "#6b7280" }}>No conversations</div>
+                  ) : (
+                    conversations.map((conv) => {
+                      const prettyName =
+                        selectedPage?.type === "instagram"
+                          ? `${conv.businessName || "You"} ↔️ ${conv.userName || conv.user?.username || "IG User"}`
+                          : selectedPage?.type === "whatsapp"
+                          ? conv.userName || conv.contacts?.[0]?.wa_id || conv.userNumber || "WhatsApp User"
+                          : selectedPage?.type === "widget"
+                          ? conv.userName || conv.meta?.name || conv.user?.name || "Widget User"
+                          : (conv.participants?.data?.map((p) => p.name).filter(Boolean).join(", ")) || conv.user?.name || conv.sender?.name || conv.recipient?.name || conv.from?.name || "Facebook User";
+
+                      const preview = conv.lastMessage || conv.snippet || conv.preview || conv.last_text || "";
+
+                      return (
+                        <div
+                          key={conv.id || conv.thread_id}
+                          onClick={() => fetchMessages(conv)}
+                          style={{
+                            padding: "12px 16px",
+                            cursor: "pointer",
+                            backgroundColor: selectedConversation?.id === conv.id ? "#dbeafe" : "transparent",
+                            borderBottom: "1px solid #eee",
+                            transition: "all 0.25s ease",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, color: "#1e293b" }}>{prettyName}</div>
+                          {preview && (
+                            <div
+                              style={{
+                                fontSize: 13,
+                                color: "#64748b",
+                                marginTop: 2,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {preview}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Chat Area */}
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    background: "#f1f5f9",
+                  }}
+                >
+                  {/* Chat Header */}
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      borderBottom: "1px solid #e5e7eb",
+                      background: "#ffffff",
+                      fontWeight: "800",
+                      fontSize: 16,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      color: "#0f172a",
+                    }}
+                  >
+                    <span style={{ fontSize: 18 }}>
+                      {selectedConversation
+                        ? (selectedPage?.type === "instagram"
+                            ? selectedConversation.userName || selectedConversation.user?.username || "IG User"
+                            : selectedPage?.type === "whatsapp"
+                            ? selectedConversation.userName || selectedConversation.contacts?.[0]?.wa_id || selectedConversation.userNumber || "WhatsApp User"
+                            : selectedPage?.type === "widget"
+                            ? selectedConversation.userName || selectedConversation.meta?.name || selectedConversation.user?.name || "Widget User"
+                            : (selectedConversation.participants?.data?.map((p) => p.name).filter(Boolean).join(", ")) || selectedConversation.user?.name || selectedConversation.sender?.name || selectedConversation.recipient?.name || selectedConversation.from?.name || "Facebook User")
+                        : "Chat"}
+                    </span>
+                  </div>
+
+                  {/* Messages */}
+                  <div
                     style={{
                       flex: 1,
-                      padding: "14px 18px",
-                      borderRadius: 25,
-                      border: "1px solid #d1d5db",
-                      fontSize: 15,
-                      outline: "none",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.06) inset",
+                      padding: 20,
+                      overflowY: "auto",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 12,
                     }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") sendMessage();
-                    }}
-                    disabled={sendingMessage}
-                  />
-                  <button
-                    onClick={() =>
-                      !sendingMessage && newMessage.trim() && sendMessage()
-                    }
-                    disabled={sendingMessage || !newMessage.trim()}
-                    style={{
-                      marginLeft: 12,
-                      padding: "12px 22px",
-                      background: sendingMessage
-                        ? "#9ca3af"
-                        : "linear-gradient(135deg,#2563eb,#1e40af)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 50,
-                      fontWeight: "600",
-                      cursor: sendingMessage ? "not-allowed" : "pointer",
-                      transition: "transform 0.2s ease, background 0.3s ease",
-                    }}
-                    onMouseDown={(e) =>
-                      (e.currentTarget.style.transform = "scale(0.95)")
-                    }
-                    onMouseUp={(e) =>
-                      (e.currentTarget.style.transform = "scale(1)")
-                    }
                   >
-                    {sendingMessage ? "..." : "➤"}
-                  </button>
+                    {(messages[selectedConversation?.messageKey || selectedConversation?.id] || []).map((msg) => {
+                      const fromId = (msg.from && (typeof msg.from === "string" ? msg.from : msg.from.id)) || msg.from;
+                      const isMe = fromId === "me" || fromId === selectedPage?.id;
+
+                      return (
+                        <div
+                          key={msg.id}
+                          style={{
+                            display: "flex",
+                            justifyContent: isMe ? "flex-end" : "flex-start",
+                          }}
+                        >
+                          <div
+                            style={{
+                              padding: "12px 16px",
+                              borderRadius: 20,
+                              maxWidth: "70%",
+                              fontSize: 14,
+                              lineHeight: "20px",
+                              background: isMe ? "#2563eb" : "#ffffff",
+                              color: isMe ? "#ffffff" : "#0f172a",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                              wordBreak: "break-word",
+                              transition: "transform .15s ease",
+                            }}
+                          >
+                            {!isMe && (
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  marginBottom: 4,
+                                  color: "#334155",
+                                }}
+                              >
+                                {msg.displayName || (msg.from && msg.from.name) || "User"}
+                              </div>
+                            )}
+                            <div>{msg.message || msg.text || msg.body}</div>
+                            {msg.created_time && (
+                              <small
+                                style={{
+                                  display: "block",
+                                  marginTop: 6,
+                                  fontSize: 11,
+                                  opacity: 0.65,
+                                  textAlign: isMe ? "right" : "left",
+                                }}
+                              >
+                                {new Date(msg.created_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </small>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Input */}
+                  <div
+                    style={{
+                      display: "flex",
+                      padding: 14,
+                      borderTop: "1px solid #e5e7eb",
+                      background: "#fff",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      style={{
+                        flex: 1,
+                        padding: "14px 18px",
+                        borderRadius: 25,
+                        border: "1px solid #d1d5db",
+                        fontSize: 15,
+                        outline: "none",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.06) inset",
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") sendMessage();
+                      }}
+                      disabled={sendingMessage}
+                    />
+                    <button
+                      onClick={() => !sendingMessage && newMessage.trim() && sendMessage()}
+                      disabled={sendingMessage || !newMessage.trim()}
+                      style={{
+                        marginLeft: 12,
+                        padding: "12px 22px",
+                        background: sendingMessage ? "#9ca3af" : "linear-gradient(135deg,#2563eb,#1e40af)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 50,
+                        fontWeight: "600",
+                        cursor: sendingMessage ? "not-allowed" : "pointer",
+                        transition: "transform 0.2s ease, background 0.3s ease",
+                      }}
+                      onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.95)")}
+                      onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                    >
+                      {sendingMessage ? "..." : "➤"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* If Conversations tab is open but no channel selected */}
-        {activeTab === "conversations" && !selectedPage && (
-          <div
-            style={{
-              height: 600,
-              border: "1px solid #e5e7eb",
-              borderRadius: 18,
-              background: "#f8fafc",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#64748b",
-              fontSize: 16,
-              fontWeight: "500",
-            }}
-          >
-            👈 Select a channel from the left to view conversations
-          </div>
-        )}
+          {/* If Conversations tab is open but no channel selected */}
+          {activeTab === "conversations" && !selectedPage && (
+            <div
+              style={{
+                height: 600,
+                border: "1px solid #e5e7eb",
+                borderRadius: 18,
+                background: "#f8fafc",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#64748b",
+                fontSize: 16,
+                fontWeight: "500",
+              }}
+            >
+              👈 Select a channel from the left to view conversations
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Styles */}
+      <style>{`
+        .btn-primary {
+          background: linear-gradient(135deg,#111827,#1f2937);
+          color: white;
+          padding: 14px 26px;
+          border: none;
+          border-radius: 14px;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          width: 260px;
+          margin: 10px 0;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .btn-primary:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+        .btn-primary:not(:disabled):hover {
+          background: linear-gradient(135deg,#1e293b,#111827);
+          transform: translateY(-2px);
+        }
+
+        .btn-nav {
+          text-align: left;
+          padding: 16px 18px;
+          border: none;
+          background: transparent;
+          font-size: 15px;
+          cursor: pointer;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          color: #0f172a;
+        }
+        .btn-nav:hover {
+          background: #f1f5f9;
+          border-radius: 8px;
+        }
+      `}</style>
     </div>
-
-    {/* Styles */}
-    <style>{`
-      .btn-primary {
-        background: linear-gradient(135deg,#111827,#1f2937);
-        color: white;
-        padding: 14px 26px;
-        border: none;
-        border-radius: 14px;
-        font-size: 15px;
-        font-weight: 600;
-        cursor: pointer;
-        width: 260px;
-        margin: 10px 0;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-      }
-      .btn-primary:disabled {
-        background: #9ca3af;
-        cursor: not-allowed;
-        box-shadow: none;
-      }
-      .btn-primary:not(:disabled):hover {
-        background: linear-gradient(135deg,#1e293b,#111827);
-        transform: translateY(-2px);
-      }
-      .btn-nav {
-        text-align: left;
-        padding: 16px 20px;
-        border: none;
-        background: transparent;
-        font-size: 15px;
-        cursor: pointer;
-        font-weight: 500;
-        color
-
-      .btn-nav {
-        text-align: left;
-        padding: 16px 18px;
-        border: none;
-        background: transparent;
-        font-size: 15px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: all 0.2s ease;
-      }
-      .btn-nav:hover {
-        background: #f1f5f9;
-        border-radius: 8px;
-      }
-    `}</style>
-  </div>
 );
 
 
