@@ -766,7 +766,7 @@ return (
           🚀 Navigation
         </div>
 
-        {/* Nav Buttons (Settings Removed) */}
+        {/* Nav Buttons */}
         <button
           onClick={() => setActiveTab("home")}
           className="btn-nav"
@@ -812,6 +812,83 @@ return (
             <p style={{ marginTop: 16, color: "#475569", fontSize: 16 }}>
               Head over to <b>Conversations</b> to start chatting.
             </p>
+
+            {/* Platform Connect Buttons */}
+            <div style={{ marginTop: 30 }}>
+              <button
+                onClick={handleFacebookLogin}
+                className="btn-primary"
+              >
+                {fbConnected ? "Facebook Connected" : "Connect Facebook"}
+              </button>
+
+              <button
+                onClick={handleInstagramLogin}
+                className="btn-primary"
+                style={{ marginLeft: 10 }}
+              >
+                {igConnected ? "Instagram Connected" : "Connect Instagram"}
+              </button>
+
+              <button
+                onClick={handleWhatsAppConnect}
+                className="btn-primary"
+                style={{ marginLeft: 10 }}
+              >
+                {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
+              </button>
+
+              <button
+                onClick={handleWidgetConnect}
+                className="btn-primary"
+                style={{ marginLeft: 10 }}
+              >
+                {widgetConnected ? "Widget Connected" : "Connect Widget"}
+              </button>
+            </div>
+
+            {/* Connected Pages List */}
+            {fbPages.length > 0 && (
+              <div style={{ marginTop: 30 }}>
+                <h3>Facebook Pages</h3>
+                {fbPages.map((p) => (
+                  <div key={p.id} style={{ marginBottom: 10 }}>
+                    <span>{p.name}</span>
+                    <button
+                      style={{ marginLeft: 10 }}
+                      className="btn-primary"
+                      onClick={() => {
+                        setSelectedPage({ ...p, type: "facebook" });
+                        fetchConversations({ ...p, type: "facebook" });
+                      }}
+                    >
+                      Connect Page
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {igPages.length > 0 && (
+              <div style={{ marginTop: 30 }}>
+                <h3>Instagram Pages</h3>
+                {igPages.map((p) => (
+                  <div key={p.id} style={{ marginBottom: 10 }}>
+                    <span>{p.name}</span>
+                    <button
+                      style={{ marginLeft: 10 }}
+                      className="btn-primary"
+                      onClick={() => {
+                        setSelectedPage({ ...p, type: "instagram" });
+                        fetchConversations({ ...p, type: "instagram" });
+                      }}
+                    >
+                      Connect Page
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -828,8 +905,7 @@ return (
               boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
             }}
           >
-            {/* Channels Sidebar */}
-            {/* ... same as before ... */}
+            {/* Conversations UI goes here */}
           </div>
         )}
 
@@ -865,10 +941,8 @@ return (
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
-        width: 260px;
-        margin: 10px 0;
+        margin-top: 10px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       }
       .btn-primary:disabled {
         background: #9ca3af;
@@ -896,9 +970,6 @@ return (
     `}</style>
   </div>
 );
-
-
-
 
 
 
