@@ -6,7 +6,7 @@ export default function Dashboard({ selectedPlatform, selectedPage }) {
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // Fetch conversations when page/platform changes
+  // Fetch conversations when a page is connected
   useEffect(() => {
     if (selectedPlatform && selectedPage) fetchConversations(selectedPlatform, selectedPage.id);
   }, [selectedPlatform, selectedPage]);
@@ -34,6 +34,7 @@ export default function Dashboard({ selectedPlatform, selectedPage }) {
     });
   };
 
+  // Auto scroll
   useEffect(() => {
     if (messagesEndRef.current)
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -41,48 +42,54 @@ export default function Dashboard({ selectedPlatform, selectedPage }) {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>
-        {selectedPlatform?.toUpperCase()} - {selectedPage?.name} Conversations
-      </h2>
+      {selectedPage ? (
+        <>
+          <h2>
+            {selectedPlatform.toUpperCase()} - {selectedPage.name} Conversations
+          </h2>
 
-      {/* Conversations List */}
-      <div style={{ display: "flex", gap: 20 }}>
-        <div style={{ flex: 1 }}>
-          <h3>Users</h3>
-          <ul>
-            {conversations.map((conv) => (
-              <li
-                key={conv.id}
-                onClick={() => fetchMessages(conv)}
-                style={{ cursor: "pointer", margin: 5 }}
-              >
-                {conv.participants?.data.map((p) => p.name).join(", ")}
-              </li>
-            ))}
-          </ul>
-        </div>
+          <div style={{ display: "flex", gap: 20 }}>
+            {/* Users / Conversations */}
+            <div style={{ flex: 1 }}>
+              <h3>Users</h3>
+              <ul>
+                {conversations.map((conv) => (
+                  <li
+                    key={conv.id}
+                    onClick={() => fetchMessages(conv)}
+                    style={{ cursor: "pointer", margin: 5 }}
+                  >
+                    {conv.participants?.data.map((p) => p.name).join(", ")}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-        {/* Messages */}
-        <div style={{ flex: 2 }}>
-          <h3>
-            Messages with{" "}
-            {selectedConversation?.participants?.data.map((p) => p.name).join(", ")}
-          </h3>
-          <div style={{ border: "1px solid #ccc", padding: 10, minHeight: 300 }}>
-            {messages.map((msg) => (
-              <p
-                key={msg.id}
-                style={{
-                  textAlign: msg.from?.id === selectedPage.id ? "right" : "left",
-                }}
-              >
-                <strong>{msg.from?.name}:</strong> {msg.message}
-              </p>
-            ))}
-            <div ref={messagesEndRef}></div>
+            {/* Messages */}
+            <div style={{ flex: 2 }}>
+              <h3>
+                Messages with{" "}
+                {selectedConversation?.participants?.data.map((p) => p.name).join(", ")}
+              </h3>
+              <div style={{ border: "1px solid #ccc", padding: 10, minHeight: 300 }}>
+                {messages.map((msg) => (
+                  <p
+                    key={msg.id}
+                    style={{
+                      textAlign: msg.from?.id === selectedPage.id ? "right" : "left",
+                    }}
+                  >
+                    <strong>{msg.from?.name}:</strong> {msg.message}
+                  </p>
+                ))}
+                <div ref={messagesEndRef}></div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      ) : (
+        <p>Please connect a page from Settings to view conversations.</p>
+      )}
     </div>
   );
 }

@@ -27,18 +27,18 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
     }
   }, []);
 
-  // Facebook Login
   const handleFacebookLogin = () => {
     if (!window.FB) return alert("Facebook SDK not loaded yet");
 
     window.FB.login(
-      function (res) {
+      (res) => {
         if (res.authResponse) {
           setFbConnected(true);
           const token = res.authResponse.accessToken;
+
           window.FB.api("/me/accounts", "GET", { access_token: token }, function (response) {
-            if (response && !response.error) setFbPages(response.data);
-            else console.error("FB Pages Error:", response.error);
+            if (!response || response.error) console.error(response?.error);
+            else setFbPages(response.data);
           });
         }
       },
@@ -46,20 +46,21 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
     );
   };
 
-  // Instagram Login
   const handleInstagramLogin = () => {
     if (!window.FB) return alert("Facebook SDK not loaded yet");
 
     window.FB.login(
-      function (res) {
+      (res) => {
         if (res.authResponse) {
           setIgConnected(true);
           const token = res.authResponse.accessToken;
+
           window.FB.api("/me/accounts", "GET", { access_token: token }, function (response) {
-            if (response && !response.error) {
+            if (!response || response.error) console.error(response?.error);
+            else {
               const igAccounts = response.data.filter((p) => p.instagram_business_account);
               setIgPages(igAccounts);
-            } else console.error("IG Accounts Error:", response.error);
+            }
           });
         }
       },
@@ -72,7 +73,7 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
 
   const handleConnectPage = (platform, page) => {
     setSelectedPlatform(platform);
-    setSelectedPage(page); // app._index.jsx detects this
+    setSelectedPage(page); // this will trigger dashboard to fetch users
   };
 
   return (
