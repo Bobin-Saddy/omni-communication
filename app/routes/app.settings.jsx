@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-export default function Settings({ setSelectedPlatform, setSelectedPage }) {
+export default function Settings({ setSelectedPlatform, setSelectedPage, selectedPage }) {
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
   const [fbPages, setFbPages] = useState([]);
@@ -8,7 +8,6 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  // Initialize FB SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -73,7 +72,7 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
 
   const handleConnectPage = (platform, page) => {
     setSelectedPlatform(platform);
-    setSelectedPage(page); // this will trigger dashboard to fetch users
+    setSelectedPage(page);
   };
 
   return (
@@ -95,7 +94,9 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
             {fbPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => handleConnectPage("facebook", page)}>Connect</button>
+                <button onClick={() => handleConnectPage("facebook", page)}>
+                  Connect {selectedPage?.id === page.id && "✅"}
+                </button>
               </li>
             ))}
           </ul>
@@ -109,7 +110,9 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
             {igPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => handleConnectPage("instagram", page)}>Connect</button>
+                <button onClick={() => handleConnectPage("instagram", page)}>
+                  Connect {selectedPage?.id === page.id && "✅"}
+                </button>
               </li>
             ))}
           </ul>
