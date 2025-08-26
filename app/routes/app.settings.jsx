@@ -54,50 +54,55 @@ export default function Settings({
     );
   };
 
-  const fetchFacebookPages = async (accessToken) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
-      );
-      const data = await res.json();
-      if (!data?.data?.length) return;
+const fetchFacebookPages = async (accessToken) => {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
+    );
+    const data = await res.json();
+    console.log("FB Pages:", data); // <-- add this
 
-      const tokens = {};
-      const pages = data.data.map((p) => {
-        tokens[p.id] = p.access_token;
-        return { ...p, type: "facebook" };
-      });
+    if (!data?.data?.length) return;
 
-      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-      setFbPages(pages);
-      setFbConnected(true);
-    } catch (err) {
-      console.error("FB pages fetch failed", err);
-    }
-  };
+    const tokens = {};
+    const pages = data.data.map((p) => {
+      tokens[p.id] = p.access_token;
+      return { ...p, type: "facebook" };
+    });
 
-  const fetchInstagramPages = async (accessToken) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
-      );
-      const data = await res.json();
-      if (!data?.data?.length) return;
+    setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+    setFbPages(pages);
+    setFbConnected(true);
+  } catch (err) {
+    console.error("FB pages fetch failed", err);
+  }
+};
 
-      const igAccounts = data.data.filter((p) => p.instagram_business_account);
-      const tokens = {};
-      const enriched = igAccounts.map((p) => {
-        tokens[p.id] = p.access_token;
-        return { ...p, type: "instagram", igId: p.instagram_business_account.id };
-      });
+const fetchInstagramPages = async (accessToken) => {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
+    );
+    const data = await res.json();
+    console.log("IG Pages:", data); // <-- add this
 
-      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-      setIgPages(enriched);
-      setIgConnected(true);
-    } catch (err) {
-      console.error("IG pages fetch failed", err);
-    }
-  };
+    const igAccounts = data.data.filter((p) => p.instagram_business_account);
+    if (!igAccounts.length) return;
+
+    const tokens = {};
+    const enriched = igAccounts.map((p) => {
+      tokens[p.id] = p.access_token;
+      return { ...p, type: "instagram", igId: p.instagram_business_account.id };
+    });
+
+    setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+    setIgPages(enriched);
+    setIgConnected(true);
+  } catch (err) {
+    console.error("IG pages fetch failed", err);
+  }
+};
+
 
   const handleConnectPage = (page) => {
     setSelectedPage(page);
