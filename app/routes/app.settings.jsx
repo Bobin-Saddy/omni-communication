@@ -1,9 +1,21 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
-export default function Settings({ selectedPage, setSelectedPage, fbPages, setFbPages, igPages, setIgPages }) {
+export default function Settings({
+  selectedPage,
+  setSelectedPage,
+  fbPages,
+  setFbPages,
+  igPages,
+  setIgPages,
+}) {
+  const [fbConnected, setFbConnected] = useState(false);
+  const [igConnected, setIgConnected] = useState(false);
+
   const FACEBOOK_APP_ID = "544704651303656";
 
+  // Load FB SDK safely
   useEffect(() => {
+    if (typeof window === "undefined") return; // SSR safe
     if (document.getElementById("facebook-jssdk")) return;
 
     window.fbAsyncInit = function () {
@@ -28,31 +40,38 @@ export default function Settings({ selectedPage, setSelectedPage, fbPages, setFb
     document.body.appendChild(js);
   }, []);
 
+  // Fetch FB Pages
   const fetchFBPages = async (accessToken) => {
     try {
       const res = await fetch(
         `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}`
       );
       const data = await res.json();
-      if (!Array.isArray(data?.data)) return;
+      if (!data?.data || !Array.isArray(data.data) || data.data.length === 0) return;
 
-      setFbPages(data.data.map((p) => ({ ...p, type: "facebook" })));
-      setSelectedPage(data.data[0]);
+      const pages = data.data.map((p) => ({ ...p, type: "facebook" }));
+      setFbPages(pages);
+      setFbConnected(true);
+
+      if (!selectedPage && pages.length > 0) {
+        setSelectedPage(pages[0]);
+      }
     } catch (err) {
       console.error("Error fetching FB pages:", err);
     }
   };
 
+  // Fetch IG Pages
   const fetchIGPages = async (accessToken) => {
     try {
       const res = await fetch(
         `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${accessToken}`
       );
       const data = await res.json();
-      if (!Array.isArray(data?.data)) return;
+      if (!data?.data || !Array.isArray(data.data)) return;
 
       const igAccounts = data.data.filter((p) => p.instagram_business_account);
-      if (!igAccounts.length) return;
+      if (igAccounts.length === 0) return;
 
       const enriched = igAccounts.map((p) => ({
         ...p,
@@ -61,23 +80,32 @@ export default function Settings({ selectedPage, setSelectedPage, fbPages, setFb
       }));
 
       setIgPages(enriched);
-      setSelectedPage(enriched[0]);
+      setIgConnected(true);
+
+      if (!selectedPage && enriched.length > 0) {
+        setSelectedPage(enriched[0]);
+      }
     } catch (err) {
       console.error("Error fetching IG pages:", err);
     }
   };
 
+  // FB Login
   const handleFBLogin = () => {
     if (!window.FB) return console.error("FB SDK not loaded yet");
 
     window.FB.login(
       (res) => {
-        if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
+        if (res.authResponse) {
+          fetchFBPages(res.authResponse.accessToken);
+          fetchIGPages(res.authResponse.accessToken);
+        }
       },
       { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
     );
   };
 
+  // IG Login
   const handleIGLogin = () => {
     if (!window.FB) return console.error("FB SDK not loaded yet");
 
@@ -92,37 +120,45 @@ export default function Settings({ selectedPage, setSelectedPage, fbPages, setFb
     );
   };
 
+  const handleConnectPage = (page) => setSelectedPage(page);
+
   return (
     <div style={{ padding: 20 }}>
       <h2>Settings</h2>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={handleFBLogin}>Login Facebook</button>
-        <button onClick={handleIGLogin}>Login Instagram</button>
+        <button onClick={handleFBLogin} disabled={fbConnected}>
+          Login Facebook
+        </button>
+        <button onClick={handleIGLogin} disabled={igConnected}>
+          Login Instagram
+        </button>
       </div>
 
-      {fbPages.length > 0 && (
+      {/* Facebook Pages */}
+      {fbPages && fbPages.length > 0 && (
         <div>
           <h3>Facebook Pages</h3>
           <ul>
             {fbPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => setSelectedPage(page)}>Connect</button>
+                <button onClick={() => handleConnectPage(page)}>Connect</button>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {igPages.length > 0 && (
+      {/* Instagram Accounts */}
+      {igPages && igPages.length > 0 && (
         <div>
           <h3>Instagram Accounts</h3>
           <ul>
             {igPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => setSelectedPage(page)}>Connect</button>
+                <button onClick={() => handleConnectPage(page)}>Connect</button>
               </li>
             ))}
           </ul>
