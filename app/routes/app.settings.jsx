@@ -41,54 +41,62 @@ export default function Settings({
   }, []);
 
   // Fetch FB Pages
-  const fetchFBPages = async (accessToken) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}`
-      );
-      const data = await res.json();
-      if (!data?.data || !Array.isArray(data.data) || data.data.length === 0) return;
+const fetchFBPages = async (accessToken) => {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}`
+    );
+    const data = await res.json();
 
-      const pages = data.data.map((p) => ({ ...p, type: "facebook" }));
-      setFbPages(pages);
-      setFbConnected(true);
-
-      if (!selectedPage && pages.length > 0) {
-        setSelectedPage(pages[0]);
-      }
-    } catch (err) {
-      console.error("Error fetching FB pages:", err);
+    if (!data || !Array.isArray(data.data)) {
+      console.error("FB API response:", data);
+      return;
     }
-  };
 
-  // Fetch IG Pages
-  const fetchIGPages = async (accessToken) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${accessToken}`
-      );
-      const data = await res.json();
-      if (!data?.data || !Array.isArray(data.data)) return;
+    const pages = data.data.map((p) => ({ ...p, type: "facebook" }));
+    setFbPages(pages);
+    setFbConnected(true);
 
-      const igAccounts = data.data.filter((p) => p.instagram_business_account);
-      if (igAccounts.length === 0) return;
-
-      const enriched = igAccounts.map((p) => ({
-        ...p,
-        type: "instagram",
-        igId: p.instagram_business_account.id,
-      }));
-
-      setIgPages(enriched);
-      setIgConnected(true);
-
-      if (!selectedPage && enriched.length > 0) {
-        setSelectedPage(enriched[0]);
-      }
-    } catch (err) {
-      console.error("Error fetching IG pages:", err);
+    if (!selectedPage && pages.length > 0) {
+      setSelectedPage(pages[0]);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching FB pages:", err);
+  }
+};
+
+const fetchIGPages = async (accessToken) => {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${accessToken}`
+    );
+    const data = await res.json();
+
+    if (!data || !Array.isArray(data.data)) {
+      console.error("IG API response:", data);
+      return;
+    }
+
+    const igAccounts = data.data.filter((p) => p.instagram_business_account);
+    if (igAccounts.length === 0) return;
+
+    const enriched = igAccounts.map((p) => ({
+      ...p,
+      type: "instagram",
+      igId: p.instagram_business_account.id,
+    }));
+
+    setIgPages(enriched);
+    setIgConnected(true);
+
+    if (!selectedPage && enriched.length > 0) {
+      setSelectedPage(enriched[0]);
+    }
+  } catch (err) {
+    console.error("Error fetching IG pages:", err);
+  }
+};
+
 
   // FB Login
   const handleFBLogin = () => {
