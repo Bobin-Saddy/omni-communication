@@ -1,43 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
-export default function Settings() {
-  const [activeTab, setActiveTab] = useState("settings"); // tab control
+export default function Settings({ onPageSelect }) {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
   const [waConnected, setWaConnected] = useState(false);
   const [widgetConnected, setWidgetConnected] = useState(false);
-
-  const [selectedPage, setSelectedPage] = useState(null);
   const [pageAccessTokens, setPageAccessTokens] = useState({});
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-
-  const [loadingPages, setLoadingPages] = useState(false);
-  const [loadingConversations, setLoadingConversations] = useState(false);
-  const [sendingMessage, setSendingMessage] = useState(false);
-
-  const messagesEndRef = useRef(null);
-  const [currentStoreDomain, setCurrentStoreDomain] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
-  const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPFAoZAF4Gv01xG9ZCpwHQbmRpNbBM8q1HsSiiRODdClpCNjNM2yTE6jJhm3rOonkbvURHHaEH8svAGiCF9dFKqdqRuC18yhZBxxDZCgpAxZAPfHzgTcJXILmGK9xNyxaStGF9E8gDOKLsw4gkeumEwJOBHc7u1kfJxifWgtkChCmO77ZBdlkF1ZBooZAKVJEvOiTuybHb2Clc0oaMseMxyxPq7ymrAIMTAZDZD";
-  const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
-  // -----------------------------
-  // On mount: get current store
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shop = urlParams.get("shop");
-    if (shop) setCurrentStoreDomain(shop);
-  }, []);
-
-  // -----------------------------
-  // Initialize Facebook SDK
+  // Init FB SDK
   useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -55,69 +29,49 @@ export default function Settings() {
     }
   }, []);
 
-  // Scroll messages to bottom
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
   // -----------------------------
-  // Reset functions
-  const resetFbData = () => {
-    setFbPages([]);
-    setFbConnected(false);
-    if (selectedPage?.type === "facebook") {
-      setSelectedPage(null);
-      setConversations([]);
-      setMessages([]);
-    }
-  };
-
-  const resetIgData = () => {
-    setIgPages([]);
-    setIgConnected(false);
-    if (selectedPage?.type === "instagram") {
-      setSelectedPage(null);
-      setConversations([]);
-      setMessages([]);
-    }
-  };
-
-  // -----------------------------
-  // Login / Connect functions
+  // Connect functions
   const handleFacebookLogin = () => {
     window.FB.login(
-      (res) => {
+      async (res) => {
         if (res.authResponse) {
-          resetIgData();
-          fetchFacebookPages(res.authResponse.accessToken).then((pages) => {
-            if (pages && pages.length > 0) {
-              setSelectedPage({ ...pages[0], type: "facebook" });
-              fetchConversations(pages[0]);
-            }
-            setFbConnected(true);
+          const accessToken = res.authResponse.accessToken;
+          setFbConnected(true);
+          const pagesRes = await fetch(
+            `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
+          );
+          const data = await pagesRes.json();
+          const tokens = {};
+          const pages = data.data.map((p) => {
+            tokens[p.id] = p.access_token;
+            return p;
           });
+          setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+          setFbPages(pages);
         }
       },
-      {
-        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
-      }
+      { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
     );
   };
 
   const handleInstagramLogin = () => {
     window.FB.login(
-      (res) => {
+      async (res) => {
         if (res.authResponse) {
-          resetFbData();
-          fetchInstagramPages(res.authResponse.accessToken).then((pages) => {
-            if (pages && pages.length > 0) {
-              setSelectedPage({ ...pages[0], type: "instagram" });
-              fetchConversations(pages[0]);
-            }
-            setIgConnected(true);
+          const accessToken = res.authResponse.accessToken;
+          setIgConnected(true);
+          const pagesRes = await fetch(
+            `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
+          );
+          const data = await pagesRes.json();
+          const igPagesFiltered = data.data.filter((p) => p.instagram_business_account);
+          const tokens = {};
+          const pages = igPagesFiltered.map((p) => {
+            tokens[p.id] = p.access_token;
+            return { ...p, igId: p.instagram_business_account.id };
           });
+          setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+          setIgPages(pages);
         }
       },
       {
@@ -127,229 +81,86 @@ export default function Settings() {
     );
   };
 
-  const handleWidgetConnect = async () => {
-    try {
-      setLoadingConversations(true);
-      const res = await fetch(`/api/chat?widget=true`);
-      if (!res.ok) throw new Error("Failed to fetch widget sessions");
-
-      const data = await res.json();
-      setConversations(data.sessions || []);
-      setSelectedPage({ id: "widget", type: "widget", name: "Chat Widget" });
-      setWidgetConnected(true);
-    } catch (err) {
-      console.error("Widget connect failed:", err);
-    } finally {
-      setLoadingConversations(false);
-    }
+  const handleWhatsAppConnect = () => {
+    setWaConnected(true);
   };
 
-  const handleWhatsAppConnect = async () => {
-    try {
-      const res = await fetch("/get-whatsapp-users");
-      const users = await res.json(); // [{ number, name }]
-      const convs = users.map((u, index) => ({
-        id: `wa-${index}`,
-        userName: u.name || u.number,
-        businessName: "You",
-        userNumber: u.number,
-      }));
-      setConversations(convs);
-      setMessages([]);
-      setSelectedConversation(null);
-      setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
-      setWaConnected(true);
-    } catch (error) {
-      alert("Failed to fetch WhatsApp users.");
-      console.error(error);
-    }
+  const handleWidgetConnect = () => {
+    setWidgetConnected(true);
   };
 
   // -----------------------------
-  // Fetch pages
-  const fetchFacebookPages = async (accessToken) => {
-    setLoadingPages(true);
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
-      );
-      const data = await res.json();
-
-      if (!Array.isArray(data?.data) || data.data.length === 0) {
-        alert("No Facebook pages found.");
-        return;
-      }
-
-      const tokens = {};
-      const pages = data.data.map((page) => {
-        tokens[page.id] = page.access_token;
-        return { ...page, type: "facebook" };
-      });
-
-      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-      setFbPages(pages);
-      setFbConnected(true);
-      setSelectedPage(pages[0]);
-      await fetchConversations(pages[0]);
-    } catch (error) {
-      alert("Error fetching Facebook pages.");
-      console.error(error);
-    } finally {
-      setLoadingPages(false);
+  // When user clicks a page "Connect" button
+  const connectPage = (page, type) => {
+    if (onPageSelect) {
+      onPageSelect({ ...page, type });
     }
   };
 
-  const fetchInstagramPages = async (accessToken) => {
-    setLoadingPages(true);
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
-      );
-      const data = await res.json();
-
-      const igPages = data.data.filter((p) => p.instagram_business_account);
-      if (!igPages.length) {
-        alert("No Instagram business accounts found.");
-        return;
-      }
-
-      const tokens = {};
-      const enriched = igPages.map((page) => {
-        tokens[page.id] = page.access_token;
-        return {
-          ...page,
-          type: "instagram",
-          igId: page.instagram_business_account.id,
-        };
-      });
-
-      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-      setIgPages(enriched);
-      setIgConnected(true);
-      setSelectedPage(enriched[0]);
-      setConversations([]);
-    } catch (error) {
-      alert("Error fetching Instagram pages.");
-      console.error(error);
-    } finally {
-      setLoadingPages(false);
-    }
-  };
-
-  // -----------------------------
-  // Fetch conversations
-  const fetchConversations = async (page) => {
-    setLoadingConversations(true);
-    try {
-      const token = pageAccessTokens[page.id];
-      setSelectedPage(page);
-      setSelectedConversation(null);
-      setMessages([]);
-
-      const url =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (page.type === "instagram") {
-        const enriched = await Promise.all(
-          (data.data || []).map(async (conv) => {
-            const msgRes = await fetch(
-              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
-            );
-            const msgData = await msgRes.json();
-            const messages = msgData?.data || [];
-            const otherMsg = messages.find((m) => m.from?.id !== page.igId);
-            const userName = otherMsg?.from?.name || "Instagram User";
-
-            return {
-              ...conv,
-              userName,
-              businessName: page.name,
-            };
-          })
-        );
-        setConversations(enriched);
-      } else {
-        setConversations(data.data || []);
-      }
-    } catch (error) {
-      alert("Error fetching conversations.");
-      console.error(error);
-    } finally {
-      setLoadingConversations(false);
-    }
-  };
-
-  // -----------------------------
-  // Fetch messages
-  const fetchMessages = async (conv) => {
-    // similar to your original fetchMessages function
-    // include logic for widget, WhatsApp, FB, Instagram here
-  };
-
-  // -----------------------------
-  // Send messages
-  const sendMessage = async () => {
-    // include your original sendMessage function
-  };
-
-  const sendWhatsAppMessage = async () => {
-    // include your original sendWhatsAppMessage function
-  };
-
-  // -----------------------------
   return (
-    <div>
-      {/* Render UI here */}
-      <h1>Settings / Social Chat</h1>
+    <div style={{ padding: 20 }}>
+      <h2>Connect Platforms</h2>
 
-      <button onClick={handleFacebookLogin}>
-        {fbConnected ? "FB Connected" : "Connect Facebook"}
-      </button>
-      <button onClick={handleInstagramLogin}>
-        {igConnected ? "IG Connected" : "Connect Instagram"}
-      </button>
-      <button onClick={handleWhatsAppConnect}>
-        {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
-      </button>
-      <button onClick={handleWidgetConnect}>
-        {widgetConnected ? "Widget Connected" : "Connect Widget"}
-      </button>
-
-      <div>
-        <h2>Conversations</h2>
-        {loadingConversations
-          ? "Loading..."
-          : conversations.map((conv) => (
-              <div key={conv.id} onClick={() => fetchMessages(conv)}>
-                {conv.userName || conv.id}
-              </div>
-            ))}
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={handleFacebookLogin} className="btn-primary">
+          {fbConnected ? "Facebook Connected" : "Connect Facebook"}
+        </button>
       </div>
 
-      <div>
-        <h2>Messages</h2>
-        {(selectedConversation &&
-          messages[selectedConversation.id])?.map((msg) => (
-          <div key={msg.id}>
-            <b>{msg.displayName || "User"}:</b> {msg.message}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={handleInstagramLogin} className="btn-primary">
+          {igConnected ? "Instagram Connected" : "Connect Instagram"}
+        </button>
       </div>
 
-      <div>
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-        />
-        <button onClick={sendMessage}>Send</button>
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={handleWhatsAppConnect} className="btn-primary">
+          {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
+        </button>
       </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={handleWidgetConnect} className="btn-primary">
+          {widgetConnected ? "Widget Connected" : "Connect Widget"}
+        </button>
+      </div>
+
+      {/* Show Connected Pages */}
+      {fbPages.length > 0 && (
+        <div>
+          <h3>Facebook Pages</h3>
+          {fbPages.map((p) => (
+            <div key={p.id} style={{ marginBottom: 10 }}>
+              <span>{p.name}</span>
+              <button
+                style={{ marginLeft: 10 }}
+                className="btn-primary"
+                onClick={() => connectPage(p, "facebook")}
+              >
+                Connect Page
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {igPages.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <h3>Instagram Pages</h3>
+          {igPages.map((p) => (
+            <div key={p.id} style={{ marginBottom: 10 }}>
+              <span>{p.name}</span>
+              <button
+                style={{ marginLeft: 10 }}
+                className="btn-primary"
+                onClick={() => connectPage(p, "instagram")}
+              >
+                Connect Page
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
