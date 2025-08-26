@@ -1,23 +1,36 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import Settings from "./Settings";
 
-export default function SocialChatDashboard({ selectedPage, pageAccessTokens }) {
+export default function SocialChatDashboard() {
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [fbPages, setFbPages] = useState([]);
+  const [igPages, setIgPages] = useState([]);
   const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [loadingConversations, setLoadingConversations] = useState(false);
+
   const messagesEndRef = useRef(null);
 
+  // Auto-scroll chat
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, selectedConversation]);
+  }, [messages]);
 
+  // Fetch conversations whenever selectedPage changes
+  useEffect(() => {
+    if (!selectedPage) return;
+
+    fetchConversations(selectedPage);
+  }, [selectedPage]);
+
+  // Fetch conversations for FB / IG pages
   const fetchConversations = async (page) => {
-    if (!page) return;
-    const token = pageAccessTokens[page.id];
-    if (!token) return;
-
+    setLoadingConversations(true);
     try {
+      const token = page.access_token;
       const url =
         page.type === "instagram"
           ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
@@ -25,100 +38,68 @@ export default function SocialChatDashboard({ selectedPage, pageAccessTokens }) 
 
       const res = await fetch(url);
       const data = await res.json();
-      if (!data?.data?.length) return;
 
-      const enriched = await Promise.all(
-        data.data.map(async (conv) => {
-          const msgRes = await fetch(
-            `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&limit=1&access_token=${token}`
-          );
-          const msgData = await msgRes.json();
-          const lastMsg = msgData?.data?.[0];
+      if (!data?.data) {
+        setConversations([]);
+        return;
+      }
 
-          let userName = "User";
-          if (page.type === "instagram") {
-            userName = lastMsg?.from?.id !== page.igId ? lastMsg?.from?.name || "Instagram User" : page.name;
-          } else {
-            const participant = conv.participants?.data?.find((p) => p.name !== page.name);
-            userName = participant?.name || "User";
-          }
+      // For Instagram, enrich with username
+      if (page.type === "instagram") {
+        const enriched = await Promise.all(
+          data.data.map(async (conv) => {
+            const msgRes = await fetch(
+              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+            );
+            const msgData = await msgRes.json();
+            const otherMsg = msgData.data.find((m) => m.from?.id !== page.igId);
+            const userName =
+              otherMsg?.from?.name || otherMsg?.from?.username || "Instagram User";
 
-          return { ...conv, userName, businessName: page.name };
-        })
-      );
-
-      setConversations(enriched);
-      setSelectedConversation(enriched[0] || null);
+            return { ...conv, userName, businessName: page.name };
+          })
+        );
+        setConversations(enriched);
+      } else {
+        setConversations(data.data);
+      }
     } catch (err) {
-      console.error("Error fetching conversations", err);
+      console.error("Error fetching conversations:", err);
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
     }
   };
-
-  const fetchMessages = async (conv) => {
-    if (!conv || !selectedPage) return;
-    const token = pageAccessTokens[selectedPage.id];
-    if (!token) return;
-
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message,created_time&access_token=${token}`
-      );
-      const data = await res.json();
-      const msgs = (data?.data || [])
-        .reverse()
-        .map((msg) => ({
-          id: msg.id,
-          from: msg.from?.name || "User",
-          message: msg.message,
-          created_time: msg.created_time,
-        }));
-
-      setMessages((prev) => ({ ...prev, [conv.id]: msgs }));
-      setSelectedConversation(conv);
-    } catch (err) {
-      console.error("Error fetching messages", err);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedPage) fetchConversations(selectedPage);
-  }, [selectedPage]);
 
   return (
-    <div style={{ display: "flex", padding: 20 }}>
-      <div style={{ flex: 1, marginRight: 20 }}>
+    <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
+      <h1>Social Chat Dashboard</h1>
+
+      <Settings
+        selectedPage={selectedPage}
+        setSelectedPage={setSelectedPage}
+        fbPages={fbPages}
+        setFbPages={setFbPages}
+        igPages={igPages}
+        setIgPages={setIgPages}
+      />
+
+      <div style={{ marginTop: 40 }}>
         <h2>Conversations</h2>
+        {loadingConversations && <p>Loading conversations...</p>}
+        {!loadingConversations && conversations.length === 0 && (
+          <p>No conversations yet.</p>
+        )}
         <ul>
           {conversations.map((conv) => (
-            <li
-              key={conv.id}
-              style={{
-                cursor: "pointer",
-                fontWeight: selectedConversation?.id === conv.id ? "bold" : "normal",
-              }}
-              onClick={() => fetchMessages(conv)}
-            >
-              {conv.userName}
+            <li key={conv.id || conv.thread_key}>
+              {conv.userName || conv.participants?.data?.map((p) => p.name).join(", ")}
             </li>
           ))}
         </ul>
       </div>
 
-      <div style={{ flex: 2, border: "1px solid #ccc", padding: 10 }}>
-        <h2>Messages</h2>
-        {selectedConversation ? (
-          <div>
-            {(messages[selectedConversation.id] || []).map((msg) => (
-              <div key={msg.id}>
-                <b>{msg.from}:</b> {msg.message}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        ) : (
-          <div>Select a conversation to see messages</div>
-        )}
-      </div>
+      <div ref={messagesEndRef}></div>
     </div>
   );
 }
