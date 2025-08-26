@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import Settings from "./app.settings";
 
-export default function SocialChatDashboard({ connectedPages }) {
-  // connectedPages = array of pages already connected (FB or IG)
-  const [selectedPage, setSelectedPage] = useState(
-    connectedPages?.length > 0 ? connectedPages[0] : null
-  );
+export default function SocialChatDashboard() {
+  const [selectedPage, setSelectedPage] = useState(null);
+  const [connectedPages, setConnectedPages] = useState([]);
   const [conversations, setConversations] = useState([]);
   const messagesEndRef = useRef(null);
 
@@ -31,30 +30,7 @@ export default function SocialChatDashboard({ connectedPages }) {
 
       const res = await fetch(url);
       const data = await res.json();
-
-      if (!Array.isArray(data?.data)) {
-        setConversations([]);
-        return;
-      }
-
-      if (page.type === "instagram") {
-        const enriched = await Promise.all(
-          data.data.map(async (conv) => {
-            const msgRes = await fetch(
-              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
-            );
-            const msgData = await msgRes.json();
-            const otherMsg = msgData.data.find((m) => m.from?.id !== page.igId);
-            const userName =
-              otherMsg?.from?.name || otherMsg?.from?.username || "Instagram User";
-
-            return { ...conv, userName };
-          })
-        );
-        setConversations(enriched);
-      } else {
-        setConversations(data.data);
-      }
+      setConversations(Array.isArray(data?.data) ? data.data : []);
     } catch (err) {
       console.error("Error fetching conversations:", err);
       setConversations([]);
@@ -65,18 +41,23 @@ export default function SocialChatDashboard({ connectedPages }) {
     <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
       <h1>Social Chat Dashboard</h1>
 
+      {/* Pass connectedPages and setConnectedPages to Settings */}
+      <Settings
+        connectedPages={connectedPages}
+        setConnectedPages={setConnectedPages}
+        selectedPage={selectedPage}
+        setSelectedPage={setSelectedPage}
+      />
+
       <div style={{ marginTop: 40 }}>
-        <h2>
-          Conversations for {selectedPage?.name || "No page selected"}
-        </h2>
+        <h2>Conversations</h2>
         {conversations.length === 0 ? (
           <p>No conversations yet.</p>
         ) : (
           <ul>
             {conversations.map((conv) => (
               <li key={conv.id || conv.thread_key}>
-                {conv.userName ||
-                  conv.participants?.data?.map((p) => p.name).join(", ")}
+                {conv.userName || conv.participants?.data?.map((p) => p.name).join(", ")}
               </li>
             ))}
           </ul>

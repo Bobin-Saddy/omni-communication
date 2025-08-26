@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function Settings({ connectedPages = [], setConnectedPages = () => {} }) {
+export default function Settings({ connectedPages, setConnectedPages, selectedPage, setSelectedPage }) {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -84,9 +84,11 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
   };
 
   const handleConnectPage = (page) => {
+    // Add page to connectedPages and select it
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
+    setSelectedPage(page);
   };
 
   return (
@@ -105,9 +107,9 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
             {fbPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
-                </button>
+                {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : (
+                  <button onClick={() => handleConnectPage(p)}>Connect</button>
+                )}
               </li>
             ))}
           </ul>
@@ -121,9 +123,9 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
             {igPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
-                </button>
+                {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : (
+                  <button onClick={() => handleConnectPage(p)}>Connect</button>
+                )}
               </li>
             ))}
           </ul>
