@@ -27,26 +27,40 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
     }
   }, []);
 
+  // Facebook Login
   const handleFacebookLogin = () => {
+    if (!window.FB) return alert("Facebook SDK not loaded yet");
+
     window.FB.login(
-      async (res) => {
+      function (res) {
         if (res.authResponse) {
           setFbConnected(true);
           const token = res.authResponse.accessToken;
-          fetchFacebookPages(token);
+          window.FB.api("/me/accounts", "GET", { access_token: token }, function (response) {
+            if (response && !response.error) setFbPages(response.data);
+            else console.error("FB Pages Error:", response.error);
+          });
         }
       },
       { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
     );
   };
 
+  // Instagram Login
   const handleInstagramLogin = () => {
+    if (!window.FB) return alert("Facebook SDK not loaded yet");
+
     window.FB.login(
-      async (res) => {
+      function (res) {
         if (res.authResponse) {
           setIgConnected(true);
           const token = res.authResponse.accessToken;
-          fetchInstagramPages(token);
+          window.FB.api("/me/accounts", "GET", { access_token: token }, function (response) {
+            if (response && !response.error) {
+              const igAccounts = response.data.filter((p) => p.instagram_business_account);
+              setIgPages(igAccounts);
+            } else console.error("IG Accounts Error:", response.error);
+          });
         }
       },
       {
@@ -56,41 +70,9 @@ export default function Settings({ setSelectedPlatform, setSelectedPage }) {
     );
   };
 
-  const fetchFacebookPages = (token) => {
-    window.FB.api(
-      "/me/accounts",
-      "GET",
-      { access_token: token },
-      function (response) {
-        if (!response || response.error) {
-          console.error("Error fetching FB Pages", response?.error);
-        } else {
-          setFbPages(response.data);
-        }
-      }
-    );
-  };
-
-  const fetchInstagramPages = (token) => {
-    window.FB.api(
-      "/me/accounts",
-      "GET",
-      { access_token: token },
-      function (response) {
-        if (!response || response.error) {
-          console.error("Error fetching IG Accounts", response?.error);
-        } else {
-          // Filter accounts with Instagram business
-          const igAccounts = response.data.filter((p) => p.instagram_business_account);
-          setIgPages(igAccounts);
-        }
-      }
-    );
-  };
-
   const handleConnectPage = (platform, page) => {
     setSelectedPlatform(platform);
-    setSelectedPage(page); // app._index.jsx will detect this and load conversations
+    setSelectedPage(page); // app._index.jsx detects this
   };
 
   return (

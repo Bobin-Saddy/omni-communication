@@ -6,23 +6,20 @@ export default function Dashboard({ selectedPlatform, selectedPage }) {
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
 
+  // Fetch conversations when page/platform changes
   useEffect(() => {
     if (selectedPlatform && selectedPage) fetchConversations(selectedPlatform, selectedPage.id);
   }, [selectedPlatform, selectedPage]);
 
   const fetchConversations = (platform, pageId) => {
-    // Fetch from Facebook or Instagram Graph API
     const endpoint =
       platform === "facebook"
         ? `/${pageId}/conversations?fields=participants,updated_time`
         : `/${pageId}/conversations?fields=participants,updated_time`;
 
     window.FB.api(endpoint, "GET", function (response) {
-      if (!response || response.error) {
-        console.error("Error fetching conversations", response?.error);
-      } else {
-        setConversations(response.data);
-      }
+      if (!response || response.error) console.error("Conversations Error:", response?.error);
+      else setConversations(response.data);
     });
   };
 
@@ -32,13 +29,14 @@ export default function Dashboard({ selectedPlatform, selectedPage }) {
     const endpoint = `/${convoId}/messages?fields=from,message,created_time`;
 
     window.FB.api(endpoint, "GET", function (response) {
-      if (!response || response.error) console.error("Error fetching messages", response?.error);
+      if (!response || response.error) console.error("Messages Error:", response?.error);
       else setMessages(response.data);
     });
   };
 
   useEffect(() => {
-    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current)
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
@@ -66,12 +64,17 @@ export default function Dashboard({ selectedPlatform, selectedPage }) {
 
         {/* Messages */}
         <div style={{ flex: 2 }}>
-          <h3>Messages with {selectedConversation?.participants?.data.map((p) => p.name).join(", ")}</h3>
+          <h3>
+            Messages with{" "}
+            {selectedConversation?.participants?.data.map((p) => p.name).join(", ")}
+          </h3>
           <div style={{ border: "1px solid #ccc", padding: 10, minHeight: 300 }}>
             {messages.map((msg) => (
               <p
                 key={msg.id}
-                style={{ textAlign: msg.from?.id === selectedPage.id ? "right" : "left" }}
+                style={{
+                  textAlign: msg.from?.id === selectedPage.id ? "right" : "left",
+                }}
               >
                 <strong>{msg.from?.name}:</strong> {msg.message}
               </p>
