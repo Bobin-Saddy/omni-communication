@@ -6,7 +6,6 @@ export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [conversations, setConversations] = useState([]);
-  const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
 
@@ -15,7 +14,7 @@ export default function SocialChatDashboard() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [conversations]);
 
   // Fetch conversations whenever selectedPage changes
   useEffect(() => {
@@ -70,6 +69,7 @@ export default function SocialChatDashboard() {
     <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
       <h1>Social Chat Dashboard</h1>
 
+      {/* Settings handles login/connect, no buttons shown here */}
       <Settings
         selectedPage={selectedPage}
         setSelectedPage={setSelectedPage}
