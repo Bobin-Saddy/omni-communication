@@ -11,9 +11,16 @@ export default function Settings({ onPageSelect }) {
   const FACEBOOK_APP_ID = "544704651303656";
 
   // Load FB SDK
-  useEffect(() => {
-    if (window.FB) return; // already loaded
+// set it when user selects a store or on mount
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const shop = urlParams.get("shop");
+  if (shop) setCurrentStoreDomain(shop);
+}, []);
 
+
+  // Initialize Facebook SDK
+  useEffect(() => {
     window.fbAsyncInit = function () {
       window.FB.init({
         appId: FACEBOOK_APP_ID,
@@ -23,11 +30,20 @@ export default function Settings({ onPageSelect }) {
       });
     };
 
-    const js = document.createElement("script");
-    js.id = "facebook-jssdk";
-    js.src = "https://connect.facebook.net/en_US/sdk.js";
-    document.body.appendChild(js);
+    if (!document.getElementById("facebook-jssdk")) {
+      const js = document.createElement("script");
+      js.id = "facebook-jssdk";
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      document.body.appendChild(js);
+    }
   }, []);
+
+  // Scroll chat to bottom when messages update
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   // -----------------------------
   // Facebook Connect
