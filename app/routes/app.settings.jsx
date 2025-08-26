@@ -1,8 +1,8 @@
 import React from "react";
 
 export default function Settings({
-  fbPages,
-  igPages,
+  fbPages = [],   // ✅ default empty array
+  igPages = [],   // ✅ default empty array
   setSelectedPage,
   selectedPage,
   fetchConversations,
