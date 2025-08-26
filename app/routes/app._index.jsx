@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import Settings from "./Settings";
+import Settings from "./app.settings";
 
 export default function SocialChatDashboard() {
   const [selectedPage, setSelectedPage] = useState(null);
