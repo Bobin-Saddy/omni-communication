@@ -1,66 +1,82 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-export default function Dashboard({ selectedPlatform, selectedUser, setSelectedUser }) {
-  const [users, setUsers] = useState([]);
+export default function Dashboard({ selectedPlatform, selectedPage }) {
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (selectedPlatform) {
-      // Fetch user conversations based on platform
-      fetchUserConversations(selectedPlatform);
-    }
-  }, [selectedPlatform]);
+    if (selectedPlatform && selectedPage) fetchConversations(selectedPlatform, selectedPage.id);
+  }, [selectedPlatform, selectedPage]);
 
-  const fetchUserConversations = async (platform) => {
-    // Example: Replace this with actual Shopify/FB/IG API call
-    const dummyUsers = platform === "facebook"
-      ? [{ id: 1, name: "John Doe" }, { id: 2, name: "Jane Smith" }]
-      : [{ id: 1, name: "Alice" }, { id: 2, name: "Bob" }];
+  const fetchConversations = (platform, pageId) => {
+    // Fetch from Facebook or Instagram Graph API
+    const endpoint =
+      platform === "facebook"
+        ? `/${pageId}/conversations?fields=participants,updated_time`
+        : `/${pageId}/conversations?fields=participants,updated_time`;
 
-    setUsers(dummyUsers);
+    window.FB.api(endpoint, "GET", function (response) {
+      if (!response || response.error) {
+        console.error("Error fetching conversations", response?.error);
+      } else {
+        setConversations(response.data);
+      }
+    });
   };
 
-  const fetchMessages = async (userId) => {
-    // Example: Replace this with actual message fetching API
-    const dummyMessages = [
-      { id: 1, text: "Hello!", sender: "user" },
-      { id: 2, text: "Hi! How can I help?", sender: "agent" },
-    ];
-    setMessages(dummyMessages);
+  const fetchMessages = (conversation) => {
+    setSelectedConversation(conversation);
+    const convoId = conversation.id;
+    const endpoint = `/${convoId}/messages?fields=from,message,created_time`;
+
+    window.FB.api(endpoint, "GET", function (response) {
+      if (!response || response.error) console.error("Error fetching messages", response?.error);
+      else setMessages(response.data);
+    });
   };
+
+  useEffect(() => {
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>{selectedPlatform?.toUpperCase()} Conversations</h2>
-      <div style={{ display: "flex", gap: "20px" }}>
-        {/* Users list */}
+      <h2>
+        {selectedPlatform?.toUpperCase()} - {selectedPage?.name} Conversations
+      </h2>
+
+      {/* Conversations List */}
+      <div style={{ display: "flex", gap: 20 }}>
         <div style={{ flex: 1 }}>
           <h3>Users</h3>
           <ul>
-            {users.map((user) => (
+            {conversations.map((conv) => (
               <li
-                key={user.id}
-                onClick={() => {
-                  setSelectedUser(user);
-                  fetchMessages(user.id);
-                }}
-                style={{ cursor: "pointer", margin: "5px 0" }}
+                key={conv.id}
+                onClick={() => fetchMessages(conv)}
+                style={{ cursor: "pointer", margin: 5 }}
               >
-                {user.name}
+                {conv.participants?.data.map((p) => p.name).join(", ")}
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Messages list */}
+        {/* Messages */}
         <div style={{ flex: 2 }}>
-          <h3>Messages with {selectedUser?.name}</h3>
+          <h3>Messages with {selectedConversation?.participants?.data.map((p) => p.name).join(", ")}</h3>
           <div style={{ border: "1px solid #ccc", padding: 10, minHeight: 300 }}>
             {messages.map((msg) => (
-              <p key={msg.id} style={{ textAlign: msg.sender === "agent" ? "right" : "left" }}>
-                <strong>{msg.sender}:</strong> {msg.text}
+              <p
+                key={msg.id}
+                style={{ textAlign: msg.from?.id === selectedPage.id ? "right" : "left" }}
+              >
+                <strong>{msg.from?.name}:</strong> {msg.message}
               </p>
             ))}
+            <div ref={messagesEndRef}></div>
           </div>
         </div>
       </div>
