@@ -829,16 +829,17 @@ return (
 
         {/* SETTINGS TAB */}
         {activeTab === "settings" && (
-          <Settings
-          fbConnected={fbConnected}
-          igConnected={igConnected}
-          waConnected={waConnected}
-          widgetConnected={widgetConnected}
-          handleFacebookLogin={handleFacebookLogin}
-          handleInstagramLogin={handleInstagramLogin}
-          handleWhatsAppConnect={handleWhatsAppConnect}
-          handleWidgetConnect={handleWidgetConnect}
-        />
+  <Settings
+  fbConnected={true}
+  igConnected={false}
+  waConnected={true}
+  widgetConnected={false}
+  handleFacebookLogin={() => alert("FB")}
+  handleInstagramLogin={() => alert("IG")}
+  handleWhatsAppConnect={() => alert("WA")}
+  handleWidgetConnect={() => alert("Widget")}
+/>
+
         )}
 
         {/* CONVERSATIONS TAB */}
