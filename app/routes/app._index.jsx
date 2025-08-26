@@ -7,14 +7,12 @@ export default function SocialChatDashboard() {
   const [conversations, setConversations] = useState([]);
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll messages
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [conversations]);
 
-  // Fetch conversations whenever selectedPage changes
   useEffect(() => {
     if (!selectedPage) return;
     fetchConversations(selectedPage);
@@ -41,7 +39,6 @@ export default function SocialChatDashboard() {
     <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
       <h1>Social Chat Dashboard</h1>
 
-      {/* Pass connectedPages and setConnectedPages to Settings */}
       <Settings
         connectedPages={connectedPages}
         setConnectedPages={setConnectedPages}
@@ -51,9 +48,7 @@ export default function SocialChatDashboard() {
 
       <div style={{ marginTop: 40 }}>
         <h2>Conversations</h2>
-        {conversations.length === 0 ? (
-          <p>No conversations yet.</p>
-        ) : (
+        {conversations.length === 0 ? <p>No conversations yet.</p> : (
           <ul>
             {conversations.map((conv) => (
               <li key={conv.id || conv.thread_key}>

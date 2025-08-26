@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function Settings({ connectedPages, setConnectedPages, selectedPage, setSelectedPage }) {
+export default function Settings({ connectedPages = [], setConnectedPages = () => {}, selectedPage, setSelectedPage }) {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -31,22 +31,22 @@ export default function Settings({ connectedPages, setConnectedPages, selectedPa
   }, []);
 
   const fetchFBPages = async (token) => {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
-    );
-    const data = await res.json();
-    if (Array.isArray(data.data)) {
+    try {
+      const res = await fetch(`https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`);
+      const data = await res.json();
+      if (!Array.isArray(data.data)) return;
       const pages = data.data.map((p) => ({ ...p, type: "facebook", access_token: token }));
       setFbPages(pages);
+    } catch (err) {
+      console.error("Error fetching FB pages:", err);
     }
   };
 
   const fetchIGPages = async (token) => {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
-    );
-    const data = await res.json();
-    if (Array.isArray(data.data)) {
+    try {
+      const res = await fetch(`https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`);
+      const data = await res.json();
+      if (!Array.isArray(data.data)) return;
       const igAccounts = data.data
         .filter((p) => p.instagram_business_account)
         .map((p) => ({
@@ -57,38 +57,30 @@ export default function Settings({ connectedPages, setConnectedPages, selectedPa
           igId: p.instagram_business_account.id,
         }));
       setIgPages(igAccounts);
+    } catch (err) {
+      console.error("Error fetching IG pages:", err);
     }
   };
 
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-    window.FB.login(
-      function (res) {
-        if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
-      },
-      { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" }
-    );
+    window.FB.login((res) => {
+      if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
+    }, { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" });
   };
 
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-    window.FB.login(
-      function (res) {
-        if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
-    );
+    window.FB.login((res) => {
+      if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
+    }, { scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata" });
   };
 
   const handleConnectPage = (page) => {
-    // Add page to connectedPages and select it
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
-    setSelectedPage(page);
+    setSelectedPage(page); // make it active page
   };
 
   return (
@@ -107,9 +99,9 @@ export default function Settings({ connectedPages, setConnectedPages, selectedPa
             {fbPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : (
-                  <button onClick={() => handleConnectPage(p)}>Connect</button>
-                )}
+                <button onClick={() => handleConnectPage(p)}>
+                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
+                </button>
               </li>
             ))}
           </ul>
@@ -123,9 +115,9 @@ export default function Settings({ connectedPages, setConnectedPages, selectedPa
             {igPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : (
-                  <button onClick={() => handleConnectPage(p)}>Connect</button>
-                )}
+                <button onClick={() => handleConnectPage(p)}>
+                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
+                </button>
               </li>
             ))}
           </ul>
