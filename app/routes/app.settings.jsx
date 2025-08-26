@@ -1,68 +1,48 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function Settings() {
-  const [fbConnected, setFbConnected] = useState(false);
-  const [igConnected, setIgConnected] = useState(false);
-  const [waConnected, setWaConnected] = useState(false);
-  const [widgetConnected, setWidgetConnected] = useState(false);
-
-  // Handlers
-  const handleFacebookLogin = () => {
-    alert("Facebook Connected!");
-    setFbConnected(true);
-  };
-
-  const handleInstagramLogin = () => {
-    alert("Instagram Connected!");
-    setIgConnected(true);
-  };
-
-  const handleWhatsAppConnect = () => {
-    alert("WhatsApp Connected!");
-    setWaConnected(true);
-  };
-
-  const handleWidgetConnect = () => {
-    alert("Widget Connected!");
-    setWidgetConnected(true);
-  };
-
+export default function Settings({
+  fbConnected,
+  igConnected,
+  waConnected,
+  widgetConnected,
+  handleFacebookLogin,
+  handleInstagramLogin,
+  handleWhatsAppConnect,
+  handleWidgetConnect,
+}) {
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <button
-        onClick={handleFacebookLogin}
-        disabled={fbConnected}
-        className="btn-primary"
-      >
-        {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
-      </button>
-      <br /><br />
+    <div className="p-4 space-y-4">
+      <h2 className="text-lg font-semibold">Connect Your Channels</h2>
 
-      <button
-        onClick={handleInstagramLogin}
-        disabled={igConnected}
-        className="btn-primary"
-      >
-        {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
-      </button>
-      <br /><br />
+      <div className="flex flex-col gap-2">
+        <button
+          onClick={handleFacebookLogin}
+          className="px-4 py-2 rounded bg-blue-600 text-white"
+        >
+          {fbConnected ? "✅ Facebook Connected" : "Connect Facebook"}
+        </button>
 
-      <button
-        onClick={handleWhatsAppConnect}
-        disabled={waConnected}
-        className="btn-primary"
-      >
-        {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
-      </button>
-      <br /><br />
+        <button
+          onClick={handleInstagramLogin}
+          className="px-4 py-2 rounded bg-pink-600 text-white"
+        >
+          {igConnected ? "✅ Instagram Connected" : "Connect Instagram"}
+        </button>
 
-      <button
-        onClick={handleWidgetConnect}
-        disabled={widgetConnected}
-        className="btn-primary"
-      >
-        {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
-      </button>
+        <button
+          onClick={handleWhatsAppConnect}
+          className="px-4 py-2 rounded bg-green-600 text-white"
+        >
+          {waConnected ? "✅ WhatsApp Connected" : "Connect WhatsApp"}
+        </button>
+
+        <button
+          onClick={handleWidgetConnect}
+          className="px-4 py-2 rounded bg-gray-700 text-white"
+        >
+          {widgetConnected ? "✅ Widget Connected" : "Connect Widget"}
+        </button>
+      </div>
     </div>
   );
 }
