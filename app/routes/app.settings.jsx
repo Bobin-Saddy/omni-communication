@@ -3,9 +3,9 @@ import { useState } from "react";
 export default function Settings({
   selectedPage,
   setSelectedPage,
-  fbPages,
+  fbPages = [],  // default to empty array
   setFbPages,
-  igPages,
+  igPages = [],  // default to empty array
   setIgPages,
 }) {
   const [loadingFB, setLoadingFB] = useState(false);
@@ -29,9 +29,12 @@ export default function Settings({
               setFbPages(
                 pagesData.data.map((p) => ({ ...p, type: "facebook" }))
               );
+            } else {
+              setFbPages([]);
             }
           } catch (err) {
             console.error("Error fetching FB pages:", err);
+            setFbPages([]);
           } finally {
             setLoadingFB(false);
           }
@@ -58,7 +61,6 @@ export default function Settings({
             );
             const igData = await igRes.json();
             if (Array.isArray(igData.data)) {
-              // Filter only pages with connected IG business accounts
               const igPagesData = igData.data
                 .filter((p) => p.instagram_business_account)
                 .map((p) => ({
@@ -69,9 +71,12 @@ export default function Settings({
                   igId: p.instagram_business_account.id,
                 }));
               setIgPages(igPagesData);
+            } else {
+              setIgPages([]);
             }
           } catch (err) {
             console.error("Error fetching IG pages:", err);
+            setIgPages([]);
           } finally {
             setLoadingIG(false);
           }
@@ -92,14 +97,15 @@ export default function Settings({
           {loadingFB ? "Loading FB..." : "Connect Facebook"}
         </button>
         <ul>
-          {fbPages.map((p) => (
-            <li key={p.id}>
-              {p.name}{" "}
-              <button onClick={() => setSelectedPage(p)}>
-                {selectedPage?.id === p.id ? "Connected" : "Connect"}
-              </button>
-            </li>
-          ))}
+          {Array.isArray(fbPages) &&
+            fbPages.map((p) => (
+              <li key={p.id}>
+                {p.name}{" "}
+                <button onClick={() => setSelectedPage(p)}>
+                  {selectedPage?.id === p.id ? "Connected" : "Connect"}
+                </button>
+              </li>
+            ))}
         </ul>
       </div>
 
@@ -108,14 +114,15 @@ export default function Settings({
           {loadingIG ? "Loading IG..." : "Connect Instagram"}
         </button>
         <ul>
-          {igPages.map((p) => (
-            <li key={p.id}>
-              {p.name}{" "}
-              <button onClick={() => setSelectedPage(p)}>
-                {selectedPage?.id === p.id ? "Connected" : "Connect"}
-              </button>
-            </li>
-          ))}
+          {Array.isArray(igPages) &&
+            igPages.map((p) => (
+              <li key={p.id}>
+                {p.name}{" "}
+                <button onClick={() => setSelectedPage(p)}>
+                  {selectedPage?.id === p.id ? "Connected" : "Connect"}
+                </button>
+              </li>
+            ))}
         </ul>
       </div>
     </div>
