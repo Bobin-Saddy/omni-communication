@@ -4,16 +4,12 @@ export default function Settings({ selectedPage, setSelectedPage }) {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fbSdkLoaded, setFbSdkLoaded] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
   // Load FB SDK
   useEffect(() => {
-    if (window.FB) {
-      setFbSdkLoaded(true);
-      return;
-    }
+    if (window.FB) return;
 
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -23,24 +19,19 @@ export default function Settings({ selectedPage, setSelectedPage }) {
         version: "v18.0",
       });
 
-      setFbSdkLoaded(true);
-
-      // If already logged in, fetch pages
+      // Check login status
       window.FB.getLoginStatus((res) => {
-        if (res.status === "connected") {
-          fetchPages(res.authResponse.accessToken);
-        }
+        if (res.status === "connected") fetchPages(res.authResponse.accessToken);
       });
     };
 
-    if (!document.getElementById("facebook-jssdk")) {
-      const js = document.createElement("script");
-      js.id = "facebook-jssdk";
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      document.body.appendChild(js);
-    }
+    const js = document.createElement("script");
+    js.id = "facebook-jssdk";
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    document.body.appendChild(js);
   }, []);
 
+  // Fetch both FB and IG pages
   const fetchPages = async (accessToken) => {
     try {
       setLoading(true);
@@ -50,7 +41,7 @@ export default function Settings({ selectedPage, setSelectedPage }) {
       );
       const data = await res.json();
 
-      if (!data || !Array.isArray(data.data)) return;
+      if (!data?.data) return;
 
       const fbPagesData = [];
       const igPagesData = [];
@@ -71,11 +62,8 @@ export default function Settings({ selectedPage, setSelectedPage }) {
       setFbPages(fbPagesData);
       setIgPages(igPagesData);
 
-      // Select first page if none selected
-      if (!selectedPage) {
-        if (fbPagesData.length > 0) setSelectedPage(fbPagesData[0]);
-        else if (igPagesData.length > 0) setSelectedPage(igPagesData[0]);
-      }
+      if (!selectedPage && fbPagesData.length > 0) setSelectedPage(fbPagesData[0]);
+      else if (!selectedPage && igPagesData.length > 0) setSelectedPage(igPagesData[0]);
     } catch (err) {
       console.error("Error fetching pages:", err);
     } finally {
@@ -84,37 +72,28 @@ export default function Settings({ selectedPage, setSelectedPage }) {
   };
 
   const handleFBLogin = () => {
-    if (!fbSdkLoaded) return alert("FB SDK not loaded yet");
+    if (!window.FB) return alert("FB SDK not loaded yet");
 
     window.FB.login(
       (res) => {
-        if (res.authResponse) {
-          fetchPages(res.authResponse.accessToken);
-        }
+        if (res.authResponse) fetchPages(res.authResponse.accessToken);
+        else console.log("FB login cancelled or failed");
       },
-      {
-        scope:
-          "pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_messages",
-      }
+      { scope: "pages_show_list,pages_read_engagement,pages_manage_posts,instagram_basic,instagram_manage_messages" }
     );
   };
 
   const handleConnectPage = (page) => {
-    // For IG, store the igId as id to match selectedPage
-    if (page.type === "instagram") {
-      setSelectedPage({ ...page, id: page.igId });
-    } else {
-      setSelectedPage(page);
-    }
+    if (!setSelectedPage) return console.error("setSelectedPage not provided!");
+    if (page.type === "instagram") setSelectedPage({ ...page, id: page.igId });
+    else setSelectedPage(page);
   };
 
-  const isConnected = (page) =>
-    selectedPage && (selectedPage.id === page.id || selectedPage.id === page.igId);
+  const isConnected = (page) => selectedPage && (selectedPage.id === page.id || selectedPage.id === page.igId);
 
   return (
     <div style={{ padding: 20 }}>
       <h2>Settings</h2>
-
       <button onClick={handleFBLogin} disabled={loading}>
         {loading ? "Loading..." : "Connect Facebook / Instagram"}
       </button>
@@ -126,9 +105,7 @@ export default function Settings({ selectedPage, setSelectedPage }) {
             {fbPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                {isConnected(p) ? "✅ Connected" : (
-                  <button onClick={() => handleConnectPage(p)}>Connect</button>
-                )}
+                {isConnected(p) ? "✅ Connected" : <button onClick={() => handleConnectPage(p)}>Connect</button>}
               </li>
             ))}
           </ul>
@@ -142,9 +119,7 @@ export default function Settings({ selectedPage, setSelectedPage }) {
             {igPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                {isConnected(p) ? "✅ Connected" : (
-                  <button onClick={() => handleConnectPage(p)}>Connect</button>
-                )}
+                {isConnected(p) ? "✅ Connected" : <button onClick={() => handleConnectPage(p)}>Connect</button>}
               </li>
             ))}
           </ul>
