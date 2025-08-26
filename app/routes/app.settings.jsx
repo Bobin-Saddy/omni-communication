@@ -1,111 +1,86 @@
-import {
-  Box,
-  Card,
-  Page,
-  Text,
-  BlockStack,
-  InlineGrid,
-  TextField,
-  Button,
-} from "@shopify/polaris";
-import { useState } from "react";
-import { json } from "@remix-run/node";
-import { useLoaderData, Form } from "@remix-run/react";
+import React from "react";
 
-export async function loader({ request }) {
-  const { authenticate } = await import("../shopify.server");
-  const db = (await import("../db.server")).default;
-
-  const { session } = await authenticate.admin(request);
-
-  let settings = await db.settings.findFirst({
-    where: {
-      shop: session.shop,
+export default function ConnectPage({
+  fbConnected,
+  igConnected,
+  waConnected,
+  widgetConnected,
+  handleFacebookLogin,
+  handleInstagramLogin,
+  handleWhatsAppConnect,
+  handleWidgetConnect,
+}) {
+  const services = [
+    {
+      name: "Facebook",
+      connected: fbConnected,
+      handler: handleFacebookLogin,
+      color: "#1877f2",
     },
-  });
-
-  if (!settings) {
-    settings = {};
-  }
-
-  return json(settings);
-}
-
-export async function action({ request }) {
-  const { authenticate } = await import("../shopify.server");
-  const db = (await import("../db.server")).default;
-
-  let settings = await request.formData();
-  settings = Object.fromEntries(settings);
-
-  const { session } = await authenticate.admin(request);
-
-  await db.settings.upsert({
-    where: { shop: session.shop },
-    update: {
-      name: settings.name,
-      description: settings.description,
-      shop: session.shop,
+    {
+      name: "Instagram",
+      connected: igConnected,
+      handler: handleInstagramLogin,
+      color: "#e4405f",
     },
-    create: {
-      name: settings.name,
-      description: settings.description,
-      shop: session.shop,
+    {
+      name: "WhatsApp",
+      connected: waConnected,
+      handler: handleWhatsAppConnect,
+      color: "#25d366",
     },
-  });
-
-  return json(settings);
-}
-
-export default function SettingsPage() {
-  const settings = useLoaderData();
-  const [formState, setFormState] = useState(settings);
+    {
+      name: "Widget",
+      connected: widgetConnected,
+      handler: handleWidgetConnect,
+      color: "#6b7280",
+    },
+  ];
 
   return (
-    <Page>
-      <ui-title-bar title="Settings" />
-      <BlockStack gap={{ xs: "800", sm: "400" }}>
-        <InlineGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="400">
-          <Box
-            as="section"
-            paddingInlineStart={{ xs: 400, sm: 0 }}
-            paddingInlineEnd={{ xs: 400, sm: 0 }}
+    <div className="connect-page" style={{ textAlign: "center", padding: "20px" }}>
+      <h2 style={{ marginBottom: "20px", fontSize: "22px" }}>Connect Your Channels</h2>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "20px",
+          maxWidth: "800px",
+          margin: "0 auto",
+        }}
+      >
+        {services.map((service) => (
+          <div
+            key={service.name}
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: "12px",
+              padding: "20px",
+              background: "#fff",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+            }}
           >
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Settings
-              </Text>
-              <Text as="p" variant="bodyMd">
-                Update app settings and preferences.
-              </Text>
-            </BlockStack>
-          </Box>
-          <Card roundedAbove="sm">
-            <Form method="POST">
-              <BlockStack gap="400">
-                <TextField
-                  label="App name"
-                  name="name"
-                  value={formState?.name}
-                  onChange={(value) =>
-                    setFormState({ ...formState, name: value })
-                  }
-                />
-                <TextField
-                  label="Description"
-                  name="description"
-                  value={formState?.description}
-                  onChange={(value) =>
-                    setFormState({ ...formState, description: value })
-                  }
-                />
-
-                <Button submit={true}>Save</Button>
-              </BlockStack>
-            </Form>
-          </Card>
-        </InlineGrid>
-      </BlockStack>
-    </Page>
+            <h3 style={{ fontSize: "18px", marginBottom: "10px" }}>{service.name}</h3>
+            <button
+              onClick={service.handler}
+              disabled={service.connected}
+              style={{
+                width: "100%",
+                padding: "10px 15px",
+                backgroundColor: service.connected ? "#9ca3af" : service.color,
+                color: "#fff",
+                fontWeight: "600",
+                border: "none",
+                borderRadius: "8px",
+                cursor: service.connected ? "not-allowed" : "pointer",
+                transition: "all 0.3s ease",
+              }}
+            >
+              {service.connected ? "Connected" : `Connect ${service.name}`}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
