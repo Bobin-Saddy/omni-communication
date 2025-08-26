@@ -704,55 +704,74 @@ const sendMessage = async () => {
 
   
  return (
-    <div className="social-chat-dashboard" style={{ /* same styles as before */ }}>
+    <div className="social-chat-dashboard">
       {/* Header */}
-      <h1>✨ Omni-Communication Dashboard</h1>
+      <header className="dashboard-header">
+        <h1>✨ Omni-Communication Dashboard</h1>
+      </header>
 
-      {/* Layout */}
-      <div style={{ display: "flex", minHeight: 680 }}>
+      <div className="dashboard-body">
         {/* Sidebar */}
-        <div style={{ width: "20%", background: "#f9fafb" }}>
-          <button onClick={() => setActiveTab("home")}>🏠 Home</button>
-          <button onClick={() => setActiveTab("settings")}>⚙️ Settings</button>
-          <button onClick={() => setActiveTab("conversations")}>💬 Conversations</button>
-        </div>
+        <aside className="sidebar">
+          <button
+            className={activeTab === "home" ? "active" : ""}
+            onClick={() => setActiveTab("home")}
+          >
+            🏠 Home
+          </button>
+          <button
+            className={activeTab === "settings" ? "active" : ""}
+            onClick={() => setActiveTab("settings")}
+          >
+            ⚙️ Settings
+          </button>
+          <button
+            className={activeTab === "conversations" ? "active" : ""}
+            onClick={() => setActiveTab("conversations")}
+          >
+            💬 Conversations
+          </button>
+        </aside>
 
-        {/* Content */}
-        <div style={{ flex: 1, padding: 28, background: "#fff" }}>
-          {activeTab === "home" && <div>👋 Welcome ...</div>}
+        {/* Main content */}
+        <main className="content">
+          {activeTab === "home" && (
+            <div className="tab-content">
+              👋 Welcome to your unified dashboard.
+            </div>
+          )}
 
           {activeTab === "settings" && (
             <Settings
-              fbConnected={fbConnected}
-              igConnected={igConnected}
-              waConnected={waConnected}
-              widgetConnected={widgetConnected}
               fbPages={fbPages}
               igPages={igPages}
-              handleFacebookLogin={handleFacebookLogin}
-              handleInstagramLogin={handleInstagramLogin}
-              handleWhatsAppConnect={handleWhatsAppConnect}
-              handleWidgetConnect={handleWidgetConnect}
-              fetchConversations={fetchConversations}
               setSelectedPage={setSelectedPage}
               selectedPage={selectedPage}
+              fetchConversations={fetchConversations}
             />
           )}
 
           {activeTab === "conversations" && (
-            <>
+            <div className="tab-content">
               {selectedPage ? (
-                // ✅ your existing conversations + chat UI
-                <div>{/* chat UI code here */}</div>
+                <div>
+                  <h2>
+                    Conversations for{" "}
+                    <span className="page-name">{selectedPage.name}</span>
+                  </h2>
+                  {/* ✅ Place your conversation/chat UI here */}
+                  <div className="chat-window">Chat UI goes here...</div>
+                </div>
               ) : (
-                <div>👈 Select a page in settings first</div>
+                <p>👈 Select a page in settings first</p>
               )}
-            </>
+            </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
+
 
 
 
