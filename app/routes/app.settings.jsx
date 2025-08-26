@@ -48,18 +48,16 @@ const fetchFBPages = async (accessToken) => {
     );
     const data = await res.json();
 
+    // Log the full response to see if it contains an error
     if (!data || !Array.isArray(data.data)) {
-      console.error("FB API response:", data);
+      console.error("FB API response (not an array):", data);
       return;
     }
 
     const pages = data.data.map((p) => ({ ...p, type: "facebook" }));
     setFbPages(pages);
     setFbConnected(true);
-
-    if (!selectedPage && pages.length > 0) {
-      setSelectedPage(pages[0]);
-    }
+    if (!selectedPage && pages.length > 0) setSelectedPage(pages[0]);
   } catch (err) {
     console.error("Error fetching FB pages:", err);
   }
@@ -72,8 +70,9 @@ const fetchIGPages = async (accessToken) => {
     );
     const data = await res.json();
 
+    // Log the full response to see if it contains an error
     if (!data || !Array.isArray(data.data)) {
-      console.error("IG API response:", data);
+      console.error("IG API response (not an array):", data);
       return;
     }
 
@@ -88,14 +87,12 @@ const fetchIGPages = async (accessToken) => {
 
     setIgPages(enriched);
     setIgConnected(true);
-
-    if (!selectedPage && enriched.length > 0) {
-      setSelectedPage(enriched[0]);
-    }
+    if (!selectedPage && enriched.length > 0) setSelectedPage(enriched[0]);
   } catch (err) {
     console.error("Error fetching IG pages:", err);
   }
 };
+
 
 
   // FB Login
