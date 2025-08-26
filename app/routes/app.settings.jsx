@@ -31,55 +31,64 @@ export default function Settings({ onPageSelect }) {
 
   // -----------------------------
   // Connect functions
-  const handleFacebookLogin = () => {
-    window.FB.login(
-      async (res) => {
-        if (res.authResponse) {
-          const accessToken = res.authResponse.accessToken;
-          setFbConnected(true);
-          const pagesRes = await fetch(
-            `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
-          );
-          const data = await pagesRes.json();
-          const tokens = {};
-          const pages = data.data.map((p) => {
-            tokens[p.id] = p.access_token;
-            return p;
-          });
-          setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-          setFbPages(pages);
-        }
-      },
-      { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
-    );
-  };
+ const handleFacebookLogin = () => {
+  window.FB.login(async (res) => {
+    if (res.authResponse) {
+      const accessToken = res.authResponse.accessToken;
 
-  const handleInstagramLogin = () => {
-    window.FB.login(
-      async (res) => {
-        if (res.authResponse) {
-          const accessToken = res.authResponse.accessToken;
-          setIgConnected(true);
-          const pagesRes = await fetch(
-            `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
-          );
-          const data = await pagesRes.json();
-          const igPagesFiltered = data.data.filter((p) => p.instagram_business_account);
-          const tokens = {};
-          const pages = igPagesFiltered.map((p) => {
-            tokens[p.id] = p.access_token;
-            return { ...p, igId: p.instagram_business_account.id };
-          });
-          setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
-          setIgPages(pages);
-        }
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
-    );
-  };
+      // Fetch pages
+      const pagesRes = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
+      );
+      const data = await pagesRes.json();
+      if (!data?.data?.length) return alert("No Facebook pages found.");
+
+      const tokens = {};
+      const pages = data.data.map((p) => {
+        tokens[p.id] = p.access_token;
+        return { ...p, type: "facebook" };
+      });
+
+      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+      setFbPages(pages);
+      setFbConnected(true);
+
+      // ✅ Auto select first page & send to parent
+      if (onPageSelect) onPageSelect(pages[0]);
+    }
+  }, { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" });
+};
+
+const handleInstagramLogin = () => {
+  window.FB.login(async (res) => {
+    if (res.authResponse) {
+      const accessToken = res.authResponse.accessToken;
+
+      // Fetch Instagram business pages
+      const pagesRes = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
+      );
+      const data = await pagesRes.json();
+      const igPagesFiltered = data.data.filter((p) => p.instagram_business_account);
+
+      if (!igPagesFiltered.length) return alert("No Instagram business pages found.");
+
+      const tokens = {};
+      const pages = igPagesFiltered.map((p) => {
+        tokens[p.id] = p.access_token;
+        return { ...p, type: "instagram", igId: p.instagram_business_account.id };
+      });
+
+      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+      setIgPages(pages);
+      setIgConnected(true);
+
+      // ✅ Auto select first Instagram page & send to parent
+      if (onPageSelect) onPageSelect(pages[0]);
+    }
+  }, { scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata" });
+};
+
 
   const handleWhatsAppConnect = () => {
     setWaConnected(true);
