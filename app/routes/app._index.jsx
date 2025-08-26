@@ -1,10 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import Settings from "./app.settings";
 
 export default function SocialChatDashboard() {
   const [selectedPage, setSelectedPage] = useState(null);
-  const [fbPages, setFbPages] = useState([]);
-  const [igPages, setIgPages] = useState([]);
   const [conversations, setConversations] = useState([]);
   const messagesEndRef = useRef(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
@@ -68,16 +65,6 @@ export default function SocialChatDashboard() {
   return (
     <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
       <h1>Social Chat Dashboard</h1>
-
-      {/* Settings handles login/connect, no buttons shown here */}
-      <Settings
-        selectedPage={selectedPage}
-        setSelectedPage={setSelectedPage}
-        fbPages={fbPages}
-        setFbPages={setFbPages}
-        igPages={igPages}
-        setIgPages={setIgPages}
-      />
 
       <div style={{ marginTop: 40 }}>
         <h2>Conversations</h2>

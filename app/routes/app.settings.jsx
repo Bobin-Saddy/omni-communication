@@ -1,16 +1,8 @@
 import { useEffect } from "react";
 
-export default function Settings({
-  selectedPage,
-  setSelectedPage,
-  fbPages = [],
-  setFbPages,
-  igPages = [],
-  setIgPages,
-}) {
+export default function Settings({ selectedPage, setSelectedPage, fbPages, setFbPages, igPages, setIgPages }) {
   const FACEBOOK_APP_ID = "544704651303656";
 
-  // Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) return;
 
@@ -80,9 +72,7 @@ export default function Settings({
 
     window.FB.login(
       (res) => {
-        if (res.authResponse) {
-          fetchFBPages(res.authResponse.accessToken);
-        }
+        if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
       },
       { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
     );
@@ -111,7 +101,7 @@ export default function Settings({
         <button onClick={handleIGLogin}>Login Instagram</button>
       </div>
 
-      {Array.isArray(fbPages) && fbPages.length > 0 && (
+      {fbPages.length > 0 && (
         <div>
           <h3>Facebook Pages</h3>
           <ul>
@@ -125,7 +115,7 @@ export default function Settings({
         </div>
       )}
 
-      {Array.isArray(igPages) && igPages.length > 0 && (
+      {igPages.length > 0 && (
         <div>
           <h3>Instagram Accounts</h3>
           <ul>
