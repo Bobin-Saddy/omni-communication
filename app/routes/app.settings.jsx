@@ -22,6 +22,13 @@ export default function Settings({
         xfbml: true,
         version: "v18.0",
       });
+
+      // Check login status on SDK load
+      window.FB.getLoginStatus((res) => {
+        if (res.status === "connected") {
+          fetchFacebookPages(res.authResponse.accessToken);
+        }
+      });
     };
 
     if (!document.getElementById("facebook-jssdk")) {
@@ -31,33 +38,6 @@ export default function Settings({
       document.body.appendChild(js);
     }
   }, []);
-
-  // Facebook Login
-  const handleFacebookLogin = () => {
-    window.FB.login(
-      (res) => {
-        if (res.authResponse) fetchFacebookPages(res.authResponse.accessToken);
-      },
-      {
-        scope:
-          "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
-      }
-    );
-  };
-
-  // Instagram Login
-  const handleInstagramLogin = () => {
-    window.FB.login(
-      (res) => {
-        if (res.authResponse)
-          fetchInstagramPages(res.authResponse.accessToken);
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
-    );
-  };
 
   // Fetch FB Pages
   const fetchFacebookPages = async (accessToken) => {
@@ -112,6 +92,47 @@ export default function Settings({
     }
   };
 
+  // Handle Facebook login
+  const handleFacebookLogin = () => {
+    if (!window.FB) return console.error("FB SDK not loaded yet");
+
+    window.FB.getLoginStatus((res) => {
+      if (res.status === "connected") {
+        fetchFacebookPages(res.authResponse.accessToken);
+      } else {
+        window.FB.login(
+          (res2) => {
+            console.log("FB login result:", res2);
+            if (res2.authResponse) fetchFacebookPages(res2.authResponse.accessToken);
+          },
+          { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
+        );
+      }
+    });
+  };
+
+  // Handle Instagram login
+  const handleInstagramLogin = () => {
+    if (!window.FB) return console.error("FB SDK not loaded yet");
+
+    window.FB.getLoginStatus((res) => {
+      if (res.status === "connected") {
+        fetchInstagramPages(res.authResponse.accessToken);
+      } else {
+        window.FB.login(
+          (res2) => {
+            console.log("IG login result:", res2);
+            if (res2.authResponse) fetchInstagramPages(res2.authResponse.accessToken);
+          },
+          {
+            scope:
+              "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+          }
+        );
+      }
+    });
+  };
+
   const handleConnectPage = (page) => {
     setSelectedPage(page);
   };
@@ -140,9 +161,7 @@ export default function Settings({
                 {selectedPage?.id === page.id ? (
                   "✅ Connected"
                 ) : (
-                  <button onClick={() => handleConnectPage(page)}>
-                    Connect
-                  </button>
+                  <button onClick={() => handleConnectPage(page)}>Connect</button>
                 )}
               </li>
             ))}
@@ -161,9 +180,7 @@ export default function Settings({
                 {selectedPage?.id === page.id ? (
                   "✅ Connected"
                 ) : (
-                  <button onClick={() => handleConnectPage(page)}>
-                    Connect
-                  </button>
+                  <button onClick={() => handleConnectPage(page)}>Connect</button>
                 )}
               </li>
             ))}
