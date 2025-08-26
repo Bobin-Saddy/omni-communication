@@ -1,3 +1,4 @@
+// Settings.jsx
 import React from "react";
 
 export default function Settings({
@@ -10,39 +11,50 @@ export default function Settings({
   handleWhatsAppConnect,
   handleWidgetConnect,
 }) {
+  const buttonStyle = (active) => ({
+    padding: "10px 20px",
+    margin: "10px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: active ? "not-allowed" : "pointer",
+    background: active ? "#4caf50" : "#007bff",
+    color: "#fff",
+    fontWeight: "bold",
+  });
+
   return (
-    <div className="p-4 space-y-4">
-      <h2 className="text-lg font-semibold">Connect Your Channels</h2>
+    <div style={{ textAlign: "center", padding: "20px" }}>
+      <button
+        onClick={handleFacebookLogin}
+        disabled={fbConnected}
+        style={buttonStyle(fbConnected)}
+      >
+        {fbConnected ? "Facebook Connected" : "Connect Facebook"}
+      </button>
 
-      <div className="flex flex-col gap-2">
-        <button
-          onClick={handleFacebookLogin}
-          className="px-4 py-2 rounded bg-blue-600 text-white"
-        >
-          {fbConnected ? "✅ Facebook Connected" : "Connect Facebook"}
-        </button>
+      <button
+        onClick={handleInstagramLogin}
+        disabled={igConnected}
+        style={buttonStyle(igConnected)}
+      >
+        {igConnected ? "Instagram Connected" : "Connect Instagram"}
+      </button>
 
-        <button
-          onClick={handleInstagramLogin}
-          className="px-4 py-2 rounded bg-pink-600 text-white"
-        >
-          {igConnected ? "✅ Instagram Connected" : "Connect Instagram"}
-        </button>
+      <button
+        onClick={handleWhatsAppConnect}
+        disabled={waConnected}
+        style={buttonStyle(waConnected)}
+      >
+        {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
+      </button>
 
-        <button
-          onClick={handleWhatsAppConnect}
-          className="px-4 py-2 rounded bg-green-600 text-white"
-        >
-          {waConnected ? "✅ WhatsApp Connected" : "Connect WhatsApp"}
-        </button>
-
-        <button
-          onClick={handleWidgetConnect}
-          className="px-4 py-2 rounded bg-gray-700 text-white"
-        >
-          {widgetConnected ? "✅ Widget Connected" : "Connect Widget"}
-        </button>
-      </div>
+      <button
+        onClick={handleWidgetConnect}
+        disabled={widgetConnected}
+        style={buttonStyle(widgetConnected)}
+      >
+        {widgetConnected ? "Widget Connected" : "Connect Widget"}
+      </button>
     </div>
   );
 }
