@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 
-export default function Settings({ setSelectedPlatform, setSelectedPage, selectedPage }) {
+export default function Settings({}) {
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
+  const [selectedPageId, setSelectedPageId] = useState(null);
+  const [selectedPlatform, setSelectedPlatform] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -27,15 +29,13 @@ export default function Settings({ setSelectedPlatform, setSelectedPage, selecte
   }, []);
 
   const handleFacebookLogin = () => {
-    if (!window.FB) return alert("Facebook SDK not loaded yet");
+    if (!window.FB) return alert("FB SDK not loaded yet");
 
     window.FB.login(
       (res) => {
         if (res.authResponse) {
           setFbConnected(true);
-          const token = res.authResponse.accessToken;
-
-          window.FB.api("/me/accounts", "GET", { access_token: token }, function (response) {
+          window.FB.api("/me/accounts", "GET", { access_token: res.authResponse.accessToken }, (response) => {
             if (!response || response.error) console.error(response?.error);
             else setFbPages(response.data);
           });
@@ -46,15 +46,13 @@ export default function Settings({ setSelectedPlatform, setSelectedPage, selecte
   };
 
   const handleInstagramLogin = () => {
-    if (!window.FB) return alert("Facebook SDK not loaded yet");
+    if (!window.FB) return alert("FB SDK not loaded yet");
 
     window.FB.login(
       (res) => {
         if (res.authResponse) {
           setIgConnected(true);
-          const token = res.authResponse.accessToken;
-
-          window.FB.api("/me/accounts", "GET", { access_token: token }, function (response) {
+          window.FB.api("/me/accounts", "GET", { access_token: res.authResponse.accessToken }, (response) => {
             if (!response || response.error) console.error(response?.error);
             else {
               const igAccounts = response.data.filter((p) => p.instagram_business_account);
@@ -63,28 +61,26 @@ export default function Settings({ setSelectedPlatform, setSelectedPage, selecte
           });
         }
       },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
+      { scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata" }
     );
   };
 
   const handleConnectPage = (platform, page) => {
     setSelectedPlatform(platform);
-    setSelectedPage(page);
+    setSelectedPageId(page.id);
+
+    // Save connected page in localStorage or state to pass to dashboard
+    localStorage.setItem("selectedPlatform", platform);
+    localStorage.setItem("selectedPage", JSON.stringify(page));
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Settings</h1>
+
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={handleFacebookLogin} disabled={fbConnected}>
-          Facebook Login
-        </button>
-        <button onClick={handleInstagramLogin} disabled={igConnected}>
-          Instagram Login
-        </button>
+        <button onClick={handleFacebookLogin} disabled={fbConnected}>Facebook Login</button>
+        <button onClick={handleInstagramLogin} disabled={igConnected}>Instagram Login</button>
       </div>
 
       {fbPages.length > 0 && (
@@ -95,7 +91,7 @@ export default function Settings({ setSelectedPlatform, setSelectedPage, selecte
               <li key={page.id}>
                 {page.name}{" "}
                 <button onClick={() => handleConnectPage("facebook", page)}>
-                  Connect {selectedPage?.id === page.id && "✅"}
+                  Connect {selectedPageId === page.id && "✅"}
                 </button>
               </li>
             ))}
@@ -111,7 +107,7 @@ export default function Settings({ setSelectedPlatform, setSelectedPage, selecte
               <li key={page.id}>
                 {page.name}{" "}
                 <button onClick={() => handleConnectPage("instagram", page)}>
-                  Connect {selectedPage?.id === page.id && "✅"}
+                  Connect {selectedPageId === page.id && "✅"}
                 </button>
               </li>
             ))}
