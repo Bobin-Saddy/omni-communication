@@ -1,21 +1,15 @@
 import { useState, useEffect } from "react";
 
-export default function Settings({
-  selectedPage,
-  setSelectedPage,
-  fbPages,
-  setFbPages,
-  igPages,
-  setIgPages,
-}) {
+export default function Settings({ selectedPage, setSelectedPage }) {
+  const [fbPages, setFbPages] = useState([]);
+  const [igPages, setIgPages] = useState([]);
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  // Load FB SDK safely
+  // Load FB SDK
   useEffect(() => {
-    if (typeof window === "undefined") return; // SSR safe
     if (document.getElementById("facebook-jssdk")) return;
 
     window.fbAsyncInit = function () {
@@ -41,61 +35,61 @@ export default function Settings({
   }, []);
 
   // Fetch FB Pages
-const fetchFBPages = async (accessToken) => {
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}`
-    );
-    const data = await res.json();
+  const fetchFBPages = async (accessToken) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}`
+      );
+      const data = await res.json();
 
-    // Log the full response to see if it contains an error
-    if (!data || !Array.isArray(data.data)) {
-      console.error("FB API response (not an array):", data);
-      return;
+      // Check if data.data exists and is an array
+      if (!data || !Array.isArray(data.data)) {
+        console.error("FB API response invalid:", data);
+        return;
+      }
+
+      const pages = data.data.map((p) => ({ ...p, type: "facebook" }));
+      setFbPages(pages);
+      setFbConnected(true);
+
+      if (!selectedPage && pages.length > 0) setSelectedPage(pages[0]);
+    } catch (err) {
+      console.error("Error fetching FB pages:", err);
     }
+  };
 
-    const pages = data.data.map((p) => ({ ...p, type: "facebook" }));
-    setFbPages(pages);
-    setFbConnected(true);
-    if (!selectedPage && pages.length > 0) setSelectedPage(pages[0]);
-  } catch (err) {
-    console.error("Error fetching FB pages:", err);
-  }
-};
+  // Fetch IG Pages
+  const fetchIGPages = async (accessToken) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${accessToken}`
+      );
+      const data = await res.json();
 
-const fetchIGPages = async (accessToken) => {
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${accessToken}`
-    );
-    const data = await res.json();
+      if (!data || !Array.isArray(data.data)) {
+        console.error("IG API response invalid:", data);
+        return;
+      }
 
-    // Log the full response to see if it contains an error
-    if (!data || !Array.isArray(data.data)) {
-      console.error("IG API response (not an array):", data);
-      return;
+      const igAccounts = data.data.filter((p) => p.instagram_business_account);
+      if (igAccounts.length === 0) return;
+
+      const enriched = igAccounts.map((p) => ({
+        ...p,
+        type: "instagram",
+        igId: p.instagram_business_account.id,
+      }));
+
+      setIgPages(enriched);
+      setIgConnected(true);
+
+      if (!selectedPage && enriched.length > 0) setSelectedPage(enriched[0]);
+    } catch (err) {
+      console.error("Error fetching IG pages:", err);
     }
+  };
 
-    const igAccounts = data.data.filter((p) => p.instagram_business_account);
-    if (igAccounts.length === 0) return;
-
-    const enriched = igAccounts.map((p) => ({
-      ...p,
-      type: "instagram",
-      igId: p.instagram_business_account.id,
-    }));
-
-    setIgPages(enriched);
-    setIgConnected(true);
-    if (!selectedPage && enriched.length > 0) setSelectedPage(enriched[0]);
-  } catch (err) {
-    console.error("Error fetching IG pages:", err);
-  }
-};
-
-
-
-  // FB Login
+  // FB login
   const handleFBLogin = () => {
     if (!window.FB) return console.error("FB SDK not loaded yet");
 
@@ -103,14 +97,13 @@ const fetchIGPages = async (accessToken) => {
       (res) => {
         if (res.authResponse) {
           fetchFBPages(res.authResponse.accessToken);
-          fetchIGPages(res.authResponse.accessToken);
         }
       },
-      { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
+      { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" }
     );
   };
 
-  // IG Login
+  // IG login
   const handleIGLogin = () => {
     if (!window.FB) return console.error("FB SDK not loaded yet");
 
@@ -140,30 +133,32 @@ const fetchIGPages = async (accessToken) => {
         </button>
       </div>
 
-      {/* Facebook Pages */}
-      {fbPages && fbPages.length > 0 && (
+      {fbPages.length > 0 && (
         <div>
           <h3>Facebook Pages</h3>
           <ul>
             {fbPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => handleConnectPage(page)}>Connect</button>
+                {selectedPage?.id === page.id ? "✅ Connected" : (
+                  <button onClick={() => handleConnectPage(page)}>Connect</button>
+                )}
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Instagram Accounts */}
-      {igPages && igPages.length > 0 && (
+      {igPages.length > 0 && (
         <div>
           <h3>Instagram Accounts</h3>
           <ul>
             {igPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => handleConnectPage(page)}>Connect</button>
+                {selectedPage?.id === page.id ? "✅ Connected" : (
+                  <button onClick={() => handleConnectPage(page)}>Connect</button>
+                )}
               </li>
             ))}
           </ul>
