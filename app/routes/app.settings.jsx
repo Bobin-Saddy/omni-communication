@@ -1,206 +1,110 @@
-import { useState, useEffect } from "react";
+import React from "react";
 
-export default function Settings({ onPageSelect }) {
-  const [fbPages, setFbPages] = useState([]);
-  const [igPages, setIgPages] = useState([]);
-  const [fbConnected, setFbConnected] = useState(false);
-  const [igConnected, setIgConnected] = useState(false);
-  const [waConnected, setWaConnected] = useState(false);
-  const [widgetConnected, setWidgetConnected] = useState(false);
-  const [currentStoreDomain, setCurrentStoreDomain] = useState(null);
-
-  const FACEBOOK_APP_ID = "544704651303656";
-
-  // ✅ Read Shopify store domain from query param
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shop = urlParams.get("shop");
-    if (shop) setCurrentStoreDomain(shop);
-  }, []);
-
-  // ✅ Initialize Facebook SDK
-  useEffect(() => {
-    if (window.FB) return; // already loaded
-
-    window.fbAsyncInit = function () {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: true,
-        version: "v18.0",
-      });
-    };
-
-    if (!document.getElementById("facebook-jssdk")) {
-      const js = document.createElement("script");
-      js.id = "facebook-jssdk";
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      document.body.appendChild(js);
-    }
-  }, []);
-
-  // -----------------------------
-  // Facebook Connect
-  const handleFacebookLogin = () => {
-    if (!window.FB) return alert("Facebook SDK not loaded yet");
-
-    window.FB.login(
-      async (res) => {
-        if (!res.authResponse) return;
-
-        const userAccessToken = res.authResponse.accessToken;
-
-        const pagesRes = await fetch(
-          `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${userAccessToken}`
-        );
-        const data = await pagesRes.json();
-
-        if (!data?.data?.length) return alert("No Facebook pages found.");
-
-        const pages = data.data.map((p) => ({
-          ...p,
-          type: "facebook",
-          token: p.access_token,
-        }));
-
-        setFbPages(pages);
-        setFbConnected(true);
-
-        // ✅ Auto-select first page
-        onPageSelect && onPageSelect(pages[0]);
-      },
-      {
-        scope:
-          "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
-      }
-    );
-  };
-
-  // -----------------------------
-  // Instagram Connect
-  const handleInstagramLogin = () => {
-    if (!window.FB) return alert("Facebook SDK not loaded yet");
-
-    window.FB.login(
-      async (res) => {
-        if (!res.authResponse) return;
-
-        const userAccessToken = res.authResponse.accessToken;
-
-        const pagesRes = await fetch(
-          `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${userAccessToken}`
-        );
-        const data = await pagesRes.json();
-
-        const igPagesFiltered = data.data.filter(
-          (p) => p.instagram_business_account
-        );
-        if (!igPagesFiltered.length)
-          return alert("No Instagram business accounts found.");
-
-        const pages = igPagesFiltered.map((p) => ({
-          ...p,
-          type: "instagram",
-          token: p.access_token,
-          igId: p.instagram_business_account.id,
-        }));
-
-        setIgPages(pages);
-        setIgConnected(true);
-
-        // ✅ Auto-select first IG page
-        onPageSelect && onPageSelect(pages[0]);
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
-    );
-  };
-
-  // -----------------------------
-  // WhatsApp + Widget placeholder
-  const handleWhatsAppConnect = () => {
-    setWaConnected(true);
-    onPageSelect &&
-      onPageSelect({ id: "whatsapp-1", name: "WhatsApp", type: "whatsapp" });
-  };
-
-  const handleWidgetConnect = () => {
-    setWidgetConnected(true);
-    onPageSelect &&
-      onPageSelect({ id: "widget-1", name: "Chat Widget", type: "widget" });
-  };
-
-  // -----------------------------
+export default function Settings({
+  fbConnected,
+  igConnected,
+  waConnected,
+  widgetConnected,
+  fbPages,
+  igPages,
+  handleFacebookLogin,
+  handleInstagramLogin,
+  handleWhatsAppConnect,
+  handleWidgetConnect,
+  fetchConversations,
+  setSelectedPage,
+  selectedPage,
+}) {
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Connect Platforms</h2>
-
+    <div style={{ textAlign: "center" }}>
       {/* Facebook */}
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={handleFacebookLogin} className="btn-primary">
-          {fbConnected ? "✅ Facebook Connected" : "Connect Facebook"}
-        </button>
-      </div>
+      <button
+        onClick={handleFacebookLogin}
+        disabled={fbConnected}
+        className="btn-primary"
+      >
+        {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+      </button>
+
+      {/* Show FB Pages if connected */}
+      {fbConnected && fbPages.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          {fbPages.map((page) => (
+            <div
+              key={page.id}
+              onClick={() => {
+                setSelectedPage({ ...page, type: "facebook" });
+                fetchConversations(page);
+              }}
+              style={{
+                padding: "10px 14px",
+                margin: "6px auto",
+                border: "1px solid #ddd",
+                borderRadius: 10,
+                maxWidth: 280,
+                cursor: "pointer",
+                backgroundColor:
+                  selectedPage?.id === page.id ? "#dbeafe" : "white",
+              }}
+            >
+              📘 {page.name}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Instagram */}
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={handleInstagramLogin} className="btn-primary">
-          {igConnected ? "✅ Instagram Connected" : "Connect Instagram"}
-        </button>
-      </div>
+      <button
+        onClick={handleInstagramLogin}
+        disabled={igConnected}
+        className="btn-primary"
+      >
+        {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+      </button>
+
+      {igConnected && igPages.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          {igPages.map((page) => (
+            <div
+              key={page.id}
+              onClick={() => {
+                setSelectedPage({ ...page, type: "instagram" });
+                fetchConversations(page);
+              }}
+              style={{
+                padding: "10px 14px",
+                margin: "6px auto",
+                border: "1px solid #ddd",
+                borderRadius: 10,
+                maxWidth: 280,
+                cursor: "pointer",
+                backgroundColor:
+                  selectedPage?.id === page.id ? "#dbeafe" : "white",
+              }}
+            >
+              📸 {page.name}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* WhatsApp */}
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={handleWhatsAppConnect} className="btn-primary">
-          {waConnected ? "✅ WhatsApp Connected" : "Connect WhatsApp"}
-        </button>
-      </div>
+      <button
+        onClick={handleWhatsAppConnect}
+        disabled={waConnected}
+        className="btn-primary"
+      >
+        {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
+      </button>
 
       {/* Widget */}
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={handleWidgetConnect} className="btn-primary">
-          {widgetConnected ? "✅ Widget Connected" : "Connect Widget"}
-        </button>
-      </div>
-
-      {/* Show Pages */}
-      {fbPages.length > 0 && (
-        <div>
-          <h3>Facebook Pages</h3>
-          {fbPages.map((p) => (
-            <div key={p.id} style={{ marginBottom: 10 }}>
-              <span>{p.name}</span>
-              <button
-                style={{ marginLeft: 10 }}
-                className="btn-primary"
-                onClick={() => onPageSelect && onPageSelect(p)}
-              >
-                Use This Page
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {igPages.length > 0 && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Instagram Pages</h3>
-          {igPages.map((p) => (
-            <div key={p.id} style={{ marginBottom: 10 }}>
-              <span>{p.name}</span>
-              <button
-                style={{ marginLeft: 10 }}
-                className="btn-primary"
-                onClick={() => onPageSelect && onPageSelect(p)}
-              >
-                Use This IG Page
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <button
+        onClick={handleWidgetConnect}
+        disabled={widgetConnected}
+        className="btn-primary"
+      >
+        {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
+      </button>
     </div>
   );
 }
