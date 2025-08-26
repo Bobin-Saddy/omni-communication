@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import Settings from "./app.settings";
 
 export default function SocialChatDashboard() {
   const [activeTab, setActiveTab] = useState("settings"); // 
@@ -828,7 +827,41 @@ return (
         )}
 
         {/* SETTINGS TAB */}
-{activeTab === "settings" && <Settings />}
+        {activeTab === "settings" && (
+          <div style={{ textAlign: "center" }}>
+            <button
+              onClick={handleFacebookLogin}
+              disabled={fbConnected}
+              className="btn-primary"
+            >
+              {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+            </button>
+            <br />
+            <button
+              onClick={handleInstagramLogin}
+              disabled={igConnected}
+              className="btn-primary"
+            >
+              {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+            </button>
+            <br />
+            <button
+              onClick={handleWhatsAppConnect}
+              disabled={waConnected}
+              className="btn-primary"
+            >
+              {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
+            </button>
+            <br />
+            <button
+              onClick={handleWidgetConnect}
+              disabled={widgetConnected}
+              className="btn-primary"
+            >
+              {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
+            </button>
+          </div>
+        )}
 
         {/* CONVERSATIONS TAB */}
         {activeTab === "conversations" && selectedPage && (
