@@ -3,14 +3,16 @@ import { useState, useEffect } from "react";
 export default function Settings({ connectedPages, setConnectedPages }) {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
-  const [loadingFB, setLoadingFB] = useState(false);
-  const [loadingIG, setLoadingIG] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  // Load Facebook SDK
+  // Load FB SDK
   useEffect(() => {
-    if (document.getElementById("facebook-jssdk")) return;
+    if (document.getElementById("facebook-jssdk")) {
+      setSdkLoaded(true);
+      return;
+    }
 
     window.fbAsyncInit = function () {
       window.FB.init({
@@ -19,13 +21,7 @@ export default function Settings({ connectedPages, setConnectedPages }) {
         xfbml: true,
         version: "v18.0",
       });
-
-      window.FB.getLoginStatus((res) => {
-        if (res.status === "connected") {
-          fetchFBPages(res.authResponse.accessToken);
-          fetchIGPages(res.authResponse.accessToken);
-        }
-      });
+      setSdkLoaded(true);
     };
 
     const js = document.createElement("script");
@@ -35,59 +31,45 @@ export default function Settings({ connectedPages, setConnectedPages }) {
   }, []);
 
   // Fetch FB Pages
-  const fetchFBPages = async (accessToken) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${accessToken}`
-      );
-      const data = await res.json();
-
-      if (!Array.isArray(data.data)) return;
-
-      const pages = data.data.map((p) => ({ ...p, type: "facebook", access_token: accessToken }));
+  const fetchFBPages = async (token) => {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
+    );
+    const data = await res.json();
+    if (Array.isArray(data.data)) {
+      const pages = data.data.map((p) => ({ ...p, type: "facebook", access_token: token }));
       setFbPages(pages);
-    } catch (err) {
-      console.error("Error fetching FB pages:", err);
     }
   };
 
   // Fetch IG Pages
-  const fetchIGPages = async (accessToken) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${accessToken}`
-      );
-      const data = await res.json();
-
-      if (!Array.isArray(data.data)) return;
-
+  const fetchIGPages = async (token) => {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
+    );
+    const data = await res.json();
+    if (Array.isArray(data.data)) {
       const igAccounts = data.data
         .filter((p) => p.instagram_business_account)
         .map((p) => ({
           id: p.instagram_business_account.id,
           name: p.name,
-          access_token: accessToken,
+          access_token: token,
           type: "instagram",
           igId: p.instagram_business_account.id,
         }));
-
       setIgPages(igAccounts);
-    } catch (err) {
-      console.error("Error fetching IG pages:", err);
     }
   };
 
   // FB login
   const handleFBLogin = () => {
-    if (!window.FB) return alert("FB SDK not loaded yet");
-    setLoadingFB(true);
+    if (!sdkLoaded) return alert("FB SDK not loaded yet");
 
+    // This must be triggered directly by user click
     window.FB.login(
-      async (res) => {
-        if (res.authResponse) {
-          await fetchFBPages(res.authResponse.accessToken);
-        }
-        setLoadingFB(false);
+      function (res) {
+        if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
       },
       { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" }
     );
@@ -95,15 +77,11 @@ export default function Settings({ connectedPages, setConnectedPages }) {
 
   // IG login
   const handleIGLogin = () => {
-    if (!window.FB) return alert("FB SDK not loaded yet");
-    setLoadingIG(true);
+    if (!sdkLoaded) return alert("FB SDK not loaded yet");
 
     window.FB.login(
-      async (res) => {
-        if (res.authResponse) {
-          await fetchIGPages(res.authResponse.accessToken);
-        }
-        setLoadingIG(false);
+      function (res) {
+        if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
       },
       {
         scope:
@@ -123,12 +101,8 @@ export default function Settings({ connectedPages, setConnectedPages }) {
       <h2>Settings</h2>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={handleFBLogin} disabled={loadingFB}>
-          {loadingFB ? "Loading FB..." : "Connect Facebook"}
-        </button>
-        <button onClick={handleIGLogin} disabled={loadingIG}>
-          {loadingIG ? "Loading IG..." : "Connect Instagram"}
-        </button>
+        <button onClick={handleFBLogin}>Connect Facebook</button>
+        <button onClick={handleIGLogin}>Connect Instagram</button>
       </div>
 
       {fbPages.length > 0 && (
