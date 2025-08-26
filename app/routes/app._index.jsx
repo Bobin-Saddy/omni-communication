@@ -6,16 +6,16 @@ export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [conversations, setConversations] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const messagesEndRef = useRef(null);
   const [loadingConversations, setLoadingConversations] = useState(false);
 
-  const messagesEndRef = useRef(null);
-
-  // Auto-scroll messages
+  // Auto-scroll chat
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [conversations]);
+  }, [messages]);
 
   // Fetch conversations whenever selectedPage changes
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function SocialChatDashboard() {
       const res = await fetch(url);
       const data = await res.json();
 
-      if (!data?.data) {
+      if (!Array.isArray(data?.data)) {
         setConversations([]);
         return;
       }
@@ -88,7 +88,8 @@ export default function SocialChatDashboard() {
         <ul>
           {conversations.map((conv) => (
             <li key={conv.id || conv.thread_key}>
-              {conv.userName || conv.participants?.data?.map((p) => p.name).join(", ")}
+              {conv.userName ||
+                conv.participants?.data?.map((p) => p.name).join(", ")}
             </li>
           ))}
         </ul>
