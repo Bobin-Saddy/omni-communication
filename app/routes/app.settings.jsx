@@ -7,20 +7,21 @@ export default function Settings({ onPageSelect }) {
   const [igConnected, setIgConnected] = useState(false);
   const [waConnected, setWaConnected] = useState(false);
   const [widgetConnected, setWidgetConnected] = useState(false);
+  const [currentStoreDomain, setCurrentStoreDomain] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  // Load FB SDK
-// set it when user selects a store or on mount
-useEffect(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const shop = urlParams.get("shop");
-  if (shop) setCurrentStoreDomain(shop);
-}, []);
-
-
-  // Initialize Facebook SDK
+  // ✅ Read Shopify store domain from query param
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shop = urlParams.get("shop");
+    if (shop) setCurrentStoreDomain(shop);
+  }, []);
+
+  // ✅ Initialize Facebook SDK
+  useEffect(() => {
+    if (window.FB) return; // already loaded
+
     window.fbAsyncInit = function () {
       window.FB.init({
         appId: FACEBOOK_APP_ID,
@@ -38,13 +39,6 @@ useEffect(() => {
     }
   }, []);
 
-  // Scroll chat to bottom when messages update
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
   // -----------------------------
   // Facebook Connect
   const handleFacebookLogin = () => {
@@ -56,7 +50,6 @@ useEffect(() => {
 
         const userAccessToken = res.authResponse.accessToken;
 
-        // Fetch pages
         const pagesRes = await fetch(
           `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${userAccessToken}`
         );
@@ -67,7 +60,7 @@ useEffect(() => {
         const pages = data.data.map((p) => ({
           ...p,
           type: "facebook",
-          token: p.access_token, // ✅ include page token
+          token: p.access_token,
         }));
 
         setFbPages(pages);
@@ -94,7 +87,6 @@ useEffect(() => {
 
         const userAccessToken = res.authResponse.accessToken;
 
-        // Fetch IG business accounts
         const pagesRes = await fetch(
           `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${userAccessToken}`
         );
@@ -109,7 +101,7 @@ useEffect(() => {
         const pages = igPagesFiltered.map((p) => ({
           ...p,
           type: "instagram",
-          token: p.access_token, // ✅ include page token
+          token: p.access_token,
           igId: p.instagram_business_account.id,
         }));
 
