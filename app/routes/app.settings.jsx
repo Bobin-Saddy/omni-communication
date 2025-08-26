@@ -71,9 +71,11 @@ export default function Settings({ selectedPage, setSelectedPage }) {
       setFbPages(fbPagesData);
       setIgPages(igPagesData);
 
-      // Set first page as selected if none selected
-      if (!selectedPage && fbPagesData.length > 0) setSelectedPage(fbPagesData[0]);
-      else if (!selectedPage && igPagesData.length > 0) setSelectedPage(igPagesData[0]);
+      // Select first page if none selected
+      if (!selectedPage) {
+        if (fbPagesData.length > 0) setSelectedPage(fbPagesData[0]);
+        else if (igPagesData.length > 0) setSelectedPage(igPagesData[0]);
+      }
     } catch (err) {
       console.error("Error fetching pages:", err);
     } finally {
@@ -97,7 +99,17 @@ export default function Settings({ selectedPage, setSelectedPage }) {
     );
   };
 
-  const handleConnectPage = (page) => setSelectedPage(page);
+  const handleConnectPage = (page) => {
+    // For IG, store the igId as id to match selectedPage
+    if (page.type === "instagram") {
+      setSelectedPage({ ...page, id: page.igId });
+    } else {
+      setSelectedPage(page);
+    }
+  };
+
+  const isConnected = (page) =>
+    selectedPage && (selectedPage.id === page.id || selectedPage.id === page.igId);
 
   return (
     <div style={{ padding: 20 }}>
@@ -114,7 +126,7 @@ export default function Settings({ selectedPage, setSelectedPage }) {
             {fbPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                {selectedPage?.id === p.id ? "✅ Connected" : (
+                {isConnected(p) ? "✅ Connected" : (
                   <button onClick={() => handleConnectPage(p)}>Connect</button>
                 )}
               </li>
@@ -130,7 +142,7 @@ export default function Settings({ selectedPage, setSelectedPage }) {
             {igPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
-                {selectedPage?.id === p.id ? "✅ Connected" : (
+                {isConnected(p) ? "✅ Connected" : (
                   <button onClick={() => handleConnectPage(p)}>Connect</button>
                 )}
               </li>
