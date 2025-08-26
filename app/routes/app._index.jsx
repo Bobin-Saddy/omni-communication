@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import Settings from "./app.settings";
 
 export default function SocialChatDashboard() {
   const [activeTab, setActiveTab] = useState("settings"); // 
