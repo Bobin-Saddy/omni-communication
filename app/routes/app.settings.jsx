@@ -1,153 +1,92 @@
 import { useState, useEffect } from "react";
 
 export default function Settings({ onPageSelect }) {
-  const [fbPages, setFbPages] = useState([]);
-  const [igPages, setIgPages] = useState([]);
-  const [fbConnected, setFbConnected] = useState(false);
-  const [igConnected, setIgConnected] = useState(false);
-  const [waConnected, setWaConnected] = useState(false);
-  const [widgetConnected, setWidgetConnected] = useState(false);
+  const [connections, setConnections] = useState({
+    facebook: false,
+    instagram: false,
+    whatsapp: false,
+    widget: false,
+  });
 
-  // ---- HANDLE CONNECTIONS ----
-  const connectFacebook = () => {
-    setFbConnected(true);
-    setFbPages([
-      { id: "fb1", name: "FB Page 1", type: "facebook" },
-      { id: "fb2", name: "FB Page 2", type: "facebook" },
-    ]);
+  // Example: load saved state (you can replace with API call)
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("connections")) || {};
+    setConnections((prev) => ({ ...prev, ...saved }));
+  }, []);
+
+  // Save whenever state changes
+  useEffect(() => {
+    localStorage.setItem("connections", JSON.stringify(connections));
+  }, [connections]);
+
+  // Toggle connect/disconnect
+  const toggleConnection = (platform) => {
+    setConnections((prev) => ({
+      ...prev,
+      [platform]: !prev[platform],
+    }));
+
+    if (!connections[platform]) {
+      onPageSelect?.({ type: platform, id: `${platform}-page-id` });
+    }
   };
 
-  const connectInstagram = () => {
-    setIgConnected(true);
-    setIgPages([
-      { id: "ig1", name: "IG Page 1", type: "instagram" },
-      { id: "ig2", name: "IG Page 2", type: "instagram" },
-    ]);
-  };
+  const platforms = [
+    { key: "facebook", label: "Facebook" },
+    { key: "instagram", label: "Instagram" },
+    { key: "whatsapp", label: "WhatsApp" },
+    { key: "widget", label: "Widget" },
+  ];
 
-  const connectWhatsApp = () => {
-    setWaConnected(true);
-  };
-
-  const connectWidget = () => {
-    setWidgetConnected(true);
-  };
-
-  // ---- RENDER ----
   return (
     <div
       style={{
-        padding: 20,
+        padding: "20px",
         fontFamily: "Inter, Arial, sans-serif",
-        maxWidth: 800,
-        margin: "0 auto",
+        maxWidth: 600,
+        margin: "auto",
+        background: "#f9fafb",
+        borderRadius: "12px",
+        boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
       }}
     >
-      <h2 style={{ fontSize: 24, marginBottom: 20 }}>Settings</h2>
+      <h2 style={{ marginBottom: "20px", color: "#111827" }}>
+        Platform Connections
+      </h2>
 
-      {/* FACEBOOK */}
-      <div style={sectionStyle}>
-        <h3 style={titleStyle}>Facebook</h3>
-        {fbConnected ? (
-          <div>
-            <p style={{ color: "green" }}>Connected ✅</p>
-            {fbPages.map((page) => (
-              <button
-                key={page.id}
-                style={pageButtonStyle}
-                onClick={() => onPageSelect(page)}
-              >
-                {page.name}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <button style={connectButtonStyle} onClick={connectFacebook}>
-            Connect Facebook
+      {platforms.map((p) => (
+        <div
+          key={p.key}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "12px 16px",
+            marginBottom: "10px",
+            background: "#fff",
+            borderRadius: "8px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+          }}
+        >
+          <span style={{ fontSize: "16px", fontWeight: 500 }}>{p.label}</span>
+          <button
+            onClick={() => toggleConnection(p.key)}
+            style={{
+              padding: "8px 14px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#fff",
+              background: connections[p.key] ? "#ef4444" : "#3b82f6",
+              transition: "background 0.3s",
+            }}
+          >
+            {connections[p.key] ? "Disconnect" : "Connect"}
           </button>
-        )}
-      </div>
-
-      {/* INSTAGRAM */}
-      <div style={sectionStyle}>
-        <h3 style={titleStyle}>Instagram</h3>
-        {igConnected ? (
-          <div>
-            <p style={{ color: "green" }}>Connected ✅</p>
-            {igPages.map((page) => (
-              <button
-                key={page.id}
-                style={pageButtonStyle}
-                onClick={() => onPageSelect(page)}
-              >
-                {page.name}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <button style={connectButtonStyle} onClick={connectInstagram}>
-            Connect Instagram
-          </button>
-        )}
-      </div>
-
-      {/* WHATSAPP */}
-      <div style={sectionStyle}>
-        <h3 style={titleStyle}>WhatsApp</h3>
-        {waConnected ? (
-          <p style={{ color: "green" }}>Connected ✅</p>
-        ) : (
-          <button style={connectButtonStyle} onClick={connectWhatsApp}>
-            Connect WhatsApp
-          </button>
-        )}
-      </div>
-
-      {/* WIDGET */}
-      <div style={sectionStyle}>
-        <h3 style={titleStyle}>Widget</h3>
-        {widgetConnected ? (
-          <p style={{ color: "green" }}>Connected ✅</p>
-        ) : (
-          <button style={connectButtonStyle} onClick={connectWidget}>
-            Connect Widget
-          </button>
-        )}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
-
-/* ---- STYLES ---- */
-const sectionStyle = {
-  background: "#f9fafb",
-  padding: 16,
-  borderRadius: 12,
-  marginBottom: 20,
-  boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-};
-
-const titleStyle = {
-  fontSize: 18,
-  marginBottom: 10,
-};
-
-const connectButtonStyle = {
-  background: "#2563eb",
-  color: "white",
-  padding: "10px 16px",
-  border: "none",
-  borderRadius: 8,
-  cursor: "pointer",
-  fontSize: 14,
-};
-
-const pageButtonStyle = {
-  background: "#f3f4f6",
-  padding: "8px 14px",
-  border: "1px solid #ddd",
-  borderRadius: 6,
-  cursor: "pointer",
-  marginRight: 8,
-  marginBottom: 8,
-};
