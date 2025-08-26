@@ -52,7 +52,6 @@ export default function Settings({
       const enriched = data.data.map((p) => ({ ...p, type: "facebook" }));
       setFbPages(enriched);
       setFbConnected(true);
-      setSelectedPage(enriched[0]);
     } catch (err) {
       console.error("Error fetching FB pages:", err);
     }
@@ -77,7 +76,6 @@ export default function Settings({
       }));
       setIgPages(enriched);
       setIgConnected(true);
-      setSelectedPage(enriched[0]);
     } catch (err) {
       console.error("Error fetching IG pages:", err);
     }
@@ -110,10 +108,6 @@ export default function Settings({
     );
   };
 
-  const handleConnectPage = (page) => {
-    setSelectedPage(page);
-  };
-
   return (
     <div style={{ padding: 20 }}>
       <h2>Settings</h2>
@@ -134,9 +128,7 @@ export default function Settings({
             {fbPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                {selectedPage?.id === page.id ? "✅ Connected" : (
-                  <button onClick={() => handleConnectPage(page)}>Connect</button>
-                )}
+                <button onClick={() => setSelectedPage(page)}>Connect</button>
               </li>
             ))}
           </ul>
@@ -150,9 +142,7 @@ export default function Settings({
             {igPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                {selectedPage?.id === page.id ? "✅ Connected" : (
-                  <button onClick={() => handleConnectPage(page)}>Connect</button>
-                )}
+                <button onClick={() => setSelectedPage(page)}>Connect</button>
               </li>
             ))}
           </ul>

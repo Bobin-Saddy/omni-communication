@@ -6,27 +6,23 @@ export default function SocialChatDashboard() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [conversations, setConversations] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
   const [loadingConversations, setLoadingConversations] = useState(false);
 
   const messagesEndRef = useRef(null);
 
-  // Auto-scroll chat
+  // Auto-scroll messages
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [conversations]);
 
   // Fetch conversations whenever selectedPage changes
   useEffect(() => {
     if (!selectedPage) return;
-
     fetchConversations(selectedPage);
   }, [selectedPage]);
 
-  // Fetch conversations for FB / IG pages
   const fetchConversations = async (page) => {
     setLoadingConversations(true);
     try {
@@ -44,7 +40,6 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      // For Instagram, enrich with username
       if (page.type === "instagram") {
         const enriched = await Promise.all(
           data.data.map(async (conv) => {
