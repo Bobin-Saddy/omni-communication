@@ -828,18 +828,7 @@ return (
         )}
 
         {/* SETTINGS TAB */}
-        {activeTab === "settings" && (
-          <Settings
-          fbConnected={fbConnected}
-          igConnected={igConnected}
-          waConnected={waConnected}
-          widgetConnected={widgetConnected}
-          handleFacebookLogin={handleFacebookLogin}
-          handleInstagramLogin={handleInstagramLogin}
-          handleWhatsAppConnect={handleWhatsAppConnect}
-          handleWidgetConnect={handleWidgetConnect}
-        />
-        )}
+{activeTab === "settings" && <Settings />}
 
         {/* CONVERSATIONS TAB */}
         {activeTab === "conversations" && selectedPage && (
