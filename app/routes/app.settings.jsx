@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function Settings({ connectedPages, setConnectedPages }) {
+export default function Settings({ connectedPages = [], setConnectedPages = () => {} }) {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -30,7 +30,6 @@ export default function Settings({ connectedPages, setConnectedPages }) {
     document.body.appendChild(js);
   }, []);
 
-  // Fetch FB Pages
   const fetchFBPages = async (token) => {
     const res = await fetch(
       `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
@@ -42,7 +41,6 @@ export default function Settings({ connectedPages, setConnectedPages }) {
     }
   };
 
-  // Fetch IG Pages
   const fetchIGPages = async (token) => {
     const res = await fetch(
       `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
@@ -62,11 +60,8 @@ export default function Settings({ connectedPages, setConnectedPages }) {
     }
   };
 
-  // FB login
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-
-    // This must be triggered directly by user click
     window.FB.login(
       function (res) {
         if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
@@ -75,10 +70,8 @@ export default function Settings({ connectedPages, setConnectedPages }) {
     );
   };
 
-  // IG login
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-
     window.FB.login(
       function (res) {
         if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
