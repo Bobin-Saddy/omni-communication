@@ -1,60 +1,47 @@
-// Settings.jsx
-import React from "react";
+import React, { useState } from "react";
 
-export default function Settings({
-  fbConnected,
-  igConnected,
-  waConnected,
-  widgetConnected,
-  handleFacebookLogin,
-  handleInstagramLogin,
-  handleWhatsAppConnect,
-  handleWidgetConnect,
-}) {
-  const buttonStyle = (active) => ({
-    padding: "10px 20px",
-    margin: "10px",
-    borderRadius: "8px",
-    border: "none",
-    cursor: active ? "not-allowed" : "pointer",
-    background: active ? "#4caf50" : "#007bff",
-    color: "#fff",
-    fontWeight: "bold",
-  });
+export default function Dashboard() {
+  const [fbConnected, setFbConnected] = useState(false);
+  const [igConnected, setIgConnected] = useState(false);
+  const [waConnected, setWaConnected] = useState(false);
+  const [widgetConnected, setWidgetConnected] = useState(false);
+
+  // Handlers
+  const handleFacebookLogin = () => {
+    console.log("Facebook login clicked");
+    setFbConnected(true);
+  };
+
+  const handleInstagramLogin = () => {
+    console.log("Instagram login clicked");
+    setIgConnected(true);
+  };
+
+  const handleWhatsAppConnect = () => {
+    console.log("WhatsApp connect clicked");
+    setWaConnected(true);
+  };
+
+  const handleWidgetConnect = () => {
+    console.log("Widget connect clicked");
+    setWidgetConnected(true);
+  };
 
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <button
-        onClick={handleFacebookLogin}
-        disabled={fbConnected}
-        style={buttonStyle(fbConnected)}
-      >
-        {fbConnected ? "Facebook Connected" : "Connect Facebook"}
-      </button>
+    <div>
+      <h1>My Dashboard</h1>
 
-      <button
-        onClick={handleInstagramLogin}
-        disabled={igConnected}
-        style={buttonStyle(igConnected)}
-      >
-        {igConnected ? "Instagram Connected" : "Connect Instagram"}
-      </button>
-
-      <button
-        onClick={handleWhatsAppConnect}
-        disabled={waConnected}
-        style={buttonStyle(waConnected)}
-      >
-        {waConnected ? "WhatsApp Connected" : "Connect WhatsApp"}
-      </button>
-
-      <button
-        onClick={handleWidgetConnect}
-        disabled={widgetConnected}
-        style={buttonStyle(widgetConnected)}
-      >
-        {widgetConnected ? "Widget Connected" : "Connect Widget"}
-      </button>
+      {/* Call Settings Component */}
+      <Settings
+        fbConnected={fbConnected}
+        igConnected={igConnected}
+        waConnected={waConnected}
+        widgetConnected={widgetConnected}
+        handleFacebookLogin={handleFacebookLogin}
+        handleInstagramLogin={handleInstagramLogin}
+        handleWhatsAppConnect={handleWhatsAppConnect}
+        handleWidgetConnect={handleWidgetConnect}
+      />
     </div>
   );
 }
