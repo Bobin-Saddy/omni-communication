@@ -13,7 +13,7 @@ export default function Settings({ selectedPage, setSelectedPage, fbPages = [], 
     }
     window.fbAsyncInit = function () {
       window.FB.init({
-        appId: "YOUR_FB_APP_ID", // replace with your FB App ID
+        appId: "544704651303656", // replace with your FB App ID
         cookie: true,
         xfbml: true,
         version: "v18.0",
