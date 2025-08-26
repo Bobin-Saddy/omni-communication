@@ -1,111 +1,92 @@
-import {
-  Box,
-  Card,
-  Page,
-  Text,
-  BlockStack,
-  InlineGrid,
-  TextField,
-  Button,
-} from "@shopify/polaris";
-import { useState } from "react";
-import { json } from "@remix-run/node";
-import { useLoaderData, Form } from "@remix-run/react";
+import React, { useState } from "react";
 
-export async function loader({ request }) {
-  const { authenticate } = await import("../shopify.server");
-  const db = (await import("../db.server")).default;
-
-  const { session } = await authenticate.admin(request);
-
-  let settings = await db.settings.findFirst({
-    where: {
-      shop: session.shop,
-    },
-  });
-
-  if (!settings) {
-    settings = {};
-  }
-
-  return json(settings);
-}
-
-export async function action({ request }) {
-  const { authenticate } = await import("../shopify.server");
-  const db = (await import("../db.server")).default;
-
-  let settings = await request.formData();
-  settings = Object.fromEntries(settings);
-
-  const { session } = await authenticate.admin(request);
-
-  await db.settings.upsert({
-    where: { shop: session.shop },
-    update: {
-      name: settings.name,
-      description: settings.description,
-      shop: session.shop,
-    },
-    create: {
-      name: settings.name,
-      description: settings.description,
-      shop: session.shop,
-    },
-  });
-
-  return json(settings);
-}
-
-export default function SettingsPage() {
-  const settings = useLoaderData();
-  const [formState, setFormState] = useState(settings);
-
+export default function AppSettings({
+  fbConnected,
+  igConnected,
+  waConnected,
+  widgetConnected,
+  handleFacebookLogin,
+  handleInstagramLogin,
+  handleWhatsAppConnect,
+  handleWidgetConnect,
+}) {
   return (
-    <Page>
-      <ui-title-bar title="Settings" />
-      <BlockStack gap={{ xs: "800", sm: "400" }}>
-        <InlineGrid columns={{ xs: "1fr", md: "2fr 5fr" }} gap="400">
-          <Box
-            as="section"
-            paddingInlineStart={{ xs: 400, sm: 0 }}
-            paddingInlineEnd={{ xs: 400, sm: 0 }}
-          >
-            <BlockStack gap="400">
-              <Text as="h3" variant="headingMd">
-                Settings
-              </Text>
-              <Text as="p" variant="bodyMd">
-                Update app settings and preferences.
-              </Text>
-            </BlockStack>
-          </Box>
-          <Card roundedAbove="sm">
-            <Form method="POST">
-              <BlockStack gap="400">
-                <TextField
-                  label="App name"
-                  name="name"
-                  value={formState?.name}
-                  onChange={(value) =>
-                    setFormState({ ...formState, name: value })
-                  }
-                />
-                <TextField
-                  label="Description"
-                  name="description"
-                  value={formState?.description}
-                  onChange={(value) =>
-                    setFormState({ ...formState, description: value })
-                  }
-                />
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: 50,
+        minHeight: "70vh",
+        background: "linear-gradient(135deg, #e0e7ff, #fef2f2)",
+        borderRadius: 18,
+      }}
+    >
+      <h2
+        style={{
+          fontSize: 28,
+          fontWeight: 800,
+          marginBottom: 24,
+          color: "#1e293b",
+        }}
+      >
+        ⚙️ Connect Your Channels
+      </h2>
 
-                <Button submit={true}>Save</Button>
-              </BlockStack>
-            </Form>
-          </Card>
-        </InlineGrid>
-      </BlockStack>
-    </Page>
+      <button
+        onClick={handleFacebookLogin}
+        disabled={fbConnected}
+        className="btn-primary"
+      >
+        {fbConnected ? "✅ Facebook Connected" : "🔵 Connect Facebook"}
+      </button>
+      <button
+        onClick={handleInstagramLogin}
+        disabled={igConnected}
+        className="btn-primary"
+      >
+        {igConnected ? "✅ Instagram Connected" : "📸 Connect Instagram"}
+      </button>
+      <button
+        onClick={handleWhatsAppConnect}
+        disabled={waConnected}
+        className="btn-primary"
+      >
+        {waConnected ? "✅ WhatsApp Connected" : "💬 Connect WhatsApp"}
+      </button>
+      <button
+        onClick={handleWidgetConnect}
+        disabled={widgetConnected}
+        className="btn-primary"
+      >
+        {widgetConnected ? "✅ Widget Connected" : "🧩 Connect Widget"}
+      </button>
+
+      <style>{`
+        .btn-primary {
+          background: linear-gradient(135deg,#111827,#1f2937);
+          color: white;
+          padding: 14px 26px;
+          border: none;
+          border-radius: 14px;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          width: 260px;
+          margin: 10px 0;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        .btn-primary:disabled {
+          background: #9ca3af;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+        .btn-primary:not(:disabled):hover {
+          background: linear-gradient(135deg,#1e293b,#111827);
+          transform: translateY(-2px);
+        }
+      `}</style>
+    </div>
   );
 }
