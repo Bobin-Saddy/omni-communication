@@ -10,11 +10,17 @@ export default function Settings({
   const [igPages, setIgPages] = useState([]);
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
   // Load Facebook SDK
   useEffect(() => {
+    if (document.getElementById("facebook-jssdk")) {
+      setSdkLoaded(true);
+      return;
+    }
+
     window.fbAsyncInit = function () {
       window.FB.init({
         appId: FACEBOOK_APP_ID,
@@ -22,24 +28,16 @@ export default function Settings({
         xfbml: true,
         version: "v18.0",
       });
-
-      // Check login status on SDK load
-      window.FB.getLoginStatus((res) => {
-        if (res.status === "connected") {
-          fetchFacebookPages(res.authResponse.accessToken);
-        }
-      });
+      setSdkLoaded(true);
     };
 
-    if (!document.getElementById("facebook-jssdk")) {
-      const js = document.createElement("script");
-      js.id = "facebook-jssdk";
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      document.body.appendChild(js);
-    }
+    const js = document.createElement("script");
+    js.id = "facebook-jssdk";
+    js.src = "https://connect.facebook.net/en_US/sdk.js";
+    js.async = true;
+    document.body.appendChild(js);
   }, []);
 
-  // Fetch FB Pages
   const fetchFacebookPages = async (accessToken) => {
     try {
       const res = await fetch(
@@ -64,7 +62,6 @@ export default function Settings({
     }
   };
 
-  // Fetch IG Pages
   const fetchInstagramPages = async (accessToken) => {
     try {
       const res = await fetch(
@@ -92,45 +89,31 @@ export default function Settings({
     }
   };
 
-  // Handle Facebook login
   const handleFacebookLogin = () => {
-    if (!window.FB) return console.error("FB SDK not loaded yet");
+    if (!sdkLoaded) return console.error("FB SDK not loaded yet");
 
-    window.FB.getLoginStatus((res) => {
-      if (res.status === "connected") {
-        fetchFacebookPages(res.authResponse.accessToken);
-      } else {
-        window.FB.login(
-          (res2) => {
-            console.log("FB login result:", res2);
-            if (res2.authResponse) fetchFacebookPages(res2.authResponse.accessToken);
-          },
-          { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
-        );
-      }
-    });
+    window.FB.login(
+      (res) => {
+        console.log("FB login result:", res);
+        if (res.authResponse) fetchFacebookPages(res.authResponse.accessToken);
+      },
+      { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
+    );
   };
 
-  // Handle Instagram login
   const handleInstagramLogin = () => {
-    if (!window.FB) return console.error("FB SDK not loaded yet");
+    if (!sdkLoaded) return console.error("FB SDK not loaded yet");
 
-    window.FB.getLoginStatus((res) => {
-      if (res.status === "connected") {
-        fetchInstagramPages(res.authResponse.accessToken);
-      } else {
-        window.FB.login(
-          (res2) => {
-            console.log("IG login result:", res2);
-            if (res2.authResponse) fetchInstagramPages(res2.authResponse.accessToken);
-          },
-          {
-            scope:
-              "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-          }
-        );
+    window.FB.login(
+      (res) => {
+        console.log("IG login result:", res);
+        if (res.authResponse) fetchInstagramPages(res.authResponse.accessToken);
+      },
+      {
+        scope:
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
       }
-    });
+    );
   };
 
   const handleConnectPage = (page) => {
@@ -142,15 +125,14 @@ export default function Settings({
       <h1>Settings</h1>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={handleFacebookLogin} disabled={fbConnected}>
+        <button onClick={handleFacebookLogin} disabled={fbConnected || !sdkLoaded}>
           Facebook Login
         </button>
-        <button onClick={handleInstagramLogin} disabled={igConnected}>
+        <button onClick={handleInstagramLogin} disabled={igConnected || !sdkLoaded}>
           Instagram Login
         </button>
       </div>
 
-      {/* Facebook Pages */}
       {fbPages.length > 0 && (
         <div>
           <h3>Facebook Pages</h3>
@@ -169,7 +151,6 @@ export default function Settings({
         </div>
       )}
 
-      {/* Instagram Accounts */}
       {igPages.length > 0 && (
         <div>
           <h3>Instagram Accounts</h3>
