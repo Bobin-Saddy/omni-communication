@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 
-export default function Settings({}) {
+export default function Settings({ selectedPage, setSelectedPlatform, setSelectedPage, pageAccessTokens, setPageAccessTokens }) {
   const [fbConnected, setFbConnected] = useState(false);
   const [igConnected, setIgConnected] = useState(false);
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
-  const [selectedPageId, setSelectedPageId] = useState(null);
-  const [selectedPlatform, setSelectedPlatform] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -29,58 +27,83 @@ export default function Settings({}) {
   }, []);
 
   const handleFacebookLogin = () => {
-    if (!window.FB) return alert("FB SDK not loaded yet");
-
     window.FB.login(
       (res) => {
-        if (res.authResponse) {
-          setFbConnected(true);
-          window.FB.api("/me/accounts", "GET", { access_token: res.authResponse.accessToken }, (response) => {
-            if (!response || response.error) console.error(response?.error);
-            else setFbPages(response.data);
-          });
-        }
+        if (res.authResponse) fetchFacebookPages(res.authResponse.accessToken);
       },
       { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
     );
   };
 
   const handleInstagramLogin = () => {
-    if (!window.FB) return alert("FB SDK not loaded yet");
-
     window.FB.login(
       (res) => {
-        if (res.authResponse) {
-          setIgConnected(true);
-          window.FB.api("/me/accounts", "GET", { access_token: res.authResponse.accessToken }, (response) => {
-            if (!response || response.error) console.error(response?.error);
-            else {
-              const igAccounts = response.data.filter((p) => p.instagram_business_account);
-              setIgPages(igAccounts);
-            }
-          });
-        }
+        if (res.authResponse) fetchInstagramPages(res.authResponse.accessToken);
       },
       { scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata" }
     );
   };
 
+  const fetchFacebookPages = async (accessToken) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=access_token,name,id&access_token=${accessToken}`
+      );
+      const data = await res.json();
+      if (!data?.data?.length) return;
+
+      const tokens = {};
+      const pages = data.data.map((p) => {
+        tokens[p.id] = p.access_token;
+        return { ...p, type: "facebook" };
+      });
+
+      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+      setFbPages(pages);
+      setFbConnected(true);
+    } catch (err) {
+      console.error("FB pages fetch failed", err);
+    }
+  };
+
+  const fetchInstagramPages = async (accessToken) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=access_token,name,id,instagram_business_account&access_token=${accessToken}`
+      );
+      const data = await res.json();
+      if (!data?.data?.length) return;
+
+      const igAccounts = data.data.filter((p) => p.instagram_business_account);
+      const tokens = {};
+      const enriched = igAccounts.map((p) => {
+        tokens[p.id] = p.access_token;
+        return { ...p, type: "instagram", igId: p.instagram_business_account.id };
+      });
+
+      setPageAccessTokens((prev) => ({ ...prev, ...tokens }));
+      setIgPages(enriched);
+      setIgConnected(true);
+    } catch (err) {
+      console.error("IG pages fetch failed", err);
+    }
+  };
+
   const handleConnectPage = (platform, page) => {
     setSelectedPlatform(platform);
-    setSelectedPageId(page.id);
-
-    // Save connected page in localStorage or state to pass to dashboard
-    localStorage.setItem("selectedPlatform", platform);
-    localStorage.setItem("selectedPage", JSON.stringify(page));
+    setSelectedPage(page);
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Settings</h1>
-
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={handleFacebookLogin} disabled={fbConnected}>Facebook Login</button>
-        <button onClick={handleInstagramLogin} disabled={igConnected}>Instagram Login</button>
+        <button onClick={handleFacebookLogin} disabled={fbConnected}>
+          Facebook Login
+        </button>
+        <button onClick={handleInstagramLogin} disabled={igConnected}>
+          Instagram Login
+        </button>
       </div>
 
       {fbPages.length > 0 && (
@@ -91,7 +114,7 @@ export default function Settings({}) {
               <li key={page.id}>
                 {page.name}{" "}
                 <button onClick={() => handleConnectPage("facebook", page)}>
-                  Connect {selectedPageId === page.id && "✅"}
+                  {selectedPage?.id === page.id ? "✅ Connected" : "Connect"}
                 </button>
               </li>
             ))}
@@ -107,7 +130,7 @@ export default function Settings({}) {
               <li key={page.id}>
                 {page.name}{" "}
                 <button onClick={() => handleConnectPage("instagram", page)}>
-                  Connect {selectedPageId === page.id && "✅"}
+                  {selectedPage?.id === page.id ? "✅ Connected" : "Connect"}
                 </button>
               </li>
             ))}
