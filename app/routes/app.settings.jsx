@@ -1,21 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function Settings({
-  selectedPage,
-  setSelectedPage,
-  fbPages = [],  // default to empty array
-  setFbPages,
-  igPages = [],  // default to empty array
-  setIgPages,
-}) {
+export default function Settings({ selectedPage, setSelectedPage, fbPages = [], setFbPages, igPages = [], setIgPages }) {
   const [loadingFB, setLoadingFB] = useState(false);
   const [loadingIG, setLoadingIG] = useState(false);
+  const [fbSdkLoaded, setFbSdkLoaded] = useState(false);
 
-  // Facebook login & fetch pages
+  // Load Facebook SDK
+  useEffect(() => {
+    if (window.FB) {
+      setFbSdkLoaded(true);
+      return;
+    }
+    window.fbAsyncInit = function () {
+      window.FB.init({
+        appId: "YOUR_FB_APP_ID", // replace with your FB App ID
+        cookie: true,
+        xfbml: true,
+        version: "v18.0",
+      });
+      setFbSdkLoaded(true);
+    };
+
+    (function (d, s, id) {
+      var js,
+        fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) {
+        return;
+      }
+      js = d.createElement(s);
+      js.id = id;
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+    })(document, "script", "facebook-jssdk");
+  }, []);
+
   const handleFacebookLogin = () => {
-    if (!window.FB) return alert("FB SDK not loaded");
-
+    if (!fbSdkLoaded) return alert("FB SDK not loaded yet");
     setLoadingFB(true);
+
     window.FB.login(
       async (res) => {
         if (res.authResponse) {
@@ -26,9 +48,7 @@ export default function Settings({
             );
             const pagesData = await pagesRes.json();
             if (Array.isArray(pagesData.data)) {
-              setFbPages(
-                pagesData.data.map((p) => ({ ...p, type: "facebook" }))
-              );
+              setFbPages(pagesData.data.map((p) => ({ ...p, type: "facebook", access_token: token })));
             } else {
               setFbPages([]);
             }
@@ -46,11 +66,10 @@ export default function Settings({
     );
   };
 
-  // Instagram login & fetch pages
   const handleInstagramLogin = () => {
-    if (!window.FB) return alert("FB SDK not loaded");
-
+    if (!fbSdkLoaded) return alert("FB SDK not loaded yet");
     setLoadingIG(true);
+
     window.FB.login(
       async (res) => {
         if (res.authResponse) {
