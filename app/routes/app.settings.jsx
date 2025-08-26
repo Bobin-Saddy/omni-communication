@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
 
-export default function Settings({ selectedPage, setSelectedPlatform, setSelectedPage, pageAccessTokens, setPageAccessTokens }) {
-  const [fbConnected, setFbConnected] = useState(false);
-  const [igConnected, setIgConnected] = useState(false);
+export default function Settings({
+  selectedPage,
+  setSelectedPage,
+  pageAccessTokens,
+  setPageAccessTokens,
+}) {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
+  const [fbConnected, setFbConnected] = useState(false);
+  const [igConnected, setIgConnected] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -31,7 +36,9 @@ export default function Settings({ selectedPage, setSelectedPlatform, setSelecte
       (res) => {
         if (res.authResponse) fetchFacebookPages(res.authResponse.accessToken);
       },
-      { scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts" }
+      {
+        scope: "pages_show_list,pages_messaging,pages_read_engagement,pages_manage_posts",
+      }
     );
   };
 
@@ -40,7 +47,10 @@ export default function Settings({ selectedPage, setSelectedPlatform, setSelecte
       (res) => {
         if (res.authResponse) fetchInstagramPages(res.authResponse.accessToken);
       },
-      { scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata" }
+      {
+        scope:
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+      }
     );
   };
 
@@ -89,8 +99,7 @@ export default function Settings({ selectedPage, setSelectedPlatform, setSelecte
     }
   };
 
-  const handleConnectPage = (platform, page) => {
-    setSelectedPlatform(platform);
+  const handleConnectPage = (page) => {
     setSelectedPage(page);
   };
 
@@ -113,9 +122,9 @@ export default function Settings({ selectedPage, setSelectedPlatform, setSelecte
             {fbPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => handleConnectPage("facebook", page)}>
-                  {selectedPage?.id === page.id ? "✅ Connected" : "Connect"}
-                </button>
+                {selectedPage?.id === page.id ? "✅ Connected" : (
+                  <button onClick={() => handleConnectPage(page)}>Connect</button>
+                )}
               </li>
             ))}
           </ul>
@@ -129,9 +138,9 @@ export default function Settings({ selectedPage, setSelectedPlatform, setSelecte
             {igPages.map((page) => (
               <li key={page.id}>
                 {page.name}{" "}
-                <button onClick={() => handleConnectPage("instagram", page)}>
-                  {selectedPage?.id === page.id ? "✅ Connected" : "Connect"}
-                </button>
+                {selectedPage?.id === page.id ? "✅ Connected" : (
+                  <button onClick={() => handleConnectPage(page)}>Connect</button>
+                )}
               </li>
             ))}
           </ul>

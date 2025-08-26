@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import Settings from "./app.settings";
 
-export default function SocialChatDashboard() {
-  const [selectedPlatform, setSelectedPlatform] = useState(null);
-  const [selectedPage, setSelectedPage] = useState(null);
-  const [pageAccessTokens, setPageAccessTokens] = useState({});
+export default function SocialChatDashboard({ selectedPage, pageAccessTokens }) {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState({});
@@ -16,8 +12,11 @@ export default function SocialChatDashboard() {
     }
   }, [messages, selectedConversation]);
 
-  const fetchConversations = async (page, token) => {
-    if (!page || !token) return;
+  const fetchConversations = async (page) => {
+    if (!page) return;
+    const token = pageAccessTokens[page.id];
+    if (!token) return;
+
     try {
       const url =
         page.type === "instagram"
@@ -35,13 +34,10 @@ export default function SocialChatDashboard() {
           );
           const msgData = await msgRes.json();
           const lastMsg = msgData?.data?.[0];
-          let userName = "User";
 
+          let userName = "User";
           if (page.type === "instagram") {
-            userName =
-              lastMsg?.from?.id !== page.igId
-                ? lastMsg?.from?.name || "Instagram User"
-                : page.name;
+            userName = lastMsg?.from?.id !== page.igId ? lastMsg?.from?.name || "Instagram User" : page.name;
           } else {
             const participant = conv.participants?.data?.find((p) => p.name !== page.name);
             userName = participant?.name || "User";
@@ -85,23 +81,12 @@ export default function SocialChatDashboard() {
   };
 
   useEffect(() => {
-    if (selectedPage) {
-      const token = pageAccessTokens[selectedPage.id];
-      fetchConversations(selectedPage, token);
-    }
-  }, [selectedPage, pageAccessTokens]);
+    if (selectedPage) fetchConversations(selectedPage);
+  }, [selectedPage]);
 
   return (
     <div style={{ display: "flex", padding: 20 }}>
       <div style={{ flex: 1, marginRight: 20 }}>
-        <Settings
-          selectedPage={selectedPage}
-          setSelectedPlatform={setSelectedPlatform}
-          setSelectedPage={setSelectedPage}
-          pageAccessTokens={pageAccessTokens}
-          setPageAccessTokens={setPageAccessTokens}
-        />
-
         <h2>Conversations</h2>
         <ul>
           {conversations.map((conv) => (
