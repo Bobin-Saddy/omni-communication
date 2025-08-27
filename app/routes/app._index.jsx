@@ -23,40 +23,69 @@ export default function SocialChatDashboard() {
   }, [connectedPages]);
 
   // ✅ Conversations fetcher
-  const fetchConversations = async (page) => {
-    try {
-      const token = page.access_token;
+// ✅ Conversations fetcher
+const fetchConversations = async (page) => {
+  try {
+    const token = page.access_token;
 
-      if (page.type === "instagram") {
-        console.warn(
-          "⚠️ Instagram does not allow fetching conversations via API. Messages only come via Webhooks."
-        );
-        return;
-      }
+    if (page.type === "instagram") {
+      console.log("📸 Instagram: creating fake conversation entry");
 
-      // FB Pages conversations
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      console.log("🌍 Fetching conversations from:", url);
+      // Add a single "Instagram Inbox" conversation
+      setConversations((prev) => [
+        ...prev.filter((c) => c.pageId !== page.id),
+        {
+          id: page.igId, // use igId as conversation id
+          pageId: page.id,
+          pageName: page.name,
+          pageType: page.type,
+          participants: { data: [{ name: "Instagram Inbox" }] },
+        },
+      ]);
 
-      const res = await fetch(url);
-      const data = await res.json();
-      console.log("📥 Conversations Response:", data);
-
-      if (Array.isArray(data?.data)) {
-        setConversations((prev) => [
-          ...prev.filter((c) => c.pageId !== page.id),
-          ...data.data.map((c) => ({
-            ...c,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: page.type,
-          })),
-        ]);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching conversations:", err);
+      return;
     }
-  };
+
+    // FB Pages conversations
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+    console.log("🌍 Fetching conversations from:", url);
+
+    const res = await fetch(url);
+    const data = await res.json();
+    console.log("📥 Conversations Response:", data);
+
+    if (Array.isArray(data?.data)) {
+      setConversations((prev) => [
+        ...prev.filter((c) => c.pageId !== page.id),
+        ...data.data.map((c) => ({
+          ...c,
+          pageId: page.id,
+          pageName: page.name,
+          pageType: page.type,
+        })),
+      ]);
+    }
+  } catch (err) {
+    console.error("❌ Error fetching conversations:", err);
+  }
+};
+
+// ✅ Select conversation
+const handleSelectConversation = (conv) => {
+  console.log("👉 Selected conversation:", conv);
+  setActiveConversation(conv);
+
+  const page = connectedPages.find((p) => p.id === conv.pageId);
+  if (page) {
+    if (page.type === "instagram") {
+      // Directly fetch IG messages from igId
+      fetchMessages(page.igId, page);
+    } else {
+      fetchMessages(conv.id, page);
+    }
+  }
+};
+
 
   // ✅ Messages fetcher
   const fetchMessages = async (conversationId, page) => {
@@ -89,15 +118,7 @@ export default function SocialChatDashboard() {
   };
 
   // ✅ Select conversation
-  const handleSelectConversation = (conv) => {
-    console.log("👉 Selected conversation:", conv);
-    setActiveConversation(conv);
 
-    const page = connectedPages.find((p) => p.id === conv.pageId);
-    if (page) {
-      fetchMessages(conv.id, page);
-    }
-  };
 
   // ✅ Send message
   const sendMessage = async (text) => {
