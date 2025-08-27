@@ -1,4 +1,4 @@
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useRef } from "react";
 import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
@@ -12,133 +12,142 @@ export default function SocialChatDashboard() {
     setMessages,
   } = useContext(AppContext);
 
-  // ✅ Fetch conversations when connected pages update
+  const messagesEndRef = useRef(null);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, activeConversation]);
+
+  // Fetch conversations when connected pages change
   useEffect(() => {
     if (!connectedPages.length) return;
-    connectedPages.forEach((page) => fetchConversations(page));
+    connectedPages.forEach((page) => {
+      if (page.type === "instagram") fetchIGConversations(page);
+      else fetchFBConversations(page);
+    });
   }, [connectedPages]);
 
-  // ✅ Fetch Conversations
-  const fetchConversations = async (page) => {
+  // --- Instagram Conversations ---
+  const fetchIGConversations = async (page) => {
     try {
-      const token = page.access_token;
-
-      // Instagram Conversations via connected Page
-      if (page.type === "instagram") {
-        const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,messages{from,to,message,created_time}&access_token=${token}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (Array.isArray(data?.data) && data.data.length) {
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...data.data.map((c) => ({
-              ...c,
-              pageId: page.id,
-              pageName: page.name,
-              pageType: "instagram",
-            })),
-          ]);
-        } else {
-          console.warn("⚠️ IG: No conversations returned, using placeholder.");
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            {
-              id: `${page.id}-placeholder`,
-              pageId: page.id,
-              pageName: page.name,
-              pageType: "instagram",
-              participants: { data: [{ name: "📸 Instagram Inbox" }] },
-            },
-          ]);
-        }
-        return;
-      }
-
-      // Facebook Conversations
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,messages.limit(1){from,to,message,created_time}&access_token=${page.access_token}`;
       const res = await fetch(url);
       const data = await res.json();
 
-      if (Array.isArray(data?.data)) {
+      if (!data?.data || !data.data.length) {
         setConversations((prev) => [
           ...prev.filter((c) => c.pageId !== page.id),
-          ...data.data.map((c) => ({
-            ...c,
+          {
+            id: `${page.id}-placeholder`,
             pageId: page.id,
             pageName: page.name,
-            pageType: "facebook",
-          })),
+            pageType: "instagram",
+            participants: { data: [{ username: "Instagram Inbox 📸" }] },
+          },
         ]);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching conversations:", err);
-    }
-  };
-
-  // ✅ Fetch Messages
-  const fetchMessages = async (conversationId, page) => {
-    try {
-      const token = page.access_token;
-
-      // Instagram messages via Page conversation ID
-      if (page.type === "instagram") {
-        if (conversationId.includes("placeholder")) {
-          setMessages((prev) => ({
-            ...prev,
-            [conversationId]: [
-              { id: "local-1", from: { username: "system" }, message: "Start chatting on Instagram 📸" },
-            ],
-          }));
-          return;
-        }
-
-        const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (Array.isArray(data?.data)) {
-          setMessages((prev) => ({
-            ...prev,
-            [conversationId]: data.data,
-          }));
-        } else {
-          console.warn("⚠️ IG: No messages returned, using placeholder.");
-          setMessages((prev) => ({
-            ...prev,
-            [conversationId]: [
-              { id: "local-1", from: { username: "system" }, message: "Start chatting on Instagram 📸" },
-            ],
-          }));
-        }
         return;
       }
 
-      // Facebook messages
-      const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
-      const res = await fetch(url);
-      const data = await res.json();
+      const igConvs = data.data.map((c) => ({
+        ...c,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: "instagram",
+        participants: c.participants?.data || [],
+      }));
 
-      if (Array.isArray(data?.data)) {
-        setMessages((prev) => ({ ...prev, [conversationId]: data.data }));
-      }
+      setConversations((prev) => [
+        ...prev.filter((c) => c.pageId !== page.id),
+        ...igConvs,
+      ]);
     } catch (err) {
-      console.error("❌ Error fetching messages:", err);
+      console.error("❌ Error fetching IG conversations:", err);
     }
   };
 
-  // ✅ Select conversation
+  // --- Facebook Conversations ---
+  const fetchFBConversations = async (page) => {
+    try {
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!Array.isArray(data?.data)) return;
+
+      const fbConvs = data.data.map((c) => ({
+        ...c,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: "facebook",
+      }));
+
+      setConversations((prev) => [
+        ...prev.filter((c) => c.pageId !== page.id),
+        ...fbConvs,
+      ]);
+    } catch (err) {
+      console.error("❌ Error fetching FB conversations:", err);
+    }
+  };
+
+  // --- Instagram Messages ---
+  const fetchIGMessages = async (convId, page) => {
+    if (convId.includes("placeholder")) {
+      setMessages((prev) => ({
+        ...prev,
+        [convId]: [
+          { id: "local-1", from: { username: "system" }, message: "Start chatting on Instagram 📸" },
+        ],
+      }));
+      return;
+    }
+
+    try {
+      const url = `https://graph.facebook.com/v18.0/${convId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      setMessages((prev) => ({
+        ...prev,
+        [convId]: Array.isArray(data.data) ? data.data : [],
+      }));
+    } catch (err) {
+      console.error("❌ Error fetching IG messages:", err);
+    }
+  };
+
+  // --- Facebook Messages ---
+  const fetchFBMessages = async (convId, page) => {
+    try {
+      const url = `https://graph.facebook.com/v18.0/${convId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      setMessages((prev) => ({
+        ...prev,
+        [convId]: Array.isArray(data.data) ? data.data : [],
+      }));
+    } catch (err) {
+      console.error("❌ Error fetching FB messages:", err);
+    }
+  };
+
+  // --- Select conversation ---
   const handleSelectConversation = (conv) => {
     setActiveConversation(conv);
     const page = connectedPages.find((p) => p.id === conv.pageId);
     if (!page) return;
 
-    fetchMessages(conv.id, page);
+    if (page.type === "instagram") fetchIGMessages(conv.id, page);
+    else fetchFBMessages(conv.id, page);
   };
 
-  // ✅ Send message
+  // --- Send message ---
   const sendMessage = async (text) => {
-    if (!activeConversation) return;
+    if (!activeConversation || !text) return;
     const page = connectedPages.find((p) => p.id === activeConversation.pageId);
     if (!page) return;
 
@@ -153,11 +162,11 @@ export default function SocialChatDashboard() {
           ],
         }));
       } else {
-        // Facebook send DM
+        // Facebook DM
         const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
         const body = { recipient: { id: activeConversation.id }, message: { text } };
         await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        fetchMessages(activeConversation.id, page);
+        fetchFBMessages(activeConversation.id, page);
       }
     } catch (err) {
       console.error("❌ Error sending message:", err);
@@ -183,7 +192,7 @@ export default function SocialChatDashboard() {
               onClick={() => handleSelectConversation(conv)}
             >
               <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data?.map((p) => p.name).join(", ") ||
+              {conv.participants?.data?.map((p) => p.name || p.username).join(", ") ||
                 conv.from?.username ||
                 "Unnamed"}
             </div>
@@ -197,7 +206,7 @@ export default function SocialChatDashboard() {
           Chat:{" "}
           {activeConversation
             ? activeConversation.participants?.data
-                ?.map((p) => p.name)
+                ?.map((p) => p.name || p.username)
                 .join(", ") || activeConversation.from?.username
             : "Select a conversation"}
         </h3>
@@ -223,6 +232,7 @@ export default function SocialChatDashboard() {
           ) : (
             <p>No messages yet.</p>
           )}
+          <div ref={messagesEndRef}></div>
         </div>
 
         {activeConversation && (
