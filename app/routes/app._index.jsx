@@ -27,29 +27,52 @@ export default function SocialChatDashboard() {
 
   // Fetch conversations for a page (Facebook + Instagram via Page)
   const fetchConversations = async (page) => {
+  
     try {
-      const token = page.access_token;
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=id,participants,messages{from,to,message,created_time},messaging_product&access_token=${token}`;
-      const res = await fetch(url);
+      const token = pageAccessTokens[page.id];
+      setSelectedPage(page);
+      setConversations(null);
+      setMessages([]);
+
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      const urlWithPlatform =
+        page.type === "instagram"
+          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
+          : url;
+
+      const res = await fetch(urlWithPlatform);
       const data = await res.json();
 
-      if (!Array.isArray(data?.data)) return;
+      if (page.type === "instagram") {
+        const enriched = await Promise.all(
+          (data.data || []).map(async (conv) => {
+            const msgRes = await fetch(
+              `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+            );
+            const msgData = await msgRes.json();
+            const messages = msgData?.data || [];
+            const otherMsg = messages.find((m) => m.from?.id !== page.igId);
+            let userName = "Instagram User";
+            if (otherMsg) {
+              userName = otherMsg.from?.name || otherMsg.from?.username || "Instagram User";
+            }
 
-      const convs = data.data.map((c) => ({
-        id: c.id,
-        pageId: page.id,
-        pageName: page.name,
-        pageType: c.messaging_product === "instagram" ? "instagram" : "facebook",
-        participants: c.participants,
-        messages: c.messages?.data || [],
-      }));
-
-      setConversations((prev) => [
-        ...prev.filter((c) => c.pageId !== page.id),
-        ...convs,
-      ]);
-    } catch (err) {
-      console.error("❌ Error fetching conversations:", err);
+            return {
+              ...conv,
+              userName,
+              businessName: page.name,
+            };
+          })
+        );
+        setConversations(enriched);
+      } else {
+        setConversations(data.data || []);
+      }
+    } catch (error) {
+      alert("Error fetching conversations.");
+      console.error(error);
+    } finally {
+     
     }
   };
 
