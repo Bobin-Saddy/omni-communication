@@ -10,6 +10,11 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const messagesEndRef = useRef(null);
+  useEffect(() => {
+  console.log("conversations----", conversations);
+  console.log("selectedPage----", selectedPage);
+  }, [selectedPage, conversations])
+
 
   useEffect(() => {
     if (messagesEndRef.current) {
