@@ -29,6 +29,7 @@ export default function App() {
          <Link to="/admin/messages">whatsapp page</Link>
           <Link to="/admin/messages/$from">whatsapp2 page</Link> */}
       </NavMenu>  
+          <Outlet />
     </GlobalProvider>
 
       <Outlet />
