@@ -28,11 +28,7 @@ export default function SocialChatDashboard() {
 
       let url;
    if (page.type === "instagram") {
-  // You ALREADY have the IG business account ID
-  const igBusinessId = page.igId || page.id;
-  console.log("✅ Using IG Business Account ID directly:", igBusinessId);
-
-  url = `https://graph.facebook.com/v18.0/${igBusinessId}/conversations?fields=participants,messages.limit(1){message,from,created_time}&access_token=${token}`;
+ url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages?fields=id,from,to,message,created_time&access_token=${token}`;
 } else {
   // Facebook Page conversations
   url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
