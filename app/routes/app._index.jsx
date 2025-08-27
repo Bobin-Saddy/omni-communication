@@ -21,73 +21,98 @@ export default function SocialChatDashboard() {
     });
   }, [connectedPages]);
 
-// ✅ Fetch conversations for a specific page
-const fetchConversations = async (page) => {
-  try {
-    const token = page.access_token;
+  // ✅ Fetch conversations for a specific page
+  const fetchConversations = async (page) => {
+    try {
+      const token = page.access_token;
 
-    let url;
-    if (page.type === "instagram") {
-      // Instagram Business Account conversations
-      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,messages.limit(1){message,from,created_time}&access_token=${token}`;
-    } else {
-      // Facebook Page conversations
-      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      let url;
+      if (page.type === "instagram") {
+        console.log("🔍 Fetching IG Business Account ID for page:", page);
+
+        // First get IG Business Account ID
+        const igRes = await fetch(
+          `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${token}`
+        );
+        const igData = await igRes.json();
+        console.log("📥 IG Account Response:", igData);
+
+        if (!igData.instagram_business_account) {
+          console.warn("⚠️ No Instagram business account linked for:", page.name);
+          return;
+        }
+
+        const igBusinessId = igData.instagram_business_account.id;
+        console.log("✅ Found IG Business Account ID:", igBusinessId);
+
+        url = `https://graph.facebook.com/v18.0/${igBusinessId}/conversations?fields=participants,messages.limit(1){message,from,created_time}&access_token=${token}`;
+      } else {
+        // Facebook Page conversations
+        url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      }
+
+      console.log("🌍 Fetching conversations from:", url);
+
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("📥 Conversations Response:", data);
+
+      if (Array.isArray(data?.data)) {
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          ...data.data.map((c) => ({
+            ...c,
+            pageId: page.id,
+            pageName: page.name,
+            pageType: page.type,
+          })),
+        ]);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching conversations:", err);
     }
+  };
 
-    const res = await fetch(url);
-    const data = await res.json();
+  // ✅ Fetch messages (different for IG vs FB)
+  const fetchMessages = async (conversationId, page) => {
+    try {
+      let url;
+      if (page.type === "instagram") {
+        url = `https://graph.facebook.com/v18.0/${conversationId}?fields=messages{message,from,to,created_time}&access_token=${page.access_token}`;
+      } else {
+        url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+      }
 
-    if (Array.isArray(data?.data)) {
-      setConversations((prev) => [
-        ...prev.filter((c) => c.pageId !== page.id),
-        ...data.data.map((c) => ({ ...c, pageId: page.id, pageName: page.name, pageType: page.type })),
-      ]);
+      console.log("🌍 Fetching messages from:", url);
+
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("📥 Messages Response:", data);
+
+      if (Array.isArray(data?.messages?.data)) {
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: data.messages.data,
+        }));
+      } else if (Array.isArray(data?.data)) {
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: data.data,
+        }));
+      }
+    } catch (err) {
+      console.error("❌ Error fetching messages:", err);
     }
-  } catch (err) {
-    console.error("Error fetching conversations:", err);
-  }
-};
-
-// ✅ Fetch messages (different for IG vs FB)
-const fetchMessages = async (conversationId, page) => {
-  try {
-    let url;
-    if (page.type === "instagram") {
-      // IG conversations already return messages under convo
-      url = `https://graph.facebook.com/v18.0/${conversationId}?fields=messages{message,from,to,created_time}&access_token=${page.access_token}`;
-    } else {
-      // Facebook Page messages
-      url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
-    }
-
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (Array.isArray(data?.messages?.data)) {
-      setMessages((prev) => ({
-        ...prev,
-        [conversationId]: data.messages.data,
-      }));
-    } else if (Array.isArray(data?.data)) {
-      setMessages((prev) => ({
-        ...prev,
-        [conversationId]: data.data,
-      }));
-    }
-  } catch (err) {
-    console.error("Error fetching messages:", err);
-  }
-};
-
+  };
 
   // ✅ When a conversation is selected
   const handleSelectConversation = (conv) => {
+    console.log("👉 Selected conversation:", conv);
     setActiveConversation(conv);
 
     const page = connectedPages.find((p) => p.id === conv.pageId);
     if (page) {
-      fetchMessages(conv.id, page.access_token);
+      fetchMessages(conv.id, page);
     }
   };
 
@@ -100,6 +125,8 @@ const fetchMessages = async (conversationId, page) => {
 
     try {
       const url = `https://graph.facebook.com/v18.0/${activeConversation.id}/messages`;
+      console.log("✉️ Sending message to:", url, "with text:", text);
+
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,18 +136,18 @@ const fetchMessages = async (conversationId, page) => {
         }),
       });
       const data = await res.json();
-      console.log("Message sent:", data);
+      console.log("✅ Message sent response:", data);
 
       // Refresh conversation after sending
-      fetchMessages(activeConversation.id, page.access_token);
+      fetchMessages(activeConversation.id, page);
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error("❌ Error sending message:", err);
     }
   };
 
   return (
     <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
-      {/* LEFT: Conversations (from ALL connected pages) */}
+      {/* LEFT: Conversations */}
       <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
         <h3>Conversations</h3>
         {!conversations.length ? (
