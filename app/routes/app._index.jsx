@@ -70,34 +70,36 @@ export default function SocialChatDashboard() {
   };
 
   // ✅ Fetch messages
-  const fetchMessages = async (conversationId, page) => {
-    try {
-      let url;
-
-      if (page.type === "instagram") {
-        // IG DMs API (only works for tester accounts)
-        const igBusinessId = page.igId || page.id;
-        url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages?fields=id,from,to,message,created_time&access_token=${page.access_token}`;
-      } else {
-        // FB conversations API
-        url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
-      }
-
-      console.log("🌍 Fetching messages:", url);
-      const res = await fetch(url);
-      const data = await res.json();
-      console.log("📥 Messages Response:", data);
-
-      if (Array.isArray(data?.data)) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: data.data,
-        }));
-      }
-    } catch (err) {
-      console.error("❌ Error fetching messages:", err);
+// ✅ Messages fetcher
+const fetchMessages = async (conversationId, page) => {
+  try {
+    if (page.type === "instagram") {
+      console.warn("⚠️ Instagram: Cannot fetch messages history. Use webhooks for new messages.");
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: prev[conversationId] || [], // keep existing
+      }));
+      return;
     }
-  };
+
+    // Facebook Page conversation
+    const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+
+    console.log("🌍 Fetching messages from:", url);
+    const res = await fetch(url);
+    const data = await res.json();
+    console.log("📥 Messages Response:", data);
+
+    if (Array.isArray(data?.data)) {
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: data.data,
+      }));
+    }
+  } catch (err) {
+    console.error("❌ Error fetching messages:", err);
+  }
+};
 
   // ✅ Select conversation
   const handleSelectConversation = (conv) => {
