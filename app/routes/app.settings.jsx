@@ -11,7 +11,7 @@ export default function Settings() {
   const {
     connectedPages,
     setConnectedPages,
-    setSelectedPage, // 👈 this will be used when user clicks to view chats
+    setSelectedPage,
   } = useContext(AppContext);
 
   // ✅ Load FB SDK
@@ -37,7 +37,7 @@ export default function Settings() {
     document.body.appendChild(js);
   }, []);
 
-  // ✅ Fetch FB Pages
+  // ✅ Fetch FB Pages (with correct page token)
   const fetchFBPages = async (token) => {
     try {
       const res = await fetch(
@@ -49,7 +49,7 @@ export default function Settings() {
       const pages = data.data.map((p) => ({
         ...p,
         type: "facebook",
-        access_token: p.access_token,
+        access_token: p.access_token, // ✅ Correct page token
       }));
       setFbPages(pages);
     } catch (err) {
@@ -57,7 +57,7 @@ export default function Settings() {
     }
   };
 
-  // ✅ Fetch IG Accounts
+  // ✅ Fetch IG Business Accounts
   const fetchIGPages = async (token) => {
     try {
       const res = await fetch(
@@ -69,18 +69,20 @@ export default function Settings() {
       const igAccounts = data.data
         .filter((p) => p.instagram_business_account)
         .map((p) => ({
-          id: p.instagram_business_account.id,
+          id: p.instagram_business_account.id, // IG account id
           name: p.name,
-          access_token: token,
+          access_token: p.access_token, // ✅ Use PAGE token (not user token!)
           type: "instagram",
           igId: p.instagram_business_account.id,
         }));
+
       setIgPages(igAccounts);
     } catch (err) {
       console.error("Error fetching IG pages:", err);
     }
   };
 
+  // ✅ Facebook login
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -91,6 +93,7 @@ export default function Settings() {
     );
   };
 
+  // ✅ Instagram login
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -104,14 +107,14 @@ export default function Settings() {
     );
   };
 
-  // ✅ Add to connected pages (but don’t auto-select)
+  // ✅ Add to connected pages
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
   };
 
-  // ✅ Select a page to open chatbox
+  // ✅ Select page for chat
   const handleOpenChat = (page) => {
     setSelectedPage(page);
   };
@@ -161,7 +164,7 @@ export default function Settings() {
         </div>
       )}
 
-      {/* ✅ Show all connected pages */}
+      {/* ✅ Show connected pages */}
       {connectedPages.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <h3>Connected Pages</h3>
