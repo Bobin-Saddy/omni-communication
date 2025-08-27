@@ -188,9 +188,16 @@ export default function SocialChatDashboard() {
       }
 
       // Facebook send
-     if (page.type === "facebook") {
-  const psid = activeConversation.participants?.data[0]?.id;
-  if (!psid) return alert("No user ID found for this conversation");
+if (page.type === "facebook") {
+  const pageId = page.id;
+  // find the user participant
+  const userParticipant = activeConversation.participants?.data?.find(
+    (p) => p.id !== pageId
+  );
+
+  if (!userParticipant) return alert("No user ID found for this conversation");
+
+  const psid = userParticipant.id;
 
   const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
   const body = { recipient: { id: psid }, message: { text } };
@@ -207,6 +214,7 @@ export default function SocialChatDashboard() {
     alert("Failed to send Facebook message");
   }
 }
+
 
     } catch (err) {
       console.error("Error sending message:", err);
