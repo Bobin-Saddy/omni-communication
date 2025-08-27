@@ -1,101 +1,257 @@
-
-
-import { useEffect, useRef, useContext, useState } from "react";
+import { useEffect, useContext } from "react";
 import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
-  const { selectedPage, conversations, setConversations } =
-    useContext(AppContext);
+  const {
+    connectedPages,
+    conversations,
+    setConversations,
+    activeConversation,
+    setActiveConversation,
+    messages,
+    setMessages,
+  } = useContext(AppContext);
 
-  const [messages, setMessages] = useState({});
-  const messagesEndRef = useRef(null);
-
+  // ✅ Fetch conversations when connected pages update
   useEffect(() => {
-    if (!selectedPage) return;
-    fetchConversations(selectedPage);
-  }, [selectedPage]);
+    if (!connectedPages.length) return;
+    connectedPages.forEach((page) => fetchConversations(page));
+  }, [connectedPages]);
 
-  // Auto scroll when new messages come
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
-
+  // ✅ Fetch Conversations
   const fetchConversations = async (page) => {
     try {
       const token = page.access_token;
-      const url =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
 
+      // Instagram Conversations via connected Page
+      if (page.type === "instagram") {
+        const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,messages{from,to,message,created_time}&access_token=${token}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (Array.isArray(data?.data) && data.data.length) {
+          setConversations((prev) => [
+            ...prev.filter((c) => c.pageId !== page.id),
+            ...data.data.map((c) => ({
+              ...c,
+              pageId: page.id,
+              pageName: page.name,
+              pageType: "instagram",
+            })),
+          ]);
+        } else {
+          console.warn("⚠️ IG: No conversations returned, using placeholder.");
+          setConversations((prev) => [
+            ...prev.filter((c) => c.pageId !== page.id),
+            {
+              id: `${page.id}-placeholder`,
+              pageId: page.id,
+              pageName: page.name,
+              pageType: "instagram",
+              participants: { data: [{ name: "📸 Instagram Inbox" }] },
+            },
+          ]);
+        }
+        return;
+      }
+
+      // Facebook Conversations
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (Array.isArray(data?.data)) {
-        setConversations(data.data);
-
-        // ✅ Fetch messages for each conversation
-        data.data.forEach((conv) => fetchMessages(conv.id, token));
-      } else {
-        setConversations([]);
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          ...data.data.map((c) => ({
+            ...c,
+            pageId: page.id,
+            pageName: page.name,
+            pageType: "facebook",
+          })),
+        ]);
       }
     } catch (err) {
-      console.error("Error fetching conversations:", err);
-      setConversations([]);
+      console.error("❌ Error fetching conversations:", err);
     }
   };
 
-  const fetchMessages = async (conversationId, token) => {
+  // ✅ Fetch Messages
+  const fetchMessages = async (conversationId, page) => {
     try {
+      const token = page.access_token;
+
+      // Instagram messages via Page conversation ID
+      if (page.type === "instagram") {
+        if (conversationId.includes("placeholder")) {
+          setMessages((prev) => ({
+            ...prev,
+            [conversationId]: [
+              { id: "local-1", from: { username: "system" }, message: "Start chatting on Instagram 📸" },
+            ],
+          }));
+          return;
+        }
+
+        const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (Array.isArray(data?.data)) {
+          setMessages((prev) => ({
+            ...prev,
+            [conversationId]: data.data,
+          }));
+        } else {
+          console.warn("⚠️ IG: No messages returned, using placeholder.");
+          setMessages((prev) => ({
+            ...prev,
+            [conversationId]: [
+              { id: "local-1", from: { username: "system" }, message: "Start chatting on Instagram 📸" },
+            ],
+          }));
+        }
+        return;
+      }
+
+      // Facebook messages
       const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
       const res = await fetch(url);
       const data = await res.json();
 
       if (Array.isArray(data?.data)) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: data.data,
-        }));
+        setMessages((prev) => ({ ...prev, [conversationId]: data.data }));
       }
     } catch (err) {
-      console.error("Error fetching messages:", err);
+      console.error("❌ Error fetching messages:", err);
+    }
+  };
+
+  // ✅ Select conversation
+  const handleSelectConversation = (conv) => {
+    setActiveConversation(conv);
+    const page = connectedPages.find((p) => p.id === conv.pageId);
+    if (!page) return;
+
+    fetchMessages(conv.id, page);
+  };
+
+  // ✅ Send message
+  const sendMessage = async (text) => {
+    if (!activeConversation) return;
+    const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+    if (!page) return;
+
+    try {
+      if (page.type === "instagram") {
+        // Local UI placeholder for Instagram
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            { id: Date.now(), from: { username: "me" }, message: text },
+          ],
+        }));
+      } else {
+        // Facebook send DM
+        const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
+        const body = { recipient: { id: activeConversation.id }, message: { text } };
+        await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        fetchMessages(activeConversation.id, page);
+      }
+    } catch (err) {
+      console.error("❌ Error sending message:", err);
     }
   };
 
   return (
-    <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
-      <h1>Social Chat Dashboard</h1>
-
-      <div style={{ marginTop: 40 }}>
-        <h2>Conversations</h2>
-        {!conversations || conversations.length === 0 ? (
-          <p>No conversations yet.</p>
+    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
+      {/* LEFT: Conversations */}
+      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
+        <h3>Conversations</h3>
+        {!conversations.length ? (
+          <p>No conversations</p>
         ) : (
-          <ul>
-            {conversations.map((conv) => (
-              <li key={conv.id}>
-                <strong>
-                  {conv.participants?.data
-                    ?.map((p) => p.name)
-                    .join(", ") || "Unnamed"}
-                </strong>
-                <ul style={{ marginLeft: 20 }}>
-                  {messages[conv.id]?.map((msg) => (
-                    <li key={msg.id}>
-                      <b>{msg.from?.name}:</b> {msg.message}{" "}
-                      <small>({msg.created_time})</small>
-                    </li>
-                  )) || <li>Loading messages...</li>}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          conversations.map((conv) => (
+            <div
+              key={conv.id}
+              style={{
+                padding: 8,
+                cursor: "pointer",
+                background: activeConversation?.id === conv.id ? "#eee" : "transparent",
+              }}
+              onClick={() => handleSelectConversation(conv)}
+            >
+              <b>[{conv.pageName}]</b>{" "}
+              {conv.participants?.data?.map((p) => p.name).join(", ") ||
+                conv.from?.username ||
+                "Unnamed"}
+            </div>
+          ))
         )}
       </div>
 
-      <div ref={messagesEndRef}></div>
+      {/* RIGHT: Chat */}
+      <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}>
+        <h3>
+          Chat:{" "}
+          {activeConversation
+            ? activeConversation.participants?.data
+                ?.map((p) => p.name)
+                .join(", ") || activeConversation.from?.username
+            : "Select a conversation"}
+        </h3>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            border: "1px solid #ccc",
+            marginBottom: 10,
+            padding: 10,
+          }}
+        >
+          {activeConversation &&
+          messages[activeConversation.id] &&
+          messages[activeConversation.id].length ? (
+            messages[activeConversation.id].map((msg) => (
+              <div key={msg.id} style={{ marginBottom: 8 }}>
+                <b>{msg.from?.name || msg.from?.username}:</b> {msg.message}{" "}
+                <small>{msg.created_time || ""}</small>
+              </div>
+            ))
+          ) : (
+            <p>No messages yet.</p>
+          )}
+        </div>
+
+        {activeConversation && (
+          <div style={{ display: "flex" }}>
+            <input
+              type="text"
+              placeholder="Type a message..."
+              style={{ flex: 1, padding: 8 }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  sendMessage(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <button
+              onClick={() => {
+                const input = document.querySelector("input");
+                if (input.value) {
+                  sendMessage(input.value);
+                  input.value = "";
+                }
+              }}
+            >
+              Send
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
