@@ -1,4 +1,4 @@
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useState, useRef } from "react";
 import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
@@ -12,10 +12,14 @@ export default function SocialChatDashboard() {
     setMessages,
   } = useContext(AppContext);
 
-  const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPTKCOgb1CojZAJ28WWZAgmM9SiqSYFHgCZBfgvVcd9KF2I61b2wj4wfvX7PHUnnHoRsLOe7FuiY1qg5zrZCxMg6brDnSfeQKtkcAdB8fzIE9RoCDYtHGXhhoQOkF5JZBLk8RrsBY3eh4MLXxZBXR0pZBUQwH3ixqFHONx68DhvB9BsdnNAJXyMraXkxUqIO2mPyC3bf5S2eeSg1tbJhGBB2uYSO02cbJwZDZD";
-  const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
 
+  const WHATSAPP_TOKEN =
+    "YOUR_WHATSAPP_TOKEN";
+  const WHATSAPP_PHONE_NUMBER_ID = "YOUR_WHATSAPP_PHONE_NUMBER_ID";
+
+  // Fetch conversations when pages connect
   useEffect(() => {
     if (!connectedPages.length) return;
     connectedPages.forEach((page) => fetchConversations(page));
@@ -23,7 +27,6 @@ export default function SocialChatDashboard() {
 
   const fetchConversations = async (page) => {
     try {
-      // WhatsApp conversations from backend
       if (page.type === "whatsapp") {
         const res = await fetch("/whatsapp-users");
         const users = await res.json();
@@ -42,53 +45,30 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      // Instagram conversations
-      if (page.type === "instagram") {
+      if (page.type === "instagram" || page.type === "facebook") {
         const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
         const res = await fetch(url);
         const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const convs = data.data.map((c) => ({
-            id: c.id,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: "instagram",
-            participants: {
-              data: c.participants?.data?.map((p) => ({
-                name: p.name || p.username || p.id,
-              })) || [],
-            },
-          }));
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...convs,
-          ]);
-        }
-        return;
-      }
+        if (!Array.isArray(data?.data)) return;
 
-      // Facebook conversations
-      if (page.type === "facebook") {
-        const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const convs = data.data.map((c) => ({
-            id: c.id,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: "facebook",
-            participants: {
-              data: c.participants?.data?.map((p) => ({
-                name: p.name || p.id,
+        const convs = data.data.map((c) => ({
+          id: c.id,
+          pageId: page.id,
+          pageName: page.name,
+          pageType: page.type,
+          participants: {
+            data:
+              c.participants?.data?.map((p) => ({
+                name: p.name || p.username || p.id,
+                id: p.id,
               })) || [],
-            },
-          }));
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...convs,
-          ]);
-        }
+          },
+        }));
+
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          ...convs,
+        ]);
         return;
       }
     } catch (err) {
@@ -96,35 +76,27 @@ export default function SocialChatDashboard() {
     }
   };
 
-  const fetchMessages = async (conversationId, page) => {
+  const fetchMessages = async (conv) => {
     try {
+      if (!conv) return;
+      const page = connectedPages.find((p) => p.id === conv.pageId);
+      if (!page) return;
+
       if (page.type === "whatsapp") {
-        const res = await fetch(`/whatsapp-messages?number=${conversationId}`);
+        const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
         const data = await res.json();
-        setMessages((prev) => ({ ...prev, [conversationId]: data }));
+        setMessages((prev) => ({ ...prev, [conv.id]: data }));
         return;
       }
 
-      if (page.type === "instagram") {
-        const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+      if (page.type === "instagram" || page.type === "facebook") {
+        const url = `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
         const res = await fetch(url);
         const data = await res.json();
         setMessages((prev) => ({
           ...prev,
-          [conversationId]: Array.isArray(data?.data) ? data.data : [],
+          [conv.id]: Array.isArray(data?.data) ? data.data : [],
         }));
-        return;
-      }
-
-      if (page.type === "facebook") {
-        const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: Array.isArray(data?.data) ? data.data : [],
-        }));
-        return;
       }
     } catch (err) {
       console.error("Error fetching messages:", err);
@@ -133,96 +105,107 @@ export default function SocialChatDashboard() {
 
   const handleSelectConversation = (conv) => {
     setActiveConversation(conv);
-    const page = connectedPages.find((p) => p.id === conv.pageId);
-    if (!page) return;
-    fetchMessages(conv.id, page);
+    fetchMessages(conv);
   };
 
-  const sendMessage = async (text) => {
-    if (!activeConversation) return;
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !activeConversation || sendingMessage) return;
+    setSendingMessage(true);
+
     const page = connectedPages.find((p) => p.id === activeConversation.pageId);
-    if (!page) return;
+    if (!page) {
+      alert("Page not found");
+      setSendingMessage(false);
+      return;
+    }
 
     try {
-      // WhatsApp send
-   if (page.type === "whatsapp") {
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: activeConversation.userNumber,
-        text: { body: text },
-      }),
-    }
-  );
-  const data = await res.json();
-  if (res.ok) {
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        { from: "You", message: text, timestamp: new Date().toISOString() },
-      ],
-    }));
-  } else {
-    console.error("WhatsApp API error:", data);
-    alert("Failed to send WhatsApp message");
-  }
-  return;
-}
+      // --- WhatsApp ---
+      if (page.type === "whatsapp") {
+        await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.userNumber,
+              text: { body: newMessage },
+            }),
+          }
+        );
 
-
-      // Instagram send (local update, Graph API may require backend call)
-      if (page.type === "instagram") {
         setMessages((prev) => ({
           ...prev,
           [activeConversation.id]: [
             ...(prev[activeConversation.id] || []),
-            { id: Date.now(), from: { username: "You" }, message: text },
+            { from: "You", message: newMessage, timestamp: new Date().toISOString() },
           ],
         }));
+        setNewMessage("");
         return;
       }
 
-      // Facebook send
-if (page.type === "facebook") {
-  const pageId = page.id;
-  const userParticipant = activeConversation.participants?.data?.find(
-    (p) => p.id !== pageId
-  );
+      // --- Instagram ---
+      if (page.type === "instagram") {
+        const recipient = activeConversation.participants?.data?.find(
+          (p) => p.id !== page.igId
+        );
+        if (!recipient) {
+          alert("No recipient found for Instagram");
+          return;
+        }
 
-  if (!userParticipant) return alert("No user ID found for this conversation");
+        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messaging_product: "instagram",
+            recipient: { id: recipient.id },
+            message: { text: newMessage },
+          }),
+        });
 
-  const psid = userParticipant.id;
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            { from: "You", message: newMessage, timestamp: new Date().toISOString() },
+          ],
+        }));
+        setNewMessage("");
+        return;
+      }
 
-  const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-  const body = {
-    recipient: { id: psid },
-    message: { text }, // ensure `text` is a string
-  };
+      // --- Facebook ---
+      if (page.type === "facebook") {
+        const recipient = activeConversation.participants?.data?.find(
+          (p) => p.name !== page.name
+        );
+        if (!recipient) {
+          alert("No recipient found for Facebook");
+          return;
+        }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: { id: recipient.id },
+            message: { text: newMessage },
+            messaging_type: "MESSAGE_TAG",
+            tag: "ACCOUNT_UPDATE",
+          }),
+        });
 
-  const data = await res.json();
-  if (!res.ok) {
-    console.error("Facebook API error:", data);
-    alert(`Failed to send Facebook message: ${data.error?.message}`);
-  } else {
-    fetchMessages(activeConversation.id, page);
-  }
-}
-
-
-
+        setNewMessage("");
+        fetchMessages(activeConversation);
+      }
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error("Failed to send message:", err);
+      alert("Failed to send message. Check console for details.");
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -281,23 +264,14 @@ if (page.type === "facebook") {
             <input
               type="text"
               placeholder="Type a message..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
               style={{ flex: 1, padding: 8 }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  sendMessage(e.target.value);
-                  e.target.value = "";
-                }
+                if (e.key === "Enter") sendMessage();
               }}
             />
-            <button
-              onClick={() => {
-                const input = document.querySelector("input");
-                if (input.value) {
-                  sendMessage(input.value);
-                  input.value = "";
-                }
-              }}
-            >
+            <button onClick={sendMessage} disabled={sendingMessage}>
               Send
             </button>
           </div>
