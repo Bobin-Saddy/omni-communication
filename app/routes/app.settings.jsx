@@ -8,9 +8,13 @@ export default function Settings() {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  const { connectedPages, setConnectedPages, setSelectedPage } = useContext(AppContext);
+  const {
+    connectedPages,
+    setConnectedPages,
+    setSelectedPage, // 👈 this will be used when user clicks to view chats
+  } = useContext(AppContext);
 
-  // Load FB SDK
+  // ✅ Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
       setSdkLoaded(true);
@@ -33,7 +37,7 @@ export default function Settings() {
     document.body.appendChild(js);
   }, []);
 
-  // Fetch FB Pages
+  // ✅ Fetch FB Pages
   const fetchFBPages = async (token) => {
     try {
       const res = await fetch(
@@ -53,24 +57,28 @@ export default function Settings() {
     }
   };
 
-  // Fetch IG Accounts
+  // ✅ Fetch IG Accounts
   const fetchIGPages = async (token) => {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
-    );
-    const data = await res.json();
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
+      );
+      const data = await res.json();
+      if (!Array.isArray(data.data)) return;
 
-    const igAccounts = data.data
-      .filter((p) => p.instagram_business_account)
-      .map((p) => ({
-        id: p.id,
-        igId: p.instagram_business_account.id,
-        name: p.name,
-        access_token: p.access_token,
-        type: "instagram",
-      }));
-
-    setIgPages(igAccounts);
+      const igAccounts = data.data
+        .filter((p) => p.instagram_business_account)
+        .map((p) => ({
+          id: p.instagram_business_account.id,
+          name: p.name,
+          access_token: token,
+          type: "instagram",
+          igId: p.instagram_business_account.id,
+        }));
+      setIgPages(igAccounts);
+    } catch (err) {
+      console.error("Error fetching IG pages:", err);
+    }
   };
 
   const handleFBLogin = () => {
@@ -96,14 +104,14 @@ export default function Settings() {
     );
   };
 
-  // Connect page
+  // ✅ Add to connected pages (but don’t auto-select)
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
   };
 
-  // Open chatbox
+  // ✅ Select a page to open chatbox
   const handleOpenChat = (page) => {
     setSelectedPage(page);
   };
@@ -153,6 +161,7 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ✅ Show all connected pages */}
       {connectedPages.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <h3>Connected Pages</h3>
