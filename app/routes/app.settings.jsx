@@ -66,15 +66,16 @@ export default function Settings() {
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
 
-   const igAccounts = data.data
+const igAccounts = data.data
   .filter((p) => p.instagram_business_account)
   .map((p) => ({
-    id: p.instagram_business_account.id, // IG account id
+    id: p.id,                   // <- Keep FB Page ID here
     name: p.name,
-    access_token: p.access_token, // This is PAGE token
+    access_token: p.access_token, // Page token
     type: "instagram",
-    igId: p.instagram_business_account.id,
+    igId: p.instagram_business_account.id, // store IG ID separately
   }));
+
 
 
       setIgPages(igAccounts);
