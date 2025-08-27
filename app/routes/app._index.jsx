@@ -31,30 +31,33 @@ export default function SocialChatDashboard() {
   }, [connectedPages]);
 
   // --- Instagram Conversations ---
+// Filter IG-only conversations after fetching page conversations
 const fetchIGConversations = async (page) => {
-  const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,messages.limit(1){from,to,message,created_time}&access_token=${page.access_token}`;
-  const res = await fetch(url);
-  const data = await res.json();
+  try {
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,thread_type&access_token=${page.access_token}`;
+    const res = await fetch(url);
+    const data = await res.json();
 
-  if (!data?.data || !data.data.length) {
+    if (!data?.data) return;
+
+    // Only IG threads
+    const igConvs = data.data.filter(conv => conv.thread_type === 'ONE_TO_ONE' || conv.thread_type === 'IG');
+
     setConversations(prev => [
       ...prev.filter(c => c.pageId !== page.id),
-      { id: `${page.id}-placeholder`, pageId: page.id, pageName: page.name, pageType: 'instagram', participants: { data: [{ username: 'Instagram Inbox 📸' }] } }
+      ...igConvs.map(c => ({
+        ...c,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: 'instagram',
+        participants: c.participants?.data || []
+      }))
     ]);
-    return;
+  } catch (err) {
+    console.error("Error fetching IG conversations:", err);
   }
-
-  setConversations(prev => [
-    ...prev.filter(c => c.pageId !== page.id),
-    ...data.data.map(c => ({
-      ...c,
-      pageId: page.id,
-      pageName: page.name,
-      pageType: 'instagram',
-      participants: c.participants?.data || []
-    }))
-  ]);
 };
+
 
 
   // --- Facebook Conversations ---
