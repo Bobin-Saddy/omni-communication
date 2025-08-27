@@ -68,16 +68,15 @@ const fetchIGPages = async (token) => {
   const igAccounts = data.data
     .filter(p => p.instagram_business_account)
     .map(p => ({
-      id: p.id,                 // Facebook Page ID
+      id: p.id, // Facebook Page ID
+      igId: p.instagram_business_account.id, // IG Business Account ID
       name: p.name,
       access_token: p.access_token,
-      type: "instagram",
-      igId: p.instagram_business_account.id
+      type: 'instagram'
     }));
 
   setIgPages(igAccounts);
 };
-
 
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
@@ -89,18 +88,18 @@ const fetchIGPages = async (token) => {
     );
   };
 
-  const handleIGLogin = () => {
-    if (!sdkLoaded) return alert("FB SDK not loaded yet");
-    window.FB.login(
-      (res) => {
-        if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
-      },
-      {
-        scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
-      }
-    );
-  };
+const handleIGLogin = () => {
+  if (!sdkLoaded) return alert("FB SDK not loaded yet");
+  window.FB.login(
+    (res) => {
+      if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
+    },
+    {
+      scope:
+        "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+    }
+  );
+};
 
   // ✅ Add to connected pages (but don’t auto-select)
   const handleConnectPage = (page) => {
