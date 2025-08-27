@@ -135,33 +135,38 @@ export default function SocialChatDashboard() {
   };
 
   // Fetch Conversations
-  const fetchConversations = async (page) => {
-    if (!pageAccessTokens[page.id]) return;
-    setLoadingConversations(true);
-    try {
-      const token = pageAccessTokens[page.id];
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=id,participants,messages{from,message,created_time},messaging_product&access_token=${token}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!Array.isArray(data.data)) return;
+const fetchConversations = async (page) => {
+  // Example for FB/IG
+  const token = page.access_token || pageAccessTokens[page.id];
+  const url =
+    page.type === "instagram"
+      ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
+      : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
 
-      const convs = data.data.map((c) => ({
-        id: c.id,
-        pageId: page.id,
-        pageName: page.name,
-        pageType: c.messaging_product === "instagram" ? "instagram" : "facebook",
-        participants: c.participants,
-        messages: c.messages?.data?.reverse() || [],
-      }));
+  const res = await fetch(url);
+  const data = await res.json();
 
-      setConversations(convs);
-    } catch (err) {
-      console.error(err);
-      alert("Error fetching conversations.");
-    } finally {
-      setLoadingConversations(false);
-    }
-  };
+  if (page.type === "instagram") {
+    const enriched = await Promise.all(
+      (data.data || []).map(async (conv) => {
+        const msgRes = await fetch(
+          `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=5&access_token=${token}`
+        );
+        const msgData = await msgRes.json();
+        const otherMsg = msgData.data.find((m) => m.from?.id !== page.igId);
+        return {
+          ...conv,
+          userName: otherMsg?.from?.name || "Instagram User",
+          businessName: page.name,
+        };
+      })
+    );
+    setConversations(enriched);
+  } else {
+    setConversations(data.data || []);
+  }
+};
+
 
   // Fetch messages for selected conversation
   const fetchMessages = async (conv) => {

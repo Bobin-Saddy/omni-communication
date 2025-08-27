@@ -12,16 +12,16 @@ export const GlobalProvider = ({ children }) => {
   return (
     <AppContext.Provider
       value={{
-        connectedPages,
-        setConnectedPages,
-        selectedPage,
-        setSelectedPage,
-        conversations,
-        setConversations,
-        activeConversation,
-        setActiveConversation,
-        messages,
-        setMessages,
+ connectedPages,
+    setConnectedPages,
+    selectedPage,
+    setSelectedPage,
+    conversations,
+    setConversations,
+    messages,
+    setMessages,
+    activeConversation,
+    setActiveConversation,
       }}
     >
       {children}

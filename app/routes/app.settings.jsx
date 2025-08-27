@@ -103,16 +103,16 @@ export default function Settings() {
   };
 
   // Connect page
-  const handleConnectPage = (page) => {
-    if (!connectedPages.some((p) => p.id === page.id)) {
-      setConnectedPages([...connectedPages, page]);
-    }
-  };
+const handleConnectPage = (page) => {
+  if (!connectedPages.some((p) => p.id === page.id)) {
+    setConnectedPages([...connectedPages, page]);
+  }
+};
 
-  // Open chat
-  const handleOpenChat = (page) => {
-    setSelectedPage(page);
-  };
+const handleOpenChat = (page) => {
+  setSelectedPage(page);
+};
+
 
   return (
     <div style={{ padding: 20 }}>
