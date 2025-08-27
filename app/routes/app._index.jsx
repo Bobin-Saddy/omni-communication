@@ -24,7 +24,7 @@ export default function SocialChatDashboard() {
   const fetchConversations = async (page) => {
     try {
       if (page.type === "whatsapp") {
-        const res = await fetch("/api/whatsapp-users");
+        const res = await fetch("/whatsapp-users");
         const users = await res.json();
         const convs = users.map((u) => ({
           id: u.number,
@@ -86,7 +86,7 @@ export default function SocialChatDashboard() {
   const fetchMessages = async (conversationId, page) => {
     try {
       if (page.type === "whatsapp") {
-        const res = await fetch(`/api/whatsapp-messages?number=${conversationId}`);
+        const res = await fetch(`/whatsapp-messages?number=${conversationId}`);
         const data = await res.json();
         setMessages((prev) => ({ ...prev, [conversationId]: data }));
         return;
