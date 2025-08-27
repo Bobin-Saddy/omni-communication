@@ -8,8 +8,13 @@ export default function Settings() {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  const { connectedPages, setConnectedPages, setSelectedPage } = useContext(AppContext);
+  const {
+    connectedPages,
+    setConnectedPages,
+    setSelectedPage, // 👈 this will be used when user clicks to view chats
+  } = useContext(AppContext);
 
+  // ✅ Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
       setSdkLoaded(true);
@@ -32,7 +37,7 @@ export default function Settings() {
     document.body.appendChild(js);
   }, []);
 
-  // Fetch FB Pages
+  // ✅ Fetch FB Pages
   const fetchFBPages = async (token) => {
     try {
       const res = await fetch(
@@ -41,13 +46,18 @@ export default function Settings() {
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
 
-      setFbPages(data.data.map(p => ({ ...p, type: "facebook", access_token: p.access_token })));
+      const pages = data.data.map((p) => ({
+        ...p,
+        type: "facebook",
+        access_token: p.access_token,
+      }));
+      setFbPages(pages);
     } catch (err) {
       console.error("Error fetching FB pages:", err);
     }
   };
 
-  // Fetch IG Business Accounts
+  // ✅ Fetch IG Accounts
   const fetchIGPages = async (token) => {
     try {
       const res = await fetch(
@@ -57,15 +67,14 @@ export default function Settings() {
       if (!Array.isArray(data.data)) return;
 
       const igAccounts = data.data
-        .filter(p => p.instagram_business_account)
-        .map(p => ({
-          id: p.id,                   // FB Page ID
+        .filter((p) => p.instagram_business_account)
+        .map((p) => ({
+          id: p.instagram_business_account.id,
           name: p.name,
-          access_token: p.access_token, // Page token
+          access_token: token,
           type: "instagram",
-          igId: p.instagram_business_account.id, // IG User ID
+          igId: p.instagram_business_account.id,
         }));
-
       setIgPages(igAccounts);
     } catch (err) {
       console.error("Error fetching IG pages:", err);
@@ -74,27 +83,38 @@ export default function Settings() {
 
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-    window.FB.login(res => {
-      if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
-    }, { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" });
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
+      },
+      { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" }
+    );
   };
 
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-    window.FB.login(res => {
-      if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
-    }, {
-      scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata,pages_messaging"
-    });
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
+      },
+      {
+        scope:
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+      }
+    );
   };
 
+  // ✅ Add to connected pages (but don’t auto-select)
   const handleConnectPage = (page) => {
-    if (!connectedPages.some(p => p.id === page.id)) {
+    if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
   };
 
-  const handleOpenChat = (page) => setSelectedPage(page);
+  // ✅ Select a page to open chatbox
+  const handleOpenChat = (page) => {
+    setSelectedPage(page);
+  };
 
   return (
     <div style={{ padding: 20 }}>
@@ -109,11 +129,13 @@ export default function Settings() {
         <div>
           <h3>Facebook Pages</h3>
           <ul>
-            {fbPages.map(p => (
+            {fbPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some(cp => cp.id === p.id) ? "✅ Connected" : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id)
+                    ? "✅ Connected"
+                    : "Connect"}
                 </button>
               </li>
             ))}
@@ -125,11 +147,13 @@ export default function Settings() {
         <div>
           <h3>Instagram Accounts</h3>
           <ul>
-            {igPages.map(p => (
+            {igPages.map((p) => (
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some(cp => cp.id === p.id) ? "✅ Connected" : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id)
+                    ? "✅ Connected"
+                    : "Connect"}
                 </button>
               </li>
             ))}
@@ -137,11 +161,12 @@ export default function Settings() {
         </div>
       )}
 
+      {/* ✅ Show all connected pages */}
       {connectedPages.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <h3>Connected Pages</h3>
           <ul>
-            {connectedPages.map(p => (
+            {connectedPages.map((p) => (
               <li key={p.id}>
                 <b>{p.name}</b> ({p.type}){" "}
                 <button onClick={() => handleOpenChat(p)}>💬 Open Chat</button>
