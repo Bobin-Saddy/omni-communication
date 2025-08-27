@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import Settings from "./app.settings";
 import { AppContext } from "./AppContext";
 
