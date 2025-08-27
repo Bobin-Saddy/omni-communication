@@ -23,43 +23,41 @@ export default function SocialChatDashboard() {
   }, [connectedPages]);
 
   // ✅ Fetch conversations/messages list for a specific page
-  const fetchConversations = async (page) => {
-    try {
-      const token = page.access_token;
+const fetchConversations = async (page) => {
+  try {
+    const token = page.access_token;
 
-      let url;
-      if (page.type === "instagram") {
-        const igBusinessId = page.igId || page.id; // ✅ FIXED
-        console.log("📌 IG Business ID used:", igBusinessId);
-
-        // For IG we fetch messages directly (no /conversations endpoint)
-        url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages?fields=id,from,to,message,created_time&access_token=${token}`;
-      } else {
-        // Facebook Page conversations
-        url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      }
-
-      console.log("🌍 Fetching conversations/messages from:", url);
-
-      const res = await fetch(url);
-      const data = await res.json();
-      console.log("📥 Conversations/Messages Response:", data);
-
-      if (Array.isArray(data?.data)) {
-        setConversations((prev) => [
-          ...prev.filter((c) => c.pageId !== page.id),
-          ...data.data.map((c) => ({
-            ...c,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: page.type,
-          })),
-        ]);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching conversations:", err);
+    let url;
+    if (page.type === "instagram") {
+      // 🚫 IG does NOT support fetching conversations
+      console.warn("⚠️ Instagram messages must be received via Webhooks. Skipping fetch.");
+      return;
+    } else {
+      // ✅ Facebook Page conversations
+      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
     }
-  };
+
+    console.log("🌍 Fetching conversations from:", url);
+    const res = await fetch(url);
+    const data = await res.json();
+    console.log("📥 Conversations Response:", data);
+
+    if (Array.isArray(data?.data)) {
+      setConversations((prev) => [
+        ...prev.filter((c) => c.pageId !== page.id),
+        ...data.data.map((c) => ({
+          ...c,
+          pageId: page.id,
+          pageName: page.name,
+          pageType: page.type,
+        })),
+      ]);
+    }
+  } catch (err) {
+    console.error("❌ Error fetching conversations:", err);
+  }
+};
+
 
   // ✅ Fetch messages (different for IG vs FB)
   const fetchMessages = async (conversationId, page) => {
