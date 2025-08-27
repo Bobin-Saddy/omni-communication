@@ -28,46 +28,25 @@ const fetchConversations = async (page) => {
 
     let url;
     if (page.type === "instagram") {
-      // Instagram Business Account → directly fetch messages
-      url = `https://graph.facebook.com/v18.0/${page.id}/messages?fields=id,from,to,message,created_time&access_token=${token}`;
+      // IG Business Account conversations
+      url = `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=id,participants&access_token=${token}`;
     } else {
-      // Facebook Page → normal conversations API
-      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      // FB Page conversations
+      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=id,participants&access_token=${token}`;
     }
 
     const res = await fetch(url);
     const data = await res.json();
+    console.log("Fetched convos:", data);
 
-    if (page.type === "instagram" && Array.isArray(data?.data)) {
-      // Instagram doesn't give "conversations", only messages
-      // So we fake a "conversation" with messages grouped by sender
-      const conv = {
-        id: `ig-${page.id}`,
-        participants: { data: [...new Set(data.data.map((m) => m.from?.name))].map((n) => ({ name: n })) },
-        pageId: page.id,
-        pageName: page.name,
-        type: "instagram",
-      };
-
-      setConversations((prev) => [
-        ...prev.filter((c) => c.pageId !== page.id),
-        conv,
-      ]);
-
-      // store messages separately
-      setMessages((prev) => ({
-        ...prev,
-        [conv.id]: data.data,
-      }));
-    } else if (Array.isArray(data?.data)) {
-      // Facebook conversations
+    if (Array.isArray(data?.data)) {
       setConversations((prev) => [
         ...prev.filter((c) => c.pageId !== page.id),
         ...data.data.map((c) => ({
           ...c,
           pageId: page.id,
           pageName: page.name,
-          type: "facebook",
+          type: page.type,
         })),
       ]);
     }
@@ -76,22 +55,25 @@ const fetchConversations = async (page) => {
   }
 };
 
-  const fetchMessages = async (conversationId, token) => {
-    try {
-      const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
-      const res = await fetch(url);
-      const data = await res.json();
 
-      if (Array.isArray(data?.data)) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: data.data,
-        }));
-      }
-    } catch (err) {
-      console.error("Error fetching messages:", err);
+const fetchMessages = async (conversationId, token) => {
+  try {
+    const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=id,from,to,message,created_time&access_token=${token}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    console.log("Fetched messages:", data);
+
+    if (Array.isArray(data?.data)) {
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: data.data,
+      }));
     }
-  };
+  } catch (err) {
+    console.error("Error fetching messages:", err);
+  }
+};
+
 
   // ✅ When a conversation is selected
   const handleSelectConversation = (conv) => {
