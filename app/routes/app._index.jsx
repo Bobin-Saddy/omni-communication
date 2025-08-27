@@ -1,6 +1,6 @@
 import { useEffect, useRef, useContext } from "react";
 import { AppContext } from "./AppContext";
-import Settings from "./Settings";
+
 
 export default function SocialChatDashboard() {
   const {
