@@ -22,7 +22,7 @@ export default function SocialChatDashboard() {
   const fetchConversations = async (page) => {
     try {
       const token = page.access_token;
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants,messages{from,to,message,created_time}&access_token=${token}`;
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
       const res = await fetch(url);
       const data = await res.json();
 
