@@ -1,8 +1,11 @@
 import { useEffect, useRef, useContext } from "react";
 import Settings from "./app.settings";
-import { AppContext, GlobalProvider } from "./AppContext";
+import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
+  console.log("AppContext", AppContext);
+  console.log("useContext(AppContext)", useContext(AppContext));
+
   const {
     connectedPages,
     setConnectedPages,
@@ -10,7 +13,7 @@ export default function SocialChatDashboard() {
     setSelectedPage,
     conversations,
     setConversations,
-  } = useContext(GlobalProvider);
+  } = useContext(AppContext); // ✅ use AppContext, not GlobalProvider
 
   const messagesEndRef = useRef(null);
 
@@ -55,7 +58,7 @@ export default function SocialChatDashboard() {
 
       <div style={{ marginTop: 40 }}>
         <h2>Conversations</h2>
-        {(!conversations || conversations.length === 0) ? (
+        {!conversations || conversations.length === 0 ? (
           <p>No conversations yet.</p>
         ) : (
           <ul>

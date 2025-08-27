@@ -19,20 +19,20 @@ export default function App() {
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
-        <GlobalProvider>
-          <NavMenu>
-        <Link to="/app" rel="home">
-          Home
-        </Link>
-        <Link to="/app/settings">Settings</Link>
-        {/* <Link to="/app/whatsapp">Additional page</Link>
-         <Link to="/admin/messages">whatsapp page</Link>
+      <GlobalProvider>
+        <NavMenu>
+          <Link to="/app" rel="home">
+            Home
+          </Link>
+          <Link to="/app/settings">Settings</Link>
+          {/* <Link to="/app/whatsapp">Additional page</Link>
+          <Link to="/admin/messages">whatsapp page</Link>
           <Link to="/admin/messages/$from">whatsapp2 page</Link> */}
-      </NavMenu>  
-          <Outlet />
-    </GlobalProvider>
+        </NavMenu>
 
-      <Outlet />
+        {/* ✅ Correct placement: your child routes render here */}
+        <Outlet />
+      </GlobalProvider>
     </AppProvider>
   );
 }
