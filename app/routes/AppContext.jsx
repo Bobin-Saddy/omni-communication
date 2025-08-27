@@ -1,14 +1,13 @@
 import React, { createContext, useState } from "react";
 
-// Create context
 export const AppContext = createContext();
 
-// Provider component
 export const GlobalProvider = ({ children }) => {
   const [connectedPages, setConnectedPages] = useState([]);
   const [selectedPage, setSelectedPage] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [conversations, setConversations] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [activeConversation, setActiveConversation] = useState(null);
+  const [messages, setMessages] = useState({}); // store messages per conversation
 
   return (
     <AppContext.Provider
@@ -17,10 +16,12 @@ export const GlobalProvider = ({ children }) => {
         setConnectedPages,
         selectedPage,
         setSelectedPage,
-        messages,
-        setMessages,
         conversations,
         setConversations,
+        activeConversation,
+        setActiveConversation,
+        messages,
+        setMessages,
       }}
     >
       {children}

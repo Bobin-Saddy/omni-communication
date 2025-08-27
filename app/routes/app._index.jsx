@@ -1,24 +1,24 @@
-import { useEffect, useRef, useContext, useState } from "react";
+import { useEffect, useContext } from "react";
 import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
-  const { selectedPage, conversations, setConversations } =
-    useContext(AppContext);
+  const {
+    connectedPages,
+    selectedPage,
+    setSelectedPage,
+    conversations,
+    setConversations,
+    activeConversation,
+    setActiveConversation,
+    messages,
+    setMessages,
+  } = useContext(AppContext);
 
-  const [messages, setMessages] = useState({});
-  const messagesEndRef = useRef(null);
-
+  // Fetch conversations when a page is selected
   useEffect(() => {
     if (!selectedPage) return;
     fetchConversations(selectedPage);
   }, [selectedPage]);
-
-  // Auto scroll when new messages come
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
 
   const fetchConversations = async (page) => {
     try {
@@ -30,15 +30,7 @@ export default function SocialChatDashboard() {
 
       const res = await fetch(url);
       const data = await res.json();
-
-      if (Array.isArray(data?.data)) {
-        setConversations(data.data);
-
-        // ✅ Fetch messages for each conversation
-        data.data.forEach((conv) => fetchMessages(conv.id, token));
-      } else {
-        setConversations([]);
-      }
+      setConversations(Array.isArray(data?.data) ? data.data : []);
     } catch (err) {
       console.error("Error fetching conversations:", err);
       setConversations([]);
@@ -62,38 +54,140 @@ export default function SocialChatDashboard() {
     }
   };
 
-  return (
-    <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
-      <h1>Social Chat Dashboard</h1>
+  // When a conversation is selected → load messages
+  const handleSelectConversation = (conv) => {
+    setActiveConversation(conv);
+    fetchMessages(conv.id, selectedPage.access_token);
+  };
 
-      <div style={{ marginTop: 40 }}>
-        <h2>Conversations</h2>
-        {!conversations || conversations.length === 0 ? (
-          <p>No conversations yet.</p>
+  // Send message API
+  const sendMessage = async (text) => {
+    if (!activeConversation || !selectedPage) return;
+    try {
+      const url = `https://graph.facebook.com/v18.0/${activeConversation.id}/messages`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          access_token: selectedPage.access_token,
+        }),
+      });
+      const data = await res.json();
+      console.log("Message sent:", data);
+
+      // Refresh conversation after sending
+      fetchMessages(activeConversation.id, selectedPage.access_token);
+    } catch (err) {
+      console.error("Error sending message:", err);
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
+      {/* LEFT: Pages */}
+      <div style={{ width: "20%", borderRight: "1px solid #ddd", padding: 10 }}>
+        <h3>Pages</h3>
+        {connectedPages.map((p) => (
+          <div
+            key={p.id}
+            style={{
+              padding: 8,
+              cursor: "pointer",
+              background: selectedPage?.id === p.id ? "#eee" : "transparent",
+            }}
+            onClick={() => setSelectedPage(p)}
+          >
+            {p.name}
+          </div>
+        ))}
+      </div>
+
+      {/* MIDDLE: Conversations */}
+      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
+        <h3>Conversations</h3>
+        {!conversations.length ? (
+          <p>No conversations</p>
         ) : (
-          <ul>
-            {conversations.map((conv) => (
-              <li key={conv.id}>
-                <strong>
-                  {conv.participants?.data
-                    ?.map((p) => p.name)
-                    .join(", ") || "Unnamed"}
-                </strong>
-                <ul style={{ marginLeft: 20 }}>
-                  {messages[conv.id]?.map((msg) => (
-                    <li key={msg.id}>
-                      <b>{msg.from?.name}:</b> {msg.message}{" "}
-                      <small>({msg.created_time})</small>
-                    </li>
-                  )) || <li>Loading messages...</li>}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          conversations.map((conv) => (
+            <div
+              key={conv.id}
+              style={{
+                padding: 8,
+                cursor: "pointer",
+                background:
+                  activeConversation?.id === conv.id ? "#eee" : "transparent",
+              }}
+              onClick={() => handleSelectConversation(conv)}
+            >
+              {conv.participants?.data?.map((p) => p.name).join(", ") ||
+                "Unnamed"}
+            </div>
+          ))
         )}
       </div>
 
-      <div ref={messagesEndRef}></div>
+      {/* RIGHT: Chatbox */}
+      <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}>
+        <h3>
+          Chat:{" "}
+          {activeConversation
+            ? activeConversation.participants?.data
+                ?.map((p) => p.name)
+                .join(", ")
+            : "Select a conversation"}
+        </h3>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            border: "1px solid #ccc",
+            marginBottom: 10,
+            padding: 10,
+          }}
+        >
+          {activeConversation &&
+          messages[activeConversation.id] &&
+          messages[activeConversation.id].length ? (
+            messages[activeConversation.id].map((msg) => (
+              <div key={msg.id} style={{ marginBottom: 8 }}>
+                <b>{msg.from?.name}:</b> {msg.message}{" "}
+                <small>{msg.created_time}</small>
+              </div>
+            ))
+          ) : (
+            <p>No messages yet.</p>
+          )}
+        </div>
+
+        {activeConversation && (
+          <div style={{ display: "flex" }}>
+            <input
+              type="text"
+              placeholder="Type a message..."
+              style={{ flex: 1, padding: 8 }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  sendMessage(e.target.value);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <button
+              onClick={() => {
+                const input = document.querySelector("input");
+                if (input.value) {
+                  sendMessage(input.value);
+                  input.value = "";
+                }
+              }}
+            >
+              Send
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

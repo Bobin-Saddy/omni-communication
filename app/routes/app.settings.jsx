@@ -11,10 +11,10 @@ export default function Settings() {
   const {
     connectedPages,
     setConnectedPages,
-    setSelectedPage,
+    setSelectedPage, // 👈 this will be used when user clicks to view chats
   } = useContext(AppContext);
 
-  // Load FB SDK
+  // ✅ Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
       setSdkLoaded(true);
@@ -36,25 +36,28 @@ export default function Settings() {
     js.src = "https://connect.facebook.net/en_US/sdk.js";
     document.body.appendChild(js);
   }, []);
-const fetchFBPages = async (token) => {
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
-    );
-    const data = await res.json();
-    if (!Array.isArray(data.data)) return;
 
-    const pages = data.data.map((p) => ({
-      ...p,
-      type: "facebook",
-      access_token: p.access_token, // ✅ Use page token, not user token
-    }));
-    setFbPages(pages);
-  } catch (err) {
-    console.error("Error fetching FB pages:", err);
-  }
-};
+  // ✅ Fetch FB Pages
+  const fetchFBPages = async (token) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
+      );
+      const data = await res.json();
+      if (!Array.isArray(data.data)) return;
 
+      const pages = data.data.map((p) => ({
+        ...p,
+        type: "facebook",
+        access_token: p.access_token,
+      }));
+      setFbPages(pages);
+    } catch (err) {
+      console.error("Error fetching FB pages:", err);
+    }
+  };
+
+  // ✅ Fetch IG Accounts
   const fetchIGPages = async (token) => {
     try {
       const res = await fetch(
@@ -62,6 +65,7 @@ const fetchFBPages = async (token) => {
       );
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
+
       const igAccounts = data.data
         .filter((p) => p.instagram_business_account)
         .map((p) => ({
@@ -100,11 +104,16 @@ const fetchFBPages = async (token) => {
     );
   };
 
+  // ✅ Add to connected pages (but don’t auto-select)
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
-    setSelectedPage(page); // 👈 selecting page here
+  };
+
+  // ✅ Select a page to open chatbox
+  const handleOpenChat = (page) => {
+    setSelectedPage(page);
   };
 
   return (
@@ -146,6 +155,21 @@ const fetchFBPages = async (token) => {
                     ? "✅ Connected"
                     : "Connect"}
                 </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ✅ Show all connected pages */}
+      {connectedPages.length > 0 && (
+        <div style={{ marginTop: 30 }}>
+          <h3>Connected Pages</h3>
+          <ul>
+            {connectedPages.map((p) => (
+              <li key={p.id}>
+                <b>{p.name}</b> ({p.type}){" "}
+                <button onClick={() => handleOpenChat(p)}>💬 Open Chat</button>
               </li>
             ))}
           </ul>
