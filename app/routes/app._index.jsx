@@ -229,8 +229,9 @@ export default function SocialChatDashboard() {
           {activeConversation && messages[activeConversation.id] && messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => (
               <div key={idx} style={{ marginBottom: 8 }}>
-                <b>{msg.from || msg.from?.name}:</b> {msg.text || msg.message}{" "}
-                <small>{msg.timestamp || msg.created_time}</small>
+    <b>{typeof msg.from === "string" ? msg.from : msg.from?.name || msg.from?.username || "User"}:</b>{" "}
+{msg.text || msg.message} <small>{msg.timestamp || msg.created_time}</small>
+
               </div>
             ))
           ) : (
