@@ -69,11 +69,11 @@ export default function Settings() {
 const igAccounts = data.data
   .filter((p) => p.instagram_business_account)
   .map((p) => ({
-    id: p.id,                   // <- Keep FB Page ID here
+    id: p.id,                   // FB Page ID
     name: p.name,
     access_token: p.access_token, // Page token
     type: "instagram",
-    igId: p.instagram_business_account.id, // store IG ID separately
+    igId: p.instagram_business_account.id, // IG account ID
   }));
 
 

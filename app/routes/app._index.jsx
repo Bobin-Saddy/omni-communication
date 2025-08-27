@@ -22,11 +22,18 @@ export default function SocialChatDashboard() {
 const fetchConversations = async (page) => {
   try {
     const token = page.access_token;
+    let data;
 
-    // Use the Facebook Page ID for both FB and IG conversations
-    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
-    const res = await fetch(url);
-    const data = await res.json();
+    if (page.type === "facebook") {
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      const res = await fetch(url);
+      data = await res.json();
+    } else if (page.type === "instagram") {
+      // Instagram DMs endpoint
+      const url = `https://graph.facebook.com/v18.0/${page.igId}/conversations?access_token=${token}`;
+      const res = await fetch(url);
+      data = await res.json();
+    }
 
     if (!Array.isArray(data?.data)) return;
 
@@ -36,7 +43,7 @@ const fetchConversations = async (page) => {
         ...c,
         pageId: page.id,
         pageName: page.name,
-        pageType: page.type, // "facebook" or "instagram"
+        pageType: page.type,
       })),
     ]);
   } catch (err) {
@@ -49,24 +56,23 @@ const fetchConversations = async (page) => {
 const fetchMessages = async (conversationId, page) => {
   try {
     const token = page.access_token;
+    let data;
 
-    if (conversationId.includes("placeholder")) {
-      setMessages((prev) => ({
-        ...prev,
-        [conversationId]: [
-          { id: "local-1", from: { username: "system" }, message: "Start chatting 📸" },
-        ],
-      }));
-      return;
+    if (page.type === "facebook") {
+      const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
+      const res = await fetch(url);
+      data = await res.json();
+    } else if (page.type === "instagram") {
+      const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?access_token=${token}`;
+      const res = await fetch(url);
+      data = await res.json();
     }
 
-    // Use conversation ID from page conversations (FB or IG)
-    const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
-    const res = await fetch(url);
-    const data = await res.json();
-
     if (Array.isArray(data?.data)) {
-      setMessages((prev) => ({ ...prev, [conversationId]: data.data }));
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: data.data,
+      }));
     } else {
       setMessages((prev) => ({
         ...prev,
@@ -79,6 +85,7 @@ const fetchMessages = async (conversationId, page) => {
     console.error("❌ Error fetching messages:", err);
   }
 };
+
 
 
   const handleSelectConversation = (conv) => {
