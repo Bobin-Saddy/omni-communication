@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import Settings from "./app.settings";
-import { AppContext } from "./AppContext";
+import { GlobalProvider } from "./AppContext";
+// import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
   // const [selectedPage, setSelectedPage] = useState(null);
   // const [connectedPages, setConnectedPages] = useState([]);
   // const [conversations, setConversations] = useState([]);
-    const { connectedPages, setConnectedPages, selectedPage, setSelectedPage } = useContext(AppContext);
+    const { connectedPages, setConnectedPages, selectedPage, setSelectedPage } = useContext(GlobalProvider);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
