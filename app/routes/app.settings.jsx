@@ -36,24 +36,24 @@ export default function Settings() {
     js.src = "https://connect.facebook.net/en_US/sdk.js";
     document.body.appendChild(js);
   }, []);
+const fetchFBPages = async (token) => {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
+    );
+    const data = await res.json();
+    if (!Array.isArray(data.data)) return;
 
-  const fetchFBPages = async (token) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
-      );
-      const data = await res.json();
-      if (!Array.isArray(data.data)) return;
-      const pages = data.data.map((p) => ({
-        ...p,
-        type: "facebook",
-        access_token: token,
-      }));
-      setFbPages(pages);
-    } catch (err) {
-      console.error("Error fetching FB pages:", err);
-    }
-  };
+    const pages = data.data.map((p) => ({
+      ...p,
+      type: "facebook",
+      access_token: p.access_token, // ✅ Use page token, not user token
+    }));
+    setFbPages(pages);
+  } catch (err) {
+    console.error("Error fetching FB pages:", err);
+  }
+};
 
   const fetchIGPages = async (token) => {
     try {
