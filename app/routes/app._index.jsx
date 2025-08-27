@@ -14,54 +14,28 @@ export default function SocialChatDashboard() {
 
   const messagesEndRef = useRef(null);
 
-  // Scroll to bottom
+  // Scroll chat to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeConversation]);
 
-  // Fetch conversations when pages change
+  // Fetch conversations when connected pages update
   useEffect(() => {
     if (!connectedPages.length) return;
     connectedPages.forEach((page) => fetchConversations(page));
   }, [connectedPages]);
 
-  // Fetch conversations
+  // Fetch conversations for a page
   const fetchConversations = async (page) => {
     try {
-      const token = page.access_token;
+      if (page.type === "instagram") {
+        // Instagram: fetch messages instead of /conversations
+        await fetchInstagramMessages(page);
+        return;
+      }
 
-  if (page.type === "instagram") {
-  // Instagram: get latest messages for your page (no conversations list)
-  const url = `https://graph.facebook.com/v18.0/${page.igId}/messages?access_token=${token}`;
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (Array.isArray(data?.data) && data.data.length) {
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      ...data.data.map((c) => ({
-        ...c,
-        pageId: page.id,
-        pageName: page.name,
-        pageType: "instagram",
-      })),
-    ]);
-  } else {
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      {
-        id: `${page.id}-placeholder`,
-        pageId: page.id,
-        pageName: page.name,
-        pageType: "instagram",
-        from: { username: "Instagram Inbox" },
-      },
-    ]);
-  }
-}
-
-      // Facebook
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      // Facebook: fetch conversations normally
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -77,11 +51,50 @@ export default function SocialChatDashboard() {
         ]);
       }
     } catch (err) {
-      console.error("Error fetching conversations:", err);
+      console.error("❌ Error fetching conversations:", err);
     }
   };
 
-  // Fetch messages
+  // Fetch Instagram messages correctly
+  const fetchInstagramMessages = async (page) => {
+    try {
+      const token = page.access_token;
+
+      const url = `https://graph.facebook.com/v18.0/${page.igId}/messages?access_token=${token}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (Array.isArray(data?.data) && data.data.length) {
+        const igConversations = data.data.map((msg) => ({
+          id: msg.from?.id || `ig-${Date.now()}`,
+          pageId: page.id,
+          pageName: page.name,
+          pageType: "instagram",
+          from: { username: msg.from?.username || "Instagram User" },
+        }));
+
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          ...igConversations,
+        ]);
+      } else {
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          {
+            id: `${page.id}-placeholder`,
+            pageId: page.id,
+            pageName: page.name,
+            pageType: "instagram",
+            from: { username: "Instagram Inbox" },
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching Instagram messages:", err);
+    }
+  };
+
+  // Fetch messages for a conversation
   const fetchMessages = async (conversationId, page) => {
     try {
       const token = page.access_token;
@@ -126,16 +139,15 @@ export default function SocialChatDashboard() {
         setMessages((prev) => ({ ...prev, [conversationId]: data.data }));
       }
     } catch (err) {
-      console.error("Error fetching messages:", err);
+      console.error("❌ Error fetching messages:", err);
     }
   };
 
-  // Select conversation
+  // Select a conversation
   const handleSelectConversation = (conv) => {
     setActiveConversation(conv);
     const page = connectedPages.find((p) => p.id === conv.pageId);
     if (!page) return;
-
     fetchMessages(conv.id, page);
   };
 
@@ -162,7 +174,7 @@ export default function SocialChatDashboard() {
         fetchMessages(activeConversation.id, page);
       }
     } catch (err) {
-      console.error("Error sending message:", err);
+      console.error("❌ Error sending message:", err);
     }
   };
 
