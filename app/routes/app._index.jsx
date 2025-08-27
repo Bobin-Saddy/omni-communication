@@ -177,9 +177,11 @@ export default function SocialChatDashboard() {
               onClick={() => handleSelectConversation(conv)}
             >
               <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.map((p) => p.name || p.username).join(", ") ||
-                conv.from?.username ||
-                "Unnamed"}
+             {conv.participants && Array.isArray(conv.participants) 
+  ? conv.participants.map((p) => p.name || p.username).join(", ") 
+  : conv.participants?.data?.map((p) => p.name || p.username).join(", ") 
+  || conv.from?.username || "Unnamed"}
+
             </div>
           ))
         )}
