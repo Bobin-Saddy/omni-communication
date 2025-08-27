@@ -19,19 +19,13 @@ export default function SocialChatDashboard() {
   }, [connectedPages]);
 
   // Fetch Conversations from Facebook Pages (Instagram DMs included)
+// For both FB and IG pages, use the page.id
 const fetchConversations = async (page) => {
   try {
-    const token = page.access_token;
-
-    let url;
-    if (page.type === "facebook") {
-      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-    } else if (page.type === "instagram") {
-      url = `https://graph.facebook.com/v18.0/${page.igId}/conversations?access_token=${token}`;
-    }
-
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
     const res = await fetch(url);
     const data = await res.json();
+
     if (!Array.isArray(data?.data)) return;
 
     setConversations(prev => [
@@ -40,13 +34,14 @@ const fetchConversations = async (page) => {
         ...c,
         pageId: page.id,
         pageName: page.name,
-        pageType: page.type,
+        pageType: page.type, // "facebook" or "instagram"
       }))
     ]);
   } catch (err) {
     console.error("❌ Error fetching conversations:", err);
   }
 };
+
 
 const fetchMessages = async (conversationId, page) => {
   try {
