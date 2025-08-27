@@ -30,36 +30,35 @@ export default function SocialChatDashboard() {
     try {
       const token = page.access_token;
 
-      if (page.type === "instagram") {
-        const url = `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=id,username,messages{from,to,message,created_time}&access_token=${token}`;
-        const res = await fetch(url);
-        const data = await res.json();
+  if (page.type === "instagram") {
+  // Instagram: get latest messages for your page (no conversations list)
+  const url = `https://graph.facebook.com/v18.0/${page.igId}/messages?access_token=${token}`;
+  const res = await fetch(url);
+  const data = await res.json();
 
-        if (Array.isArray(data?.data) && data.data.length) {
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...data.data.map((c) => ({
-              ...c,
-              pageId: page.id,
-              pageName: page.name,
-              pageType: "instagram",
-            })),
-          ]);
-        } else {
-          // Placeholder if empty
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            {
-              id: `${page.id}-placeholder`,
-              pageId: page.id,
-              pageName: page.name,
-              pageType: "instagram",
-              from: { username: "Instagram Inbox" },
-            },
-          ]);
-        }
-        return;
-      }
+  if (Array.isArray(data?.data) && data.data.length) {
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      ...data.data.map((c) => ({
+        ...c,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: "instagram",
+      })),
+    ]);
+  } else {
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      {
+        id: `${page.id}-placeholder`,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: "instagram",
+        from: { username: "Instagram Inbox" },
+      },
+    ]);
+  }
+}
 
       // Facebook
       const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
