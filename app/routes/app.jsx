@@ -19,8 +19,8 @@ export default function App() {
 
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
-      <GlobalProvider />
-      <NavMenu>
+        <GlobalProvider>
+          <NavMenu>
         <Link to="/app" rel="home">
           Home
         </Link>
@@ -29,6 +29,8 @@ export default function App() {
          <Link to="/admin/messages">whatsapp page</Link>
           <Link to="/admin/messages/$from">whatsapp2 page</Link> */}
       </NavMenu>  
+    </GlobalProvider>
+
       <Outlet />
     </AppProvider>
   );

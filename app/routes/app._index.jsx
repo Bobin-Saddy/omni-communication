@@ -1,13 +1,17 @@
-import { useState, useEffect, useRef, useContext } from "react";
+import { useEffect, useRef, useContext } from "react";
 import Settings from "./app.settings";
-import { GlobalProvider } from "./AppContext";
-// import { AppContext } from "./AppContext";
+import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
-  // const [selectedPage, setSelectedPage] = useState(null);
-  // const [connectedPages, setConnectedPages] = useState([]);
-  // const [conversations, setConversations] = useState([]);
-    const { connectedPages, setConnectedPages, selectedPage, setSelectedPage } = useContext(GlobalProvider);
+  const {
+    connectedPages,
+    setConnectedPages,
+    selectedPage,
+    setSelectedPage,
+    conversations,
+    setConversations,
+  } = useContext(AppContext);
+
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -51,11 +55,14 @@ export default function SocialChatDashboard() {
 
       <div style={{ marginTop: 40 }}>
         <h2>Conversations</h2>
-        {conversations.length === 0 ? <p>No conversations yet.</p> : (
+        {(!conversations || conversations.length === 0) ? (
+          <p>No conversations yet.</p>
+        ) : (
           <ul>
             {conversations.map((conv) => (
               <li key={conv.id || conv.thread_key}>
-                {conv.userName || conv.participants?.data?.map((p) => p.name).join(", ")}
+                {conv.userName ||
+                  conv.participants?.data?.map((p) => p.name).join(", ")}
               </li>
             ))}
           </ul>
