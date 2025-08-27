@@ -5,14 +5,14 @@ export default function Settings() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
-  const [waConnected, setWaConnected] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
-  const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPTKCOgb1CojZAJ28WWZAgmM9SiqSYFHgCZBfgvVcd9KF2I61b2wj4wfvX7PHUnnHoRsLOe7FuiY1qg5zrZCxMg6brDnSfeQKtkcAdB8fzIE9RoCDYtHGXhhoQOkF5JZBLk8RrsBY3eh4MLXxZBXR0pZBUQwH3ixqFHONx68DhvB9BsdnNAJXyMraXkxUqIO2mPyC3bf5S2eeSg1tbJhGBB2uYSO02cbJwZDZD";
-  const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
-  const { connectedPages, setConnectedPages, setSelectedPage } = useContext(AppContext);
+  const {
+    connectedPages,
+    setConnectedPages,
+    setSelectedPage,
+  } = useContext(AppContext);
 
   // Load FB SDK
   useEffect(() => {
@@ -37,7 +37,6 @@ export default function Settings() {
     document.body.appendChild(js);
   }, []);
 
-  // Fetch FB Pages
   const fetchFBPages = async (token) => {
     try {
       const res = await fetch(
@@ -45,19 +44,13 @@ export default function Settings() {
       );
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
-
-      const pages = data.data.map((p) => ({
-        ...p,
-        type: "facebook",
-        access_token: p.access_token,
-      }));
+      const pages = data.data.map((p) => ({ ...p, type: "facebook" }));
       setFbPages(pages);
     } catch (err) {
-      console.error("Error fetching FB pages:", err);
+      console.error(err);
     }
   };
 
-  // Fetch IG Accounts
   const fetchIGPages = async (token) => {
     try {
       const res = await fetch(
@@ -65,38 +58,33 @@ export default function Settings() {
       );
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
-
       const igAccounts = data.data
         .filter((p) => p.instagram_business_account)
         .map((p) => ({
           id: p.instagram_business_account.id,
           name: p.name,
-          access_token: token,
           type: "instagram",
           igId: p.instagram_business_account.id,
+          access_token: token,
         }));
       setIgPages(igAccounts);
     } catch (err) {
-      console.error("Error fetching IG pages:", err);
+      console.error(err);
     }
   };
 
   const handleFBLogin = () => {
-    if (!sdkLoaded) return alert("FB SDK not loaded yet");
+    if (!sdkLoaded) return alert("FB SDK not loaded");
     window.FB.login(
-      (res) => {
-        if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
-      },
+      (res) => res.authResponse && fetchFBPages(res.authResponse.accessToken),
       { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" }
     );
   };
 
   const handleIGLogin = () => {
-    if (!sdkLoaded) return alert("FB SDK not loaded yet");
+    if (!sdkLoaded) return alert("FB SDK not loaded");
     window.FB.login(
-      (res) => {
-        if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
-      },
+      (res) => res.authResponse && fetchIGPages(res.authResponse.accessToken),
       {
         scope:
           "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
@@ -104,35 +92,36 @@ export default function Settings() {
     );
   };
 
-  // Connect WhatsApp
-  const handleWhatsAppConnect = async () => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/contacts?access_token=${WHATSAPP_TOKEN}`
-      );
-      const users = await res.json(); // [{ input: number }]
-      const waPage = { id: "whatsapp", name: "WhatsApp", type: "whatsapp", users: users.data || [] };
+const handleWhatsAppConnect = async () => {
+  try {
+    const res = await fetch("/whatsapp-users");
+    const users = await res.json();
 
-      if (!connectedPages.some((p) => p.id === waPage.id)) {
-        setConnectedPages([...connectedPages, waPage]);
-      }
+    const convs = users.map((u) => ({
+      id: u.number,
+      pageId: "whatsapp",
+      pageName: "WhatsApp",
+      pageType: "whatsapp",
+      participants: { data: [{ name: u.name || u.number }] },
+      userNumber: u.number,
+    }));
 
-      setSelectedPage(waPage);
-      setWaConnected(true);
-    } catch (error) {
-      alert("Failed to connect WhatsApp.");
-      console.error(error);
-    }
-  };
+    setConnectedPages((prev) => [
+      ...prev.filter((p) => p.id !== "whatsapp"),
+      { id: "whatsapp", name: "WhatsApp", type: "whatsapp" },
+    ]);
+    setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
+  } catch (err) {
+    console.error(err);
+    alert("Failed to fetch WhatsApp users.");
+  }
+};
+
 
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
-  };
-
-  const handleOpenChat = (page) => {
-    setSelectedPage(page);
   };
 
   return (
@@ -142,9 +131,7 @@ export default function Settings() {
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
         <button onClick={handleFBLogin}>Connect Facebook</button>
         <button onClick={handleIGLogin}>Connect Instagram</button>
-        <button onClick={handleWhatsAppConnect}>
-          {waConnected ? "✅ WhatsApp Connected" : "Connect WhatsApp"}
-        </button>
+        <button onClick={handleWhatsAppConnect}>Connect WhatsApp</button>
       </div>
 
       {fbPages.length > 0 && (
@@ -185,8 +172,7 @@ export default function Settings() {
           <ul>
             {connectedPages.map((p) => (
               <li key={p.id}>
-                <b>{p.name}</b> ({p.type}){" "}
-                <button onClick={() => handleOpenChat(p)}>💬 Open Chat</button>
+                <b>{p.name}</b> ({p.type})
               </li>
             ))}
           </ul>
