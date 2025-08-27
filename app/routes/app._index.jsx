@@ -1,6 +1,6 @@
 import { useEffect, useRef, useContext } from "react";
 import Settings from "./app.settings";
-import { AppContext } from "./AppContext";
+import { AppContext, GlobalProvider } from "./AppContext";
 
 export default function SocialChatDashboard() {
   const {
@@ -10,7 +10,7 @@ export default function SocialChatDashboard() {
     setSelectedPage,
     conversations,
     setConversations,
-  } = useContext(AppContext);
+  } = useContext(GlobalProvider);
 
   const messagesEndRef = useRef(null);
 
