@@ -8,10 +8,13 @@ export default function Settings() {
   const [waConnected, setWaConnected] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
+  const WHATSAPP_TOKEN =
+    "EAAHvZAZB8ZCmugBPTKCOgb1CojZAJ28WWZAgmM9SiqSYFHgCZBfgvVcd9KF2I61b2wj4wfvX7PHUnnHoRsLOe7FuiY1qg5zrZCxMg6brDnSfeQKtkcAdB8fzIE9RoCDYtHGXhhoQOkF5JZBLk8RrsBY3eh4MLXxZBXR0pZBUQwH3ixqFHONx68DhvB9BsdnNAJXyMraXkxUqIO2mPyC3bf5S2eeSg1tbJhGBB2uYSO02cbJwZDZD";
+  const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   const { connectedPages, setConnectedPages, setSelectedPage } = useContext(AppContext);
 
-  // Load Facebook SDK
+  // Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
       setSdkLoaded(true);
@@ -78,7 +81,6 @@ export default function Settings() {
     }
   };
 
-  // Facebook login
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -89,7 +91,6 @@ export default function Settings() {
     );
   };
 
-  // Instagram login
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -103,12 +104,14 @@ export default function Settings() {
     );
   };
 
-  // WhatsApp connect
+  // Connect WhatsApp
   const handleWhatsAppConnect = async () => {
     try {
-      const res = await fetch("/get-whatsapp-users");
-      const users = await res.json(); // [{ number, name }]
-      const waPage = { id: "whatsapp", name: "WhatsApp", type: "whatsapp", users };
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/contacts?access_token=${WHATSAPP_TOKEN}`
+      );
+      const users = await res.json(); // [{ input: number }]
+      const waPage = { id: "whatsapp", name: "WhatsApp", type: "whatsapp", users: users.data || [] };
 
       if (!connectedPages.some((p) => p.id === waPage.id)) {
         setConnectedPages([...connectedPages, waPage]);
@@ -122,14 +125,12 @@ export default function Settings() {
     }
   };
 
-  // Connect a page manually
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
   };
 
-  // Open chat
   const handleOpenChat = (page) => {
     setSelectedPage(page);
   };

@@ -12,13 +12,15 @@ export default function SocialChatDashboard() {
     setMessages,
   } = useContext(AppContext);
 
-  // Fetch conversations whenever connectedPages update
+  const WHATSAPP_TOKEN =
+    "EAAHvZAZB8ZCmugBPTKCOgb1CojZAJ28WWZAgmM9SiqSYFHgCZBfgvVcd9KF2I61b2wj4wfvX7PHUnnHoRsLOe7FuiY1qg5zrZCxMg6brDnSfeQKtkcAdB8fzIE9RoCDYtHGXhhoQOkF5JZBLk8RrsBY3eh4MLXxZBXR0pZBUQwH3ixqFHONx68DhvB9BsdnNAJXyMraXkxUqIO2mPyC3bf5S2eeSg1tbJhGBB2uYSO02cbJwZDZD";
+  const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
+
   useEffect(() => {
     if (!connectedPages.length) return;
     connectedPages.forEach((page) => fetchConversations(page));
   }, [connectedPages]);
 
-  // Fetch Conversations
   const fetchConversations = async (page) => {
     try {
       // WhatsApp
@@ -30,8 +32,8 @@ export default function SocialChatDashboard() {
           pageId: page.id,
           pageName: page.name,
           pageType: "whatsapp",
-          participants: { data: [{ name: u.name || u.number }] },
-          userNumber: u.number,
+          participants: { data: [{ name: u.name || u.input }] },
+          userNumber: u.input,
         }));
 
         setConversations((prev) => [
@@ -59,17 +61,6 @@ export default function SocialChatDashboard() {
               pageType: "instagram",
             })),
           ]);
-        } else {
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            {
-              id: `${page.id}-placeholder`,
-              pageId: page.id,
-              pageName: page.name,
-              pageType: "instagram",
-              participants: { data: [{ name: "📸 Instagram Inbox" }] },
-            },
-          ]);
         }
         return;
       }
@@ -95,18 +86,18 @@ export default function SocialChatDashboard() {
     }
   };
 
-  // Fetch messages
   const fetchMessages = async (conversationId, page) => {
     try {
-      // WhatsApp placeholder
       if (page.type === "whatsapp") {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: [
-            ...(prev[conversationId] || []),
-            { id: Date.now(), from: { username: "You" }, message: "Start chatting on WhatsApp 📱" },
-          ],
-        }));
+        // Fetch messages via WhatsApp Cloud API
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`
+        );
+        const data = await res.json();
+
+        const filtered = data?.data?.filter((m) => m.from === conversationId) || [];
+
+        setMessages((prev) => ({ ...prev, [conversationId]: filtered }));
         return;
       }
 
@@ -114,8 +105,6 @@ export default function SocialChatDashboard() {
 
       // Instagram
       if (page.type === "instagram") {
-        if (conversationId.includes("placeholder")) return;
-
         const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
         const res = await fetch(url);
         const data = await res.json();
@@ -139,7 +128,6 @@ export default function SocialChatDashboard() {
     }
   };
 
-  // Select conversation
   const handleSelectConversation = (conv) => {
     setActiveConversation(conv);
     const page = connectedPages.find((p) => p.id === conv.pageId);
@@ -147,15 +135,26 @@ export default function SocialChatDashboard() {
     fetchMessages(conv.id, page);
   };
 
-  // Send message
   const sendMessage = async (text) => {
     if (!activeConversation) return;
     const page = connectedPages.find((p) => p.id === activeConversation.pageId);
     if (!page) return;
 
     try {
-      // WhatsApp: local + server
       if (page.type === "whatsapp") {
+        await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.userNumber,
+              text: { body: text },
+            }),
+          }
+        );
+
         setMessages((prev) => ({
           ...prev,
           [activeConversation.id]: [
@@ -163,33 +162,17 @@ export default function SocialChatDashboard() {
             { id: Date.now(), from: { username: "You" }, message: text },
           ],
         }));
-
-        // Call server to send WhatsApp message
-        await fetch("/send-whatsapp-message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: activeConversation.userNumber, message: text }),
-        });
         return;
       }
 
-      // Instagram placeholder
-      if (page.type === "instagram") {
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            { id: Date.now(), from: { username: "me" }, message: text },
-          ],
-        }));
-        return;
-      }
-
-      // Facebook send
-      const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-      const body = { recipient: { id: activeConversation.id }, message: { text } };
-      await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      fetchMessages(activeConversation.id, page);
+      // Instagram and Facebook sending placeholder
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [
+          ...(prev[activeConversation.id] || []),
+          { id: Date.now(), from: { username: "me" }, message: text },
+        ],
+      }));
     } catch (err) {
       console.error("❌ Error sending message:", err);
     }
@@ -197,7 +180,6 @@ export default function SocialChatDashboard() {
 
   return (
     <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
-      {/* LEFT: Conversations */}
       <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
         <h3>Conversations</h3>
         {!conversations.length ? (
@@ -220,7 +202,6 @@ export default function SocialChatDashboard() {
         )}
       </div>
 
-      {/* RIGHT: Chat */}
       <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}>
         <h3>
           Chat:{" "}
@@ -233,7 +214,7 @@ export default function SocialChatDashboard() {
           {activeConversation && messages[activeConversation.id] && messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg) => (
               <div key={msg.id} style={{ marginBottom: 8 }}>
-                <b>{msg.from?.name || msg.from?.username}:</b> {msg.message}{" "}
+                <b>{msg.from?.name || msg.from?.username}:</b> {msg.message || msg.text?.body}{" "}
                 <small>{msg.created_time || ""}</small>
               </div>
             ))
