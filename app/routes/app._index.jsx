@@ -190,7 +190,6 @@ export default function SocialChatDashboard() {
       // Facebook send
 if (page.type === "facebook") {
   const pageId = page.id;
-  // find the user participant
   const userParticipant = activeConversation.participants?.data?.find(
     (p) => p.id !== pageId
   );
@@ -200,20 +199,26 @@ if (page.type === "facebook") {
   const psid = userParticipant.id;
 
   const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-  const body = { recipient: { id: psid }, message: { text } };
+  const body = {
+    recipient: { id: psid },
+    message: { text }, // ensure `text` is a string
+  };
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+
   const data = await res.json();
-  if (res.ok) {
-    fetchMessages(activeConversation.id, page);
-  } else {
+  if (!res.ok) {
     console.error("Facebook API error:", data);
-    alert("Failed to send Facebook message");
+    alert(`Failed to send Facebook message: ${data.error?.message}`);
+  } else {
+    fetchMessages(activeConversation.id, page);
   }
 }
+
 
 
     } catch (err) {
