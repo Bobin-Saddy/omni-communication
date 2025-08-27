@@ -24,7 +24,7 @@ const fetchConversations = async (page) => {
     const token = page.access_token;
 
     // Use the Facebook Page ID for both FB and IG conversations
-    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
     const res = await fetch(url);
     const data = await res.json();
 
