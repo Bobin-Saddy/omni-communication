@@ -145,29 +145,35 @@ export default function SocialChatDashboard() {
 
     try {
       // WhatsApp send
-      if (page.type === "whatsapp") {
-        await fetch(
-          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: activeConversation.userNumber,
-              text: { body: text },
-            }),
-          }
-        );
-        // update local messages
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            { from: "You", message: text, timestamp: new Date().toISOString() },
-          ],
-        }));
-        return;
-      }
+   if (page.type === "whatsapp") {
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: activeConversation.userNumber,
+        text: { body: text },
+      }),
+    }
+  );
+  const data = await res.json();
+  if (res.ok) {
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        { from: "You", message: text, timestamp: new Date().toISOString() },
+      ],
+    }));
+  } else {
+    console.error("WhatsApp API error:", data);
+    alert("Failed to send WhatsApp message");
+  }
+  return;
+}
+
 
       // Instagram send (local update, Graph API may require backend call)
       if (page.type === "instagram") {
@@ -182,18 +188,26 @@ export default function SocialChatDashboard() {
       }
 
       // Facebook send
-      if (page.type === "facebook") {
-        const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-        const body = { recipient: { id: activeConversation.id }, message: { text } };
-        await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        // refresh messages
-        fetchMessages(activeConversation.id, page);
-        return;
-      }
+     if (page.type === "facebook") {
+  const psid = activeConversation.participants?.data[0]?.id;
+  if (!psid) return alert("No user ID found for this conversation");
+
+  const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
+  const body = { recipient: { id: psid }, message: { text } };
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    fetchMessages(activeConversation.id, page);
+  } else {
+    console.error("Facebook API error:", data);
+    alert("Failed to send Facebook message");
+  }
+}
+
     } catch (err) {
       console.error("Error sending message:", err);
     }
