@@ -102,7 +102,8 @@ export default function Settings() {
       },
       {
         scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+  "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata,pages_messaging"
+
       }
     );
   };

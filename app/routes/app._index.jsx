@@ -12,7 +12,7 @@ export default function SocialChatDashboard() {
     setMessages,
   } = useContext(AppContext);
 
-  // ✅ Whenever connectedPages change → fetch all conversations
+  // ✅ Fetch conversations when pages update
   useEffect(() => {
     if (!connectedPages.length) return;
 
@@ -22,68 +22,62 @@ export default function SocialChatDashboard() {
     });
   }, [connectedPages]);
 
-  // ✅ Fetch conversations/messages list for a specific page
-const fetchConversations = async (page) => {
-  try {
-    const token = page.access_token;
+  // ✅ Conversations fetcher
+  const fetchConversations = async (page) => {
+    try {
+      const token = page.access_token;
 
-    let url;
-    if (page.type === "instagram") {
-      // 🚫 IG does NOT support fetching conversations
-      console.warn("⚠️ Instagram messages must be received via Webhooks. Skipping fetch.");
-      return;
-    } else {
-      // ✅ Facebook Page conversations
-      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      if (page.type === "instagram") {
+        console.warn(
+          "⚠️ Instagram does not allow fetching conversations via API. Messages only come via Webhooks."
+        );
+        return;
+      }
+
+      // FB Pages conversations
+      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      console.log("🌍 Fetching conversations from:", url);
+
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("📥 Conversations Response:", data);
+
+      if (Array.isArray(data?.data)) {
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          ...data.data.map((c) => ({
+            ...c,
+            pageId: page.id,
+            pageName: page.name,
+            pageType: page.type,
+          })),
+        ]);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching conversations:", err);
     }
+  };
 
-    console.log("🌍 Fetching conversations from:", url);
-    const res = await fetch(url);
-    const data = await res.json();
-    console.log("📥 Conversations Response:", data);
-
-    if (Array.isArray(data?.data)) {
-      setConversations((prev) => [
-        ...prev.filter((c) => c.pageId !== page.id),
-        ...data.data.map((c) => ({
-          ...c,
-          pageId: page.id,
-          pageName: page.name,
-          pageType: page.type,
-        })),
-      ]);
-    }
-  } catch (err) {
-    console.error("❌ Error fetching conversations:", err);
-  }
-};
-
-
-  // ✅ Fetch messages (different for IG vs FB)
+  // ✅ Messages fetcher
   const fetchMessages = async (conversationId, page) => {
     try {
       let url;
+
       if (page.type === "instagram") {
-        // Instagram: directly fetch messages from IG business account id
+        // Instagram business account messages
         const igBusinessId = page.igId || page.id;
         url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages?fields=id,from,to,message,created_time&access_token=${page.access_token}`;
       } else {
-        // Facebook Page: fetch messages for a conversation
+        // Facebook Page conversation
         url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
       }
 
       console.log("🌍 Fetching messages from:", url);
-
       const res = await fetch(url);
       const data = await res.json();
       console.log("📥 Messages Response:", data);
 
-      if (Array.isArray(data?.messages?.data)) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: data.messages.data,
-        }));
-      } else if (Array.isArray(data?.data)) {
+      if (Array.isArray(data?.data)) {
         setMessages((prev) => ({
           ...prev,
           [conversationId]: data.data,
@@ -94,7 +88,7 @@ const fetchConversations = async (page) => {
     }
   };
 
-  // ✅ When a conversation is selected
+  // ✅ Select conversation
   const handleSelectConversation = (conv) => {
     console.log("👉 Selected conversation:", conv);
     setActiveConversation(conv);
@@ -105,7 +99,7 @@ const fetchConversations = async (page) => {
     }
   };
 
-  // ✅ Send message API
+  // ✅ Send message
   const sendMessage = async (text) => {
     if (!activeConversation) return;
 
@@ -114,28 +108,36 @@ const fetchConversations = async (page) => {
 
     try {
       let url;
+      let body;
+
       if (page.type === "instagram") {
-        const igBusinessId = page.igId || page.id;
-        url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages`;
+        // Instagram DM send
+        url = `https://graph.facebook.com/v18.0/${page.igId}/messages?access_token=${page.access_token}`;
+        body = {
+          recipient: { id: activeConversation.id }, // user id
+          message: { text },
+        };
       } else {
-        url = `https://graph.facebook.com/v18.0/${activeConversation.id}/messages`;
+        // Facebook Page message
+        url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
+        body = {
+          recipient: { id: activeConversation.id },
+          message: { text },
+        };
       }
 
-      console.log("✉️ Sending message to:", url, "with text:", text);
+      console.log("✉️ Sending message:", url, body);
 
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_type: "RESPONSE",
-          message: { text },
-          access_token: page.access_token,
-        }),
+        body: JSON.stringify(body),
       });
-      const data = await res.json();
-      console.log("✅ Message sent response:", data);
 
-      // Refresh after sending
+      const data = await res.json();
+      console.log("✅ Message Sent Response:", data);
+
+      // Refresh chat
       fetchMessages(activeConversation.id, page);
     } catch (err) {
       console.error("❌ Error sending message:", err);
@@ -170,15 +172,8 @@ const fetchConversations = async (page) => {
         )}
       </div>
 
-      {/* RIGHT: Chatbox */}
-      <div
-        style={{
-          flex: 1,
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
+      {/* RIGHT: Chat */}
+      <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}>
         <h3>
           Chat:{" "}
           {activeConversation
