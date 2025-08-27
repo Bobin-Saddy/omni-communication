@@ -16,29 +16,34 @@ export default function SocialChatDashboard() {
   useEffect(() => {
     if (!connectedPages.length) return;
 
+    console.log("🔗 Connected Pages:", connectedPages);
     connectedPages.forEach((page) => {
       fetchConversations(page);
     });
   }, [connectedPages]);
 
-  // ✅ Fetch conversations for a specific page
+  // ✅ Fetch conversations/messages list for a specific page
   const fetchConversations = async (page) => {
     try {
       const token = page.access_token;
 
       let url;
-   if (page.type === "instagram") {
- url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages?fields=id,from,to,message,created_time&access_token=${token}`;
-} else {
-  // Facebook Page conversations
-  url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-}
+      if (page.type === "instagram") {
+        const igBusinessId = page.igId || page.id; // ✅ FIXED
+        console.log("📌 IG Business ID used:", igBusinessId);
 
-      console.log("🌍 Fetching conversations from:", url);
+        // For IG we fetch messages directly (no /conversations endpoint)
+        url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages?fields=id,from,to,message,created_time&access_token=${token}`;
+      } else {
+        // Facebook Page conversations
+        url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+      }
+
+      console.log("🌍 Fetching conversations/messages from:", url);
 
       const res = await fetch(url);
       const data = await res.json();
-      console.log("📥 Conversations Response:", data);
+      console.log("📥 Conversations/Messages Response:", data);
 
       if (Array.isArray(data?.data)) {
         setConversations((prev) => [
@@ -61,8 +66,11 @@ export default function SocialChatDashboard() {
     try {
       let url;
       if (page.type === "instagram") {
-        url = `https://graph.facebook.com/v18.0/${conversationId}?fields=messages{message,from,to,created_time}&access_token=${page.access_token}`;
+        // Instagram: directly fetch messages from IG business account id
+        const igBusinessId = page.igId || page.id;
+        url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages?fields=id,from,to,message,created_time&access_token=${page.access_token}`;
       } else {
+        // Facebook Page: fetch messages for a conversation
         url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
       }
 
@@ -107,21 +115,29 @@ export default function SocialChatDashboard() {
     if (!page) return;
 
     try {
-      const url = `https://graph.facebook.com/v18.0/${activeConversation.id}/messages`;
+      let url;
+      if (page.type === "instagram") {
+        const igBusinessId = page.igId || page.id;
+        url = `https://graph.facebook.com/v18.0/${igBusinessId}/messages`;
+      } else {
+        url = `https://graph.facebook.com/v18.0/${activeConversation.id}/messages`;
+      }
+
       console.log("✉️ Sending message to:", url, "with text:", text);
 
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: text,
+          messaging_type: "RESPONSE",
+          message: { text },
           access_token: page.access_token,
         }),
       });
       const data = await res.json();
       console.log("✅ Message sent response:", data);
 
-      // Refresh conversation after sending
+      // Refresh after sending
       fetchMessages(activeConversation.id, page);
     } catch (err) {
       console.error("❌ Error sending message:", err);
@@ -149,6 +165,7 @@ export default function SocialChatDashboard() {
             >
               <b>[{conv.pageName}]</b>{" "}
               {conv.participants?.data?.map((p) => p.name).join(", ") ||
+                conv.from?.username ||
                 "Unnamed"}
             </div>
           ))
@@ -169,7 +186,7 @@ export default function SocialChatDashboard() {
           {activeConversation
             ? activeConversation.participants?.data
                 ?.map((p) => p.name)
-                .join(", ")
+                .join(", ") || activeConversation.from?.username
             : "Select a conversation"}
         </h3>
 
@@ -187,7 +204,7 @@ export default function SocialChatDashboard() {
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg) => (
               <div key={msg.id} style={{ marginBottom: 8 }}>
-                <b>{msg.from?.name}:</b> {msg.message}{" "}
+                <b>{msg.from?.name || msg.from?.username}:</b> {msg.message}{" "}
                 <small>{msg.created_time}</small>
               </div>
             ))
