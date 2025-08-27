@@ -36,14 +36,33 @@ const fetchConversations = async (page) => {
 
     if (!Array.isArray(data.data)) return;
 
-    const convs = data.data.map((c) => ({
-      id: c.id,
-      pageId: page.id,
-      pageName: page.name,
-      pageType: c.messaging_product === "instagram" ? "instagram" : "facebook",
-      participants: c.participants,
-      messages: c.messages?.data || [],
-    }));
+const convs = data.data.map((c) => {
+  const pageType = c.messaging_product === "instagram" ? "instagram" : "facebook";
+
+  let participants = [];
+  if (pageType === "instagram") {
+    // Instagram participants: derive from first message if participants not available
+    participants = c.messages?.data
+      ? [
+          ...new Set(
+            c.messages.data.flatMap((m) => [m.from?.username, m.to?.map((t) => t.username)].flat())
+          ),
+        ].filter(Boolean).map((name) => ({ name }))
+      : [];
+  } else {
+    participants = c.participants?.data || [];
+  }
+
+  return {
+    id: c.id,
+    pageId: page.id,
+    pageName: page.name,
+    pageType,
+    participants,
+    messages: c.messages?.data || [],
+  };
+});
+
 
     setConversations((prev) => [
       ...prev.filter((c) => c.pageId !== page.id),
