@@ -22,27 +22,59 @@ export default function SocialChatDashboard() {
   }, [connectedPages]);
 
   // ✅ Fetch conversations for a specific page and merge into global state
-  const fetchConversations = async (page) => {
-    try {
-      const token = page.access_token;
-      const url =
-        page.type === "instagram"
-          ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-          : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+const fetchConversations = async (page) => {
+  try {
+    const token = page.access_token;
 
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (Array.isArray(data?.data)) {
-        setConversations((prev) => [
-          ...prev.filter((c) => c.pageId !== page.id), // remove old of same page
-          ...data.data.map((c) => ({ ...c, pageId: page.id, pageName: page.name })),
-        ]);
-      }
-    } catch (err) {
-      console.error("Error fetching conversations:", err);
+    let url;
+    if (page.type === "instagram") {
+      // Instagram Business Account → directly fetch messages
+      url = `https://graph.facebook.com/v18.0/${page.id}/messages?fields=id,from,to,message,created_time&access_token=${token}`;
+    } else {
+      // Facebook Page → normal conversations API
+      url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
     }
-  };
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (page.type === "instagram" && Array.isArray(data?.data)) {
+      // Instagram doesn't give "conversations", only messages
+      // So we fake a "conversation" with messages grouped by sender
+      const conv = {
+        id: `ig-${page.id}`,
+        participants: { data: [...new Set(data.data.map((m) => m.from?.name))].map((n) => ({ name: n })) },
+        pageId: page.id,
+        pageName: page.name,
+        type: "instagram",
+      };
+
+      setConversations((prev) => [
+        ...prev.filter((c) => c.pageId !== page.id),
+        conv,
+      ]);
+
+      // store messages separately
+      setMessages((prev) => ({
+        ...prev,
+        [conv.id]: data.data,
+      }));
+    } else if (Array.isArray(data?.data)) {
+      // Facebook conversations
+      setConversations((prev) => [
+        ...prev.filter((c) => c.pageId !== page.id),
+        ...data.data.map((c) => ({
+          ...c,
+          pageId: page.id,
+          pageName: page.name,
+          type: "facebook",
+        })),
+      ]);
+    }
+  } catch (err) {
+    console.error("Error fetching conversations:", err);
+  }
+};
 
   const fetchMessages = async (conversationId, token) => {
     try {
