@@ -8,13 +8,9 @@ export default function Settings() {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  const {
-    connectedPages,
-    setConnectedPages,
-    setSelectedPage, // 👈 this will be used when user clicks to view chats
-  } = useContext(AppContext);
+  const { connectedPages, setConnectedPages, setSelectedPage } = useContext(AppContext);
 
-  // ✅ Load FB SDK
+  // Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
       setSdkLoaded(true);
@@ -37,7 +33,7 @@ export default function Settings() {
     document.body.appendChild(js);
   }, []);
 
-  // ✅ Fetch FB Pages
+  // Fetch FB Pages
   const fetchFBPages = async (token) => {
     try {
       const res = await fetch(
@@ -57,7 +53,7 @@ export default function Settings() {
     }
   };
 
-  // ✅ Fetch IG Accounts
+  // Fetch IG Accounts
   const fetchIGPages = async (token) => {
     try {
       const res = await fetch(
@@ -71,7 +67,7 @@ export default function Settings() {
         .map((p) => ({
           id: p.instagram_business_account.id,
           name: p.name,
-          access_token: token,
+          access_token: p.access_token, // Use page access token
           type: "instagram",
           igId: p.instagram_business_account.id,
         }));
@@ -81,6 +77,7 @@ export default function Settings() {
     }
   };
 
+  // FB Login
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -91,6 +88,7 @@ export default function Settings() {
     );
   };
 
+  // IG Login
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -104,14 +102,14 @@ export default function Settings() {
     );
   };
 
-  // ✅ Add to connected pages (but don’t auto-select)
+  // Connect page
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
   };
 
-  // ✅ Select a page to open chatbox
+  // Open chat
   const handleOpenChat = (page) => {
     setSelectedPage(page);
   };
@@ -133,9 +131,7 @@ export default function Settings() {
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id)
-                    ? "✅ Connected"
-                    : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
                 </button>
               </li>
             ))}
@@ -151,9 +147,7 @@ export default function Settings() {
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id)
-                    ? "✅ Connected"
-                    : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
                 </button>
               </li>
             ))}
@@ -161,7 +155,6 @@ export default function Settings() {
         </div>
       )}
 
-      {/* ✅ Show all connected pages */}
       {connectedPages.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <h3>Connected Pages</h3>
