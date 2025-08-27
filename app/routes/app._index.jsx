@@ -69,37 +69,38 @@ export default function SocialChatDashboard() {
     }
   };
 
-  // ✅ Fetch messages
-// ✅ Messages fetcher
-const fetchMessages = async (conversationId, page) => {
-  try {
-    if (page.type === "instagram") {
-      console.warn("⚠️ Instagram: Cannot fetch messages history. Use webhooks for new messages.");
-      setMessages((prev) => ({
-        ...prev,
-        [conversationId]: prev[conversationId] || [], // keep existing
-      }));
-      return;
+  // ✅ Messages fetcher
+  const fetchMessages = async (conversationId, page) => {
+    try {
+      if (page.type === "instagram") {
+        console.warn("⚠️ Instagram: Cannot fetch messages history. Using placeholder.");
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: prev[conversationId] || [
+            { id: "local-1", from: { username: "system" }, message: "Start chatting on Instagram 📸" },
+          ],
+        }));
+        return;
+      }
+
+      // Facebook Page conversation
+      const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+
+      console.log("🌍 Fetching messages from:", url);
+      const res = await fetch(url);
+      const data = await res.json();
+      console.log("📥 Messages Response:", data);
+
+      if (Array.isArray(data?.data)) {
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: data.data,
+        }));
+      }
+    } catch (err) {
+      console.error("❌ Error fetching messages:", err);
     }
-
-    // Facebook Page conversation
-    const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
-
-    console.log("🌍 Fetching messages from:", url);
-    const res = await fetch(url);
-    const data = await res.json();
-    console.log("📥 Messages Response:", data);
-
-    if (Array.isArray(data?.data)) {
-      setMessages((prev) => ({
-        ...prev,
-        [conversationId]: data.data,
-      }));
-    }
-  } catch (err) {
-    console.error("❌ Error fetching messages:", err);
-  }
-};
+  };
 
   // ✅ Select conversation
   const handleSelectConversation = (conv) => {
@@ -154,8 +155,18 @@ const fetchMessages = async (conversationId, page) => {
       const data = await res.json();
       console.log("✅ Message Sent Response:", data);
 
-      // Refresh
-      fetchMessages(activeConversation.id, page);
+      // Refresh FB OR update IG locally
+      if (page.type === "instagram") {
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            { id: Date.now(), from: { username: "me" }, message: text },
+          ],
+        }));
+      } else {
+        fetchMessages(activeConversation.id, page);
+      }
     } catch (err) {
       console.error("❌ Error sending message:", err);
     }
@@ -215,7 +226,7 @@ const fetchMessages = async (conversationId, page) => {
             messages[activeConversation.id].map((msg) => (
               <div key={msg.id} style={{ marginBottom: 8 }}>
                 <b>{msg.from?.name || msg.from?.username}:</b> {msg.message}{" "}
-                <small>{msg.created_time}</small>
+                <small>{msg.created_time || ""}</small>
               </div>
             ))
           ) : (
