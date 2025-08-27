@@ -83,6 +83,37 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
     setSelectedPage(page); // make it active page
   };
 
+  //  const messagesEndRef = useRef(null);
+  
+  //   useEffect(() => {
+  //     if (messagesEndRef.current) {
+  //       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+  //     }
+  //   }, [conversations]);
+  
+    useEffect(() => {
+      if (!selectedPage) return;
+      fetchConversations(selectedPage);
+    }, [selectedPage]);
+  
+    const fetchConversations = async (page) => {
+      try {
+        const token = page.access_token;
+        const url =
+          page.type === "instagram"
+            ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
+            : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+  
+        const res = await fetch(url);
+        const data = await res.json();
+        setConversations(Array.isArray(data?.data) ? data.data : []);
+      } catch (err) {
+        console.error("Error fetching conversations:", err);
+        setConversations([]);
+      }
+    };
+  
+
   return (
     <div style={{ padding: 20 }}>
       <h2>Settings</h2>
@@ -123,6 +154,7 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
           </ul>
         </div>
       )}
+       {/* <div ref={messagesEndRef}></div> */}
     </div>
   );
 }

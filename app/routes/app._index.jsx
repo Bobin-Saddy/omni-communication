@@ -49,12 +49,12 @@ export default function SocialChatDashboard() {
     <div style={{ maxWidth: 1400, margin: "auto", padding: 20 }}>
       <h1>Social Chat Dashboard</h1>
 
-      <Settings
+      {/* <Settings
         connectedPages={connectedPages}
         setConnectedPages={setConnectedPages}
         selectedPage={selectedPage}
         setSelectedPage={setSelectedPage}
-      />
+      /> */}
 
       <div style={{ marginTop: 40 }}>
         <h2>Conversations</h2>
