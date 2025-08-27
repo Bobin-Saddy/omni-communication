@@ -5,16 +5,13 @@ export default function Settings() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [waConnected, setWaConnected] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  const {
-    connectedPages,
-    setConnectedPages,
-    setSelectedPage, // 👈 this will be used when user clicks to view chats
-  } = useContext(AppContext);
+  const { connectedPages, setConnectedPages, setSelectedPage } = useContext(AppContext);
 
-  // ✅ Load FB SDK
+  // Load Facebook SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
       setSdkLoaded(true);
@@ -37,7 +34,7 @@ export default function Settings() {
     document.body.appendChild(js);
   }, []);
 
-  // ✅ Fetch FB Pages
+  // Fetch FB Pages
   const fetchFBPages = async (token) => {
     try {
       const res = await fetch(
@@ -57,7 +54,7 @@ export default function Settings() {
     }
   };
 
-  // ✅ Fetch IG Accounts
+  // Fetch IG Accounts
   const fetchIGPages = async (token) => {
     try {
       const res = await fetch(
@@ -81,6 +78,7 @@ export default function Settings() {
     }
   };
 
+  // Facebook login
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -91,6 +89,7 @@ export default function Settings() {
     );
   };
 
+  // Instagram login
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
     window.FB.login(
@@ -104,14 +103,33 @@ export default function Settings() {
     );
   };
 
-  // ✅ Add to connected pages (but don’t auto-select)
+  // WhatsApp connect
+  const handleWhatsAppConnect = async () => {
+    try {
+      const res = await fetch("/get-whatsapp-users");
+      const users = await res.json(); // [{ number, name }]
+      const waPage = { id: "whatsapp", name: "WhatsApp", type: "whatsapp", users };
+
+      if (!connectedPages.some((p) => p.id === waPage.id)) {
+        setConnectedPages([...connectedPages, waPage]);
+      }
+
+      setSelectedPage(waPage);
+      setWaConnected(true);
+    } catch (error) {
+      alert("Failed to connect WhatsApp.");
+      console.error(error);
+    }
+  };
+
+  // Connect a page manually
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
   };
 
-  // ✅ Select a page to open chatbox
+  // Open chat
   const handleOpenChat = (page) => {
     setSelectedPage(page);
   };
@@ -123,6 +141,9 @@ export default function Settings() {
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
         <button onClick={handleFBLogin}>Connect Facebook</button>
         <button onClick={handleIGLogin}>Connect Instagram</button>
+        <button onClick={handleWhatsAppConnect}>
+          {waConnected ? "✅ WhatsApp Connected" : "Connect WhatsApp"}
+        </button>
       </div>
 
       {fbPages.length > 0 && (
@@ -133,9 +154,7 @@ export default function Settings() {
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id)
-                    ? "✅ Connected"
-                    : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
                 </button>
               </li>
             ))}
@@ -151,9 +170,7 @@ export default function Settings() {
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id)
-                    ? "✅ Connected"
-                    : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
                 </button>
               </li>
             ))}
@@ -161,7 +178,6 @@ export default function Settings() {
         </div>
       )}
 
-      {/* ✅ Show all connected pages */}
       {connectedPages.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <h3>Connected Pages</h3>
