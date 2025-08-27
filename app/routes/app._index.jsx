@@ -27,29 +27,16 @@ export default function SocialChatDashboard() {
       const token = page.access_token;
 
       let url;
-      if (page.type === "instagram") {
-        console.log("🔍 Fetching IG Business Account ID for page:", page);
+   if (page.type === "instagram") {
+  // You ALREADY have the IG business account ID
+  const igBusinessId = page.igId || page.id;
+  console.log("✅ Using IG Business Account ID directly:", igBusinessId);
 
-        // First get IG Business Account ID
-        const igRes = await fetch(
-          `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${token}`
-        );
-        const igData = await igRes.json();
-        console.log("📥 IG Account Response:", igData);
-
-        if (!igData.instagram_business_account) {
-          console.warn("⚠️ No Instagram business account linked for:", page.name);
-          return;
-        }
-
-        const igBusinessId = igData.instagram_business_account.id;
-        console.log("✅ Found IG Business Account ID:", igBusinessId);
-
-        url = `https://graph.facebook.com/v18.0/${igBusinessId}/conversations?fields=participants,messages.limit(1){message,from,created_time}&access_token=${token}`;
-      } else {
-        // Facebook Page conversations
-        url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      }
+  url = `https://graph.facebook.com/v18.0/${igBusinessId}/conversations?fields=participants,messages.limit(1){message,from,created_time}&access_token=${token}`;
+} else {
+  // Facebook Page conversations
+  url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+}
 
       console.log("🌍 Fetching conversations from:", url);
 
