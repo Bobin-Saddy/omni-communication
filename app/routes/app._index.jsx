@@ -4,8 +4,6 @@ import { AppContext } from "./AppContext";
 export default function SocialChatDashboard() {
   const {
     connectedPages,
-    selectedPage,
-    setSelectedPage,
     conversations,
     setConversations,
     activeConversation,
@@ -14,12 +12,16 @@ export default function SocialChatDashboard() {
     setMessages,
   } = useContext(AppContext);
 
-  // Fetch conversations when a page is selected
+  // ✅ Whenever connectedPages change → fetch all conversations
   useEffect(() => {
-    if (!selectedPage) return;
-    fetchConversations(selectedPage);
-  }, [selectedPage]);
+    if (!connectedPages.length) return;
 
+    connectedPages.forEach((page) => {
+      fetchConversations(page);
+    });
+  }, [connectedPages]);
+
+  // ✅ Fetch conversations for a specific page and merge into global state
   const fetchConversations = async (page) => {
     try {
       const token = page.access_token;
@@ -30,10 +32,15 @@ export default function SocialChatDashboard() {
 
       const res = await fetch(url);
       const data = await res.json();
-      setConversations(Array.isArray(data?.data) ? data.data : []);
+
+      if (Array.isArray(data?.data)) {
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id), // remove old of same page
+          ...data.data.map((c) => ({ ...c, pageId: page.id, pageName: page.name })),
+        ]);
+      }
     } catch (err) {
       console.error("Error fetching conversations:", err);
-      setConversations([]);
     }
   };
 
@@ -54,15 +61,23 @@ export default function SocialChatDashboard() {
     }
   };
 
-  // When a conversation is selected → load messages
+  // ✅ When a conversation is selected
   const handleSelectConversation = (conv) => {
     setActiveConversation(conv);
-    fetchMessages(conv.id, selectedPage.access_token);
+
+    const page = connectedPages.find((p) => p.id === conv.pageId);
+    if (page) {
+      fetchMessages(conv.id, page.access_token);
+    }
   };
 
-  // Send message API
+  // ✅ Send message API
   const sendMessage = async (text) => {
-    if (!activeConversation || !selectedPage) return;
+    if (!activeConversation) return;
+
+    const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+    if (!page) return;
+
     try {
       const url = `https://graph.facebook.com/v18.0/${activeConversation.id}/messages`;
       const res = await fetch(url, {
@@ -70,14 +85,14 @@ export default function SocialChatDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          access_token: selectedPage.access_token,
+          access_token: page.access_token,
         }),
       });
       const data = await res.json();
       console.log("Message sent:", data);
 
       // Refresh conversation after sending
-      fetchMessages(activeConversation.id, selectedPage.access_token);
+      fetchMessages(activeConversation.id, page.access_token);
     } catch (err) {
       console.error("Error sending message:", err);
     }
@@ -85,25 +100,7 @@ export default function SocialChatDashboard() {
 
   return (
     <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
-      {/* LEFT: Pages */}
-      <div style={{ width: "20%", borderRight: "1px solid #ddd", padding: 10 }}>
-        <h3>Pages</h3>
-        {connectedPages.map((p) => (
-          <div
-            key={p.id}
-            style={{
-              padding: 8,
-              cursor: "pointer",
-              background: selectedPage?.id === p.id ? "#eee" : "transparent",
-            }}
-            onClick={() => setSelectedPage(p)}
-          >
-            {p.name}
-          </div>
-        ))}
-      </div>
-
-      {/* MIDDLE: Conversations */}
+      {/* LEFT: Conversations (from ALL connected pages) */}
       <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
         <h3>Conversations</h3>
         {!conversations.length ? (
@@ -120,6 +117,7 @@ export default function SocialChatDashboard() {
               }}
               onClick={() => handleSelectConversation(conv)}
             >
+              <b>[{conv.pageName}]</b>{" "}
               {conv.participants?.data?.map((p) => p.name).join(", ") ||
                 "Unnamed"}
             </div>
@@ -128,7 +126,14 @@ export default function SocialChatDashboard() {
       </div>
 
       {/* RIGHT: Chatbox */}
-      <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: 10,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
         <h3>
           Chat:{" "}
           {activeConversation
