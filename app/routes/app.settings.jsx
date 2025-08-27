@@ -58,29 +58,26 @@ export default function Settings() {
   };
 
   // ✅ Fetch IG Accounts
-  const fetchIGPages = async (token) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
-      );
-      const data = await res.json();
-      if (!Array.isArray(data.data)) return;
+// When connecting IG pages, store both pageId and igId
+const fetchIGPages = async (token) => {
+  const res = await fetch(
+    `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
+  );
+  const data = await res.json();
 
-      const igAccounts = data.data
-        .filter((p) => p.instagram_business_account)
-    .map((p) => ({
-  id: p.instagram_business_account.id,
-  name: p.name,
-  access_token: p.access_token, // use page access token
-  type: "instagram",
-  igId: p.instagram_business_account.id,
-}));
+  const igAccounts = data.data
+    .filter(p => p.instagram_business_account)
+    .map(p => ({
+      id: p.id,                 // Facebook Page ID
+      name: p.name,
+      access_token: p.access_token,
+      type: "instagram",
+      igId: p.instagram_business_account.id
+    }));
 
-      setIgPages(igAccounts);
-    } catch (err) {
-      console.error("Error fetching IG pages:", err);
-    }
-  };
+  setIgPages(igAccounts);
+};
+
 
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
