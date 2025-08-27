@@ -66,15 +66,16 @@ export default function Settings() {
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
 
-      const igAccounts = data.data
-        .filter((p) => p.instagram_business_account)
-        .map((p) => ({
-          id: p.instagram_business_account.id, // IG account id
-          name: p.name,
-          access_token: p.access_token, // ✅ Use PAGE token (not user token!)
-          type: "instagram",
-          igId: p.instagram_business_account.id,
-        }));
+   const igAccounts = data.data
+  .filter((p) => p.instagram_business_account)
+  .map((p) => ({
+    id: p.instagram_business_account.id, // IG account id
+    name: p.name,
+    access_token: p.access_token, // This is PAGE token
+    type: "instagram",
+    igId: p.instagram_business_account.id,
+  }));
+
 
       setIgPages(igAccounts);
     } catch (err) {

@@ -19,77 +19,67 @@ export default function SocialChatDashboard() {
   }, [connectedPages]);
 
   // Fetch Conversations from Facebook Pages (Instagram DMs included)
-  const fetchConversations = async (page) => {
-    try {
-      const token = page.access_token;
-      const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-      const res = await fetch(url);
-      const data = await res.json();
+const fetchConversations = async (page) => {
+  try {
+    const token = page.access_token;
 
-      if (Array.isArray(data?.data) && data.data.length) {
-        setConversations((prev) => [
-          ...prev.filter((c) => c.pageId !== page.id),
-          ...data.data.map((c) => ({
-            ...c,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: page.instagram_business_account ? "instagram" : "facebook",
-          })),
-        ]);
-      } else {
-        // Placeholder for IG if no conversations
-        setConversations((prev) => [
-          ...prev.filter((c) => c.pageId !== page.id),
-          {
-            id: `${page.id}-placeholder`,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: page.instagram_business_account ? "instagram" : "facebook",
-            participants: { data: [{ name: page.instagram_business_account ? "📸 Instagram Inbox" : "No conversations" }] },
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error("❌ Error fetching conversations:", err);
-    }
-  };
+    // Use the Facebook Page ID for both FB and IG conversations
+    const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!Array.isArray(data?.data)) return;
+
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      ...data.data.map((c) => ({
+        ...c,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: page.type, // "facebook" or "instagram"
+      })),
+    ]);
+  } catch (err) {
+    console.error("❌ Error fetching conversations:", err);
+  }
+};
+
 
   // Fetch Messages for a conversation
-  const fetchMessages = async (conversationId, page) => {
-    try {
-      const token = page.access_token;
+const fetchMessages = async (conversationId, page) => {
+  try {
+    const token = page.access_token;
 
-      if (conversationId.includes("placeholder")) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: [
-            { id: "local-1", from: { username: "system" }, message: "Start chatting on Instagram 📸" },
-          ],
-        }));
-        return;
-      }
-
-      const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (Array.isArray(data?.data)) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: data.data,
-        }));
-      } else {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: [
-            { id: "local-1", from: { username: "system" }, message: "No messages yet." },
-          ],
-        }));
-      }
-    } catch (err) {
-      console.error("❌ Error fetching messages:", err);
+    if (conversationId.includes("placeholder")) {
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: [
+          { id: "local-1", from: { username: "system" }, message: "Start chatting 📸" },
+        ],
+      }));
+      return;
     }
-  };
+
+    // Use conversation ID from page conversations (FB or IG)
+    const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${token}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (Array.isArray(data?.data)) {
+      setMessages((prev) => ({ ...prev, [conversationId]: data.data }));
+    } else {
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: [
+          { id: "local-1", from: { username: "system" }, message: "No messages yet." },
+        ],
+      }));
+    }
+  } catch (err) {
+    console.error("❌ Error fetching messages:", err);
+  }
+};
+
 
   const handleSelectConversation = (conv) => {
     setActiveConversation(conv);
