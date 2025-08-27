@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { AppContext } from "./AppContext";
 
 export default function Settings({ connectedPages = [], setConnectedPages = () => {}, selectedPage, setSelectedPage }) {
   const [fbPages, setFbPages] = useState([]);
@@ -6,7 +7,14 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
   const [sdkLoaded, setSdkLoaded] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
-
+  const {
+    connectedPages,
+    setConnectedPages,
+    selectedPage,
+    setSelectedPage,
+    conversations,
+    setConversations,
+  } = useContext(AppContext); // ✅ use AppContext, not GlobalProvider
   // Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
