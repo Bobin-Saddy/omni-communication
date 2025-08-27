@@ -1,20 +1,19 @@
 import { useState, useEffect, useContext } from "react";
 import { AppContext } from "./AppContext";
 
-export default function Settings({ connectedPages = [], setConnectedPages = () => {}, selectedPage, setSelectedPage }) {
+export default function Settings() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
 
   const FACEBOOK_APP_ID = "544704651303656";
+
   const {
     connectedPages,
     setConnectedPages,
-    selectedPage,
     setSelectedPage,
-    conversations,
-    setConversations,
-  } = useContext(AppContext); // ✅ use AppContext, not GlobalProvider
+  } = useContext(AppContext);
+
   // Load FB SDK
   useEffect(() => {
     if (document.getElementById("facebook-jssdk")) {
@@ -40,10 +39,16 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
 
   const fetchFBPages = async (token) => {
     try {
-      const res = await fetch(`https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`);
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=id,name,access_token&access_token=${token}`
+      );
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
-      const pages = data.data.map((p) => ({ ...p, type: "facebook", access_token: token }));
+      const pages = data.data.map((p) => ({
+        ...p,
+        type: "facebook",
+        access_token: token,
+      }));
       setFbPages(pages);
     } catch (err) {
       console.error("Error fetching FB pages:", err);
@@ -52,7 +57,9 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
 
   const fetchIGPages = async (token) => {
     try {
-      const res = await fetch(`https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`);
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
+      );
       const data = await res.json();
       if (!Array.isArray(data.data)) return;
       const igAccounts = data.data
@@ -72,55 +79,33 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
 
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-    window.FB.login((res) => {
-      if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
-    }, { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" });
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) fetchFBPages(res.authResponse.accessToken);
+      },
+      { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" }
+    );
   };
 
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded yet");
-    window.FB.login((res) => {
-      if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
-    }, { scope: "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata" });
+    window.FB.login(
+      (res) => {
+        if (res.authResponse) fetchIGPages(res.authResponse.accessToken);
+      },
+      {
+        scope:
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+      }
+    );
   };
 
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
-    setSelectedPage(page); // make it active page
+    setSelectedPage(page); // 👈 selecting page here
   };
-
-  //  const messagesEndRef = useRef(null);
-  
-  //   useEffect(() => {
-  //     if (messagesEndRef.current) {
-  //       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-  //     }
-  //   }, [conversations]);
-  
-    useEffect(() => {
-      if (!selectedPage) return;
-      fetchConversations(selectedPage);
-    }, [selectedPage]);
-  
-    const fetchConversations = async (page) => {
-      try {
-        const token = page.access_token;
-        const url =
-          page.type === "instagram"
-            ? `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&fields=participants&access_token=${token}`
-            : `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${token}`;
-  
-        const res = await fetch(url);
-        const data = await res.json();
-        setConversations(Array.isArray(data?.data) ? data.data : []);
-      } catch (err) {
-        console.error("Error fetching conversations:", err);
-        setConversations([]);
-      }
-    };
-  
 
   return (
     <div style={{ padding: 20 }}>
@@ -139,7 +124,9 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id)
+                    ? "✅ Connected"
+                    : "Connect"}
                 </button>
               </li>
             ))}
@@ -155,14 +142,15 @@ export default function Settings({ connectedPages = [], setConnectedPages = () =
               <li key={p.id}>
                 {p.name}{" "}
                 <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
+                  {connectedPages.some((cp) => cp.id === p.id)
+                    ? "✅ Connected"
+                    : "Connect"}
                 </button>
               </li>
             ))}
           </ul>
         </div>
       )}
-       {/* <div ref={messagesEndRef}></div> */}
     </div>
   );
 }
