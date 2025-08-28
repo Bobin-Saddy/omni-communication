@@ -66,56 +66,58 @@ export default function SocialChatDashboard() {
       }
 
       // ✅ Instagram
-      if (page.type === "instagram") {
-     const res = await fetch(
-    `https://graph.facebook.com/v18.0/${page.id}/conversations?access_token=${page.access_token}`
+// ✅ Instagram
+if (page.type === "instagram") {
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/${page.igId}/conversations?platform=instagram&access_token=${page.access_token}`
   );
-        const data = await res.json();
+  const data = await res.json();
 
-        if (!Array.isArray(data?.data)) return;
+  if (!Array.isArray(data?.data)) return;
 
-        const conversationsWithNames = await Promise.all(
-          data.data.map(async (conv) => {
-            try {
-              const messagesRes = await fetch(
-                `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${page.access_token}`
-              );
-              const messagesData = await messagesRes.json();
-
-              let userName = "Unknown User";
-              if (messagesData.data && messagesData.data.length > 0) {
-                const msg = messagesData.data[0];
-                if (msg.from && msg.from.name !== page.name) {
-                  userName = msg.from.name || msg.from.username || "User";
-                }
-              }
-
-              return {
-                id: conv.id,
-                pageId: page.id,
-                pageName: page.name,
-                pageType: "instagram",
-                participants: { data: [{ name: userName }] },
-              };
-            } catch (err) {
-              console.error("Error fetching IG message:", conv.id, err);
-              return {
-                id: conv.id,
-                pageId: page.id,
-                pageName: page.name,
-                pageType: "instagram",
-                participants: { data: [{ name: "User" }] },
-              };
-            }
-          })
+  const conversationsWithNames = await Promise.all(
+    data.data.map(async (conv) => {
+      try {
+        const messagesRes = await fetch(
+          `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,message&limit=1&access_token=${page.access_token}`
         );
+        const messagesData = await messagesRes.json();
 
-        setConversations((prev) => [
-          ...prev.filter((c) => c.pageId !== page.id),
-          ...conversationsWithNames,
-        ]);
-        return;
+        let userName = "Unknown IG User";
+        if (messagesData.data && messagesData.data.length > 0) {
+          const msg = messagesData.data[0];
+          if (msg.from && msg.from.id !== page.igId) {
+            userName = msg.from.name || msg.from.username || msg.from.id;
+          }
+        }
+
+        return {
+          id: conv.id,
+          pageId: page.id,
+          pageName: page.name,
+          pageType: "instagram",
+          participants: { data: [{ name: userName }] },
+        };
+      } catch (err) {
+        console.error("Error fetching IG message:", conv.id, err);
+        return {
+          id: conv.id,
+          pageId: page.id,
+          pageName: page.name,
+          pageType: "instagram",
+          participants: { data: [{ name: "User" }] },
+        };
       }
+    })
+  );
+
+  setConversations((prev) => [
+    ...prev.filter((c) => c.pageId !== page.id),
+    ...conversationsWithNames,
+  ]);
+  return;
+}
+
 
       // ✅ Facebook
       if (page.type === "facebook") {
@@ -316,57 +318,75 @@ export default function SocialChatDashboard() {
       }
 
       // ✅ Instagram (API for send requires permissions – simulate for now)
-      if (page.type === "instagram") {
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            { id: Date.now(), from: { username: "You" }, message: text },
-          ],
-        }));
-        return;
-      }
-
-      // ✅ Facebook
-// ✅ Facebook
-if (page.type === "facebook") {
-  const userParticipant = activeConversation.participants?.data?.find(
-    (p) => p.id !== page.id
-  );
+if (page.type === "instagram") {
+  const userParticipant = activeConversation.participants?.data?.[0];
   if (!userParticipant) return;
 
   const res = await fetch(
-    `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+    `https://graph.facebook.com/v18.0/${page.igId}/messages?access_token=${page.access_token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        recipient: { id: userParticipant.id },
+        recipient: { id: userParticipant.id }, // user ID from thread
         message: { text },
-        messaging_type: "RESPONSE", // ✅ Correct for inside 24h
       }),
     }
   );
 
   const result = await res.json();
-  if (res.ok && result.message_id) {
+  if (res.ok && result.id) {
     setMessages((prev) => ({
       ...prev,
       [activeConversation.id]: [
         ...(prev[activeConversation.id] || []),
-        {
-          from: { name: "You" },
-          message: text,
-          created_time: new Date().toISOString(),
-        },
+        { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
       ],
     }));
   } else {
-    console.error("Facebook send failed:", result.error);
+    console.error("Instagram send failed:", result);
   }
   return;
 }
 
+
+      // ✅ Facebook
+      if (page.type === "facebook") {
+        const userParticipant = activeConversation.participants?.data?.find(
+          (p) => p.id !== page.id
+        );
+        if (!userParticipant) return;
+
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipient: { id: userParticipant.id },
+              message: { text },
+              messaging_type: "MESSAGE_TAG",
+              tag: "ACCOUNT_UPDATE",
+            }),
+          }
+        );
+
+        const result = await res.json();
+        if (res.ok && result.message_id) {
+          setMessages((prev) => ({
+            ...prev,
+            [activeConversation.id]: [
+              ...(prev[activeConversation.id] || []),
+              {
+                from: { name: "You" },
+                message: text,
+                created_time: new Date().toISOString(),
+              },
+            ],
+          }));
+        }
+        return;
+      }
 
       // ✅ ChatWidget
       if (page.type === "chatwidget") {
