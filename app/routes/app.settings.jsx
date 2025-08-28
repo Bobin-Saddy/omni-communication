@@ -61,15 +61,15 @@ const fetchIGPages = async (token) => {
     if (!Array.isArray(data.data)) return;
 
     // Extract Instagram accounts from connected pages
- const igAccounts = data.data
-   .filter((page) => page.instagram_business_account)
-   .map((page) => ({
-     id: page.id,                         // <-- FB PAGE ID (critical)
-     pageId: page.id,                     // alias for clarity
-     igId: page.instagram_business_account.id, // IG user id
-     name: page.name,
+const igAccounts = data.data
+  .filter((page) => page.instagram_business_account)
+  .map((page) => ({
+    id: `ig_${page.instagram_business_account.id}`, // unique key for IG
+   pageId: page.id,                                // FB Page ID
+    igId: page.instagram_business_account.id,       // IG user id
+    name: page.name,
     type: "instagram",
-     access_token: page.access_token,     // Page access token
+   access_token: page.access_token,    // Page access token
    }));
 
     setIgPages(igAccounts);
@@ -127,11 +127,12 @@ const fetchIGPages = async (token) => {
     }
   };
 
-  const handleConnectPage = (page) => {
-    if (!connectedPages.some((p) => p.id === page.id)) {
-      setConnectedPages([...connectedPages, page]);
-    }
-  };
+const handleConnectPage = (page) => {
+  if (!connectedPages.some((p) => p.id === page.id)) {
+    setConnectedPages([...connectedPages, page]);
+  }
+};
+
 
   return (
     <div style={{ padding: 20 }}>
