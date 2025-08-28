@@ -104,17 +104,33 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      if (page.type === "chatwidget") {
-        const res = await fetch(
-          `/api/chat?storeDomain=${page.shopDomain || "myshop.com"}&sessionId=${conversationId}`
-        );
-        const data = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: Array.isArray(data?.messages) ? data.messages : [],
-        }));
-        return;
-      }
+ if (page?.type === "chatwidget") {
+  try {
+    if (!conversationId) return;
+
+    const res = await fetch(
+      `/api/chat?storeDomain=${encodeURIComponent(
+        page.shopDomain || "myshop.com"
+      )}&sessionId=${encodeURIComponent(conversationId)}`
+    );
+
+    if (!res.ok) {
+      console.error("Failed to fetch chat messages:", res.statusText);
+      return;
+    }
+
+    const data = await res.json();
+
+    setMessages((prev) => ({
+      ...prev,
+      [conversationId]: Array.isArray(data?.messages) ? data.messages : [],
+    }));
+  } catch (err) {
+    console.error("Error fetching chat messages:", err);
+  }
+  return;
+}
+
     } catch (err) {
       console.error("Error fetching messages:", err);
     }
