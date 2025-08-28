@@ -172,7 +172,7 @@ const handleSelectConversation = async (conv) => {
   try {
     if (page.type === "chatwidget") {
       const res = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(page.shopDomain || "myshop.com")}&sessionId=${encodeURIComponent(conv.id)}`
+        `/api/chat?storeDomain=${encodeURIComponent(conv.storeDomain || "myshop.com")}&sessionId=${encodeURIComponent(conv.id)}`
       );
 
       if (!res.ok) {
