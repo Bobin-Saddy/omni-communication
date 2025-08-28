@@ -188,20 +188,16 @@ export default function SocialChatDashboard() {
       }
 
       // Facebook send
+// Facebook send
 if (page.type === "facebook") {
-  const pageId = page.id;
-  const userParticipant = activeConversation.participants?.data?.find(
-    (p) => p.id !== pageId
-  );
+  const psid = activeConversation.psid; // <- Webhook se mila hua PSID store karke yaha lao
 
-  if (!userParticipant) return alert("No user ID found for this conversation");
-
-  const psid = userParticipant.id;
+  if (!psid) return alert("No PSID found for this conversation");
 
   const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
   const body = {
     recipient: { id: psid },
-    message: { text }, // ensure `text` is a string
+    message: { text },
   };
 
   const res = await fetch(url, {
@@ -218,6 +214,7 @@ if (page.type === "facebook") {
     fetchMessages(activeConversation.id, page);
   }
 }
+
 
 
 
