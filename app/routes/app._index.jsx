@@ -65,22 +65,20 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      // ✅ Instagram
-// ✅ Instagram
-// ✅ Instagram
 if (page.type === "instagram") {
   const res = await fetch(
-    `https://graph.facebook.com/v18.0/${page.igId}/conversations?fields=id,participants,updated_time&access_token=${page.access_token}`
+    `https://graph.facebook.com/v18.0/${page.pageId}/conversations?fields=id,participants,updated_time&access_token=${page.access_token}`
   );
   const data = await res.json();
-
   if (!Array.isArray(data?.data)) return;
 
   const conversationsWithNames = data.data.map((conv) => {
     let userName = "Instagram User";
 
     if (conv.participants?.data?.length) {
-      const other = conv.participants.data.find((p) => p.id !== page.igId);
+      const other = conv.participants.data.find(
+        (p) => p.id !== page.pageId && p.id !== page.igId
+      );
       if (other) {
         userName = other.name || other.username || other.id;
       }
@@ -101,6 +99,7 @@ if (page.type === "instagram") {
   ]);
   return;
 }
+
 
 
       // ✅ Facebook
