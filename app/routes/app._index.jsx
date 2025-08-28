@@ -13,7 +13,7 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPTKCOgb1CojZAJ28WWZAgmM9SiqSYFHgCZBfgvVcd9KF2I61b2wj4wfvX7PHUnnHoRsLOe7FuiY1qg5zrZCxMg6brDnSfeQKtkcAdB8fzIE9RoCDYtHGXhhoQOkF5JZBLk8RrsBY3eh4MLXxZBXR0pZBUQwH3ixqFHONx68DhvB9BsdnNAJXyMraXkxUqIO2mPyC3bf5S2eeSg1tbJhGBB2uYSO02cbJwZDZD";
+    "EAAHvZAZB8ZCmugBPfdUwAraWr6m9dNSZBuCDO7hAlbaFjK1bSqnFAb7s7VoMJGHrEkLL5Mth1DonGK9udcRVnyHuXnwT6P0ahEaVggNpZBmTZC5vErxn7rZBFnDIpFUny14ncDWlDvFZC4CYr09X8Khap2pIKBb4EwSazhWbq8nFFWu3eXjgx63jWgQthhHEm7XrgjNG6JUsqAVRcEdroZAbC1sbauhJhn9ahn8RT0OEMnT8ZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   useEffect(() => {
@@ -190,7 +190,6 @@ export default function SocialChatDashboard() {
       // Facebook send
 if (page.type === "facebook") {
   const pageId = page.id;
-  // find the user participant
   const userParticipant = activeConversation.participants?.data?.find(
     (p) => p.id !== pageId
   );
@@ -200,20 +199,26 @@ if (page.type === "facebook") {
   const psid = userParticipant.id;
 
   const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-  const body = { recipient: { id: psid }, message: { text } };
+  const body = {
+    recipient: { id: psid },
+    message: { text }, // ensure `text` is a string
+  };
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+
   const data = await res.json();
-  if (res.ok) {
-    fetchMessages(activeConversation.id, page);
-  } else {
+  if (!res.ok) {
     console.error("Facebook API error:", data);
-    alert("Failed to send Facebook message");
+    alert(`Failed to send Facebook message: ${data.error?.message}`);
+  } else {
+    fetchMessages(activeConversation.id, page);
   }
 }
+
 
 
     } catch (err) {
