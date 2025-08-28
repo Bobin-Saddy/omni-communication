@@ -137,12 +137,55 @@ export default function SocialChatDashboard() {
   };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
-  const handleSelectConversation = (conv) => {
-    setActiveConversation(conv);
-    const page = connectedPages.find((p) => p.id === conv.pageId);
-    if (!page) return;
-    fetchMessages(conv.id, page);
-  };
+// When user selects a conversation
+const handleSelectConversation = async (conversationId, page) => {
+  setActiveConversation(conversationId);
+
+  try {
+    if (page.type === "chatwidget") {
+      const res = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(page.shopDomain || "myshop.com")}&sessionId=${encodeURIComponent(conversationId)}`
+      );
+
+      if (!res.ok) {
+        console.error("Failed to fetch chat messages", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+
+      // Ensure messages are in correct format
+      const messages = Array.isArray(data?.messages) ? data.messages : [];
+
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: messages,
+      }));
+    } else {
+      // Handle FB/Instagram
+      const res = await fetch(
+        `/api/messages?pageId=${page.id}&conversationId=${conversationId}`
+      );
+
+      if (!res.ok) {
+        console.error("Failed to fetch FB/IG messages", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+
+      const messages = Array.isArray(data?.data) ? data.data : [];
+
+      setMessages((prev) => ({
+        ...prev,
+        [conversationId]: messages,
+      }));
+    }
+  } catch (error) {
+    console.error("Error loading messages:", error);
+  }
+};
+
 
   /** ----------------- SEND MESSAGE ----------------- **/
   const sendMessage = async (text) => {
