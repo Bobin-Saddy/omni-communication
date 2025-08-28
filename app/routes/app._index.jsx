@@ -328,42 +328,45 @@ export default function SocialChatDashboard() {
       }
 
       // ✅ Facebook
-      if (page.type === "facebook") {
-        const userParticipant = activeConversation.participants?.data?.find(
-          (p) => p.id !== page.id
-        );
-        if (!userParticipant) return;
+// ✅ Facebook
+if (page.type === "facebook") {
+  const userParticipant = activeConversation.participants?.data?.find(
+    (p) => p.id !== page.id
+  );
+  if (!userParticipant) return;
 
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipient: { id: userParticipant.id },
-              message: { text },
-              messaging_type: "MESSAGE_TAG",
-              tag: "ACCOUNT_UPDATE",
-            }),
-          }
-        );
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: userParticipant.id },
+        message: { text },
+        messaging_type: "RESPONSE", // ✅ Correct for inside 24h
+      }),
+    }
+  );
 
-        const result = await res.json();
-        if (res.ok && result.message_id) {
-          setMessages((prev) => ({
-            ...prev,
-            [activeConversation.id]: [
-              ...(prev[activeConversation.id] || []),
-              {
-                from: { name: "You" },
-                message: text,
-                created_time: new Date().toISOString(),
-              },
-            ],
-          }));
-        }
-        return;
-      }
+  const result = await res.json();
+  if (res.ok && result.message_id) {
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        {
+          from: { name: "You" },
+          message: text,
+          created_time: new Date().toISOString(),
+        },
+      ],
+    }));
+  } else {
+    console.error("Facebook send failed:", result.error);
+  }
+  return;
+}
+
 
       // ✅ ChatWidget
       if (page.type === "chatwidget") {

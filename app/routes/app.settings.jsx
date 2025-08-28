@@ -51,27 +51,32 @@ export default function Settings() {
     }
   };
 
-  const fetchIGPages = async (token) => {
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
-      );
-      const data = await res.json();
-      if (!Array.isArray(data.data)) return;
-      const igAccounts = data.data
-        .filter((p) => p.instagram_business_account)
-        .map((p) => ({
-          id: p.instagram_business_account.id,
-          name: p.name,
-          type: "instagram",
-          igId: p.instagram_business_account.id,
-          access_token: token,
-        }));
-      setIgPages(igAccounts);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+const fetchIGPages = async (token) => {
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
+    );
+    const data = await res.json();
+
+    if (!Array.isArray(data.data)) return;
+
+    // Extract Instagram accounts from connected pages
+    const igAccounts = data.data
+      .filter((page) => page.instagram_business_account) // only pages with IG connected
+      .map((page) => ({
+        id: page.instagram_business_account.id,   // IG Business Account ID
+        name: page.name,                         // Page Name
+        type: "instagram",
+        pageId: page.id,                         // FB Page ID
+        igId: page.instagram_business_account.id, // IG ID
+        access_token: page.access_token,          // Page Access Token (needed for messaging)
+      }));
+
+    setIgPages(igAccounts);
+  } catch (err) {
+    console.error("Error fetching Instagram pages:", err);
+  }
+};
 
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded");
