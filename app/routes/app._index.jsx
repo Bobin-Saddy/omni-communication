@@ -13,7 +13,7 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPfdUwAraWr6m9dNSZBuCDO7hAlbaFjK1bSqnFAb7s7VoMJGHrEkLL5Mth1DonGK9udcRVnyHuXnwT6P0ahEaVggNpZBmTZC5vErxn7rZBFnDIpFUny14ncDWlDvFZC4CYr09X8Khap2pIKBb4EwSazhWbq8nFFWu3eXjgx63jWgQthhHEm7XrgjNG6JUsqAVRcEdroZAbC1sbauhJhn9ahn8RT0OEMnT8ZD";
+    "EAAHvZAZB8ZCmugBPTKCOgb1CojZAJ28WWZAgmM9SiqSYFHgCZBfgvVcd9KF2I61b2wj4wfvX7PHUnnHoRsLOe7FuiY1qg5zrZCxMg6brDnSfeQKtkcAdB8fzIE9RoCDYtHGXhhoQOkF5JZBLk8RrsBY3eh4MLXxZBXR0pZBUQwH3ixqFHONx68DhvB9BsdnNAJXyMraXkxUqIO2mPyC3bf5S2eeSg1tbJhGBB2uYSO02cbJwZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   useEffect(() => {
@@ -68,41 +68,29 @@ export default function SocialChatDashboard() {
       }
 
       // Facebook conversations
-   // Facebook conversations
-if (page.type === "facebook") {
-  const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (Array.isArray(data?.data)) {
-    const convs = data.data.map((c) => {
-      // PSID = wo participant jo page khud nahi hai
-      const user = c.participants?.data?.find((p) => p.id !== page.id);
-
-      return {
-        id: c.id,
-        pageId: page.id,
-        pageName: page.name,
-        pageType: "facebook",
-        psid: user?.id || null,  // 👈 add PSID here
-        participants: {
-          data:
-            c.participants?.data?.map((p) => ({
-              id: p.id,
-              name: p.name || p.id,
-            })) || [],
-        },
-      };
-    });
-
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      ...convs,
-    ]);
-  }
-  return;
-}
-
+      if (page.type === "facebook") {
+        const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (Array.isArray(data?.data)) {
+          const convs = data.data.map((c) => ({
+            id: c.id,
+            pageId: page.id,
+            pageName: page.name,
+            pageType: "facebook",
+            participants: {
+              data: c.participants?.data?.map((p) => ({
+                name: p.name || p.id,
+              })) || [],
+            },
+          }));
+          setConversations((prev) => [
+            ...prev.filter((c) => c.pageId !== page.id),
+            ...convs,
+          ]);
+        }
+        return;
+      }
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
@@ -200,38 +188,32 @@ if (page.type === "facebook") {
       }
 
       // Facebook send
-// Facebook send
 if (page.type === "facebook") {
-  const psid = activeConversation.psid; // <- must be set from webhook!
-  if (!psid) {
-    alert("No PSID found for this conversation");
-    return;
-  }
+  const pageId = page.id;
+  // find the user participant
+  const userParticipant = activeConversation.participants?.data?.find(
+    (p) => p.id !== pageId
+  );
+
+  if (!userParticipant) return alert("No user ID found for this conversation");
+
+  const psid = userParticipant.id;
 
   const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-  const body = {
-    recipient: { id: psid },
-    message: { text },
-    messaging_type: "RESPONSE" // ✅ REQUIRED
-  };
-
+  const body = { recipient: { id: psid }, message: { text } };
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-
   const data = await res.json();
-  if (!res.ok) {
-    console.error("Facebook API error:", data);
-    alert(`Failed: ${data.error?.message}`);
-  } else {
+  if (res.ok) {
     fetchMessages(activeConversation.id, page);
+  } else {
+    console.error("Facebook API error:", data);
+    alert("Failed to send Facebook message");
   }
 }
-
-
-
 
 
     } catch (err) {
