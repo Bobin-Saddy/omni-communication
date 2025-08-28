@@ -94,6 +94,27 @@ export default function SocialChatDashboard() {
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
+    // inside fetchConversations
+if (page.type === "chatwidget") {
+  const res = await fetch(`/admin/chat/list?shop=myshop.com`); // ✅ adjust shop dynamically
+  const data = await res.json();
+  if (Array.isArray(data?.sessions)) {
+    const convs = data.sessions.map((s) => ({
+      id: s.id,
+      pageId: page.id,
+      pageName: page.name,
+      pageType: "chatwidget",
+      participants: { data: [{ name: s.userName || s.sessionId }] },
+      sessionId: s.sessionId,
+    }));
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      ...convs,
+    ]);
+  }
+  return;
+}
+
   };
 
   const fetchMessages = async (conversationId, page) => {
@@ -129,6 +150,19 @@ export default function SocialChatDashboard() {
     } catch (err) {
       console.error("Error fetching messages:", err);
     }
+
+    // inside fetchMessages
+if (page.type === "chatwidget") {
+  const res = await fetch(`/admin/chat/list?sessionId=${conversationId}`);
+  const data = await res.json();
+  setMessages((prev) => ({
+    ...prev,
+    [conversationId]: Array.isArray(data?.messages) ? data.messages : [],
+  }));
+  return;
+}
+
+
   };
 
   const handleSelectConversation = (conv) => {
@@ -224,6 +258,34 @@ if (page.type === "facebook") {
     } catch (err) {
       console.error("Error sending message:", err);
     }
+
+    // inside sendMessage
+if (page.type === "chatwidget") {
+  try {
+    await fetch(`/admin/chat/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeConversation.sessionId,
+        message: text,
+      }),
+    });
+
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
+      ],
+    }));
+  } catch (err) {
+    console.error("ChatWidget send error:", err);
+    alert("Failed to send ChatWidget message");
+  }
+  return;
+}
+
+
   };
 
   return (

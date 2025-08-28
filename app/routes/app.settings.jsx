@@ -92,31 +92,35 @@ export default function Settings() {
     );
   };
 
-const handleWhatsAppConnect = async () => {
-  try {
-    const res = await fetch("/whatsapp-users");
-    const users = await res.json();
+  const handleWhatsAppConnect = async () => {
+    try {
+      const res = await fetch("/whatsapp-users");
+      const users = await res.json();
 
-    const convs = users.map((u) => ({
-      id: u.number,
-      pageId: "whatsapp",
-      pageName: "WhatsApp",
-      pageType: "whatsapp",
-      participants: { data: [{ name: u.name || u.number }] },
-      userNumber: u.number,
-    }));
+      setConnectedPages((prev) => [
+        ...prev.filter((p) => p.id !== "whatsapp"),
+        { id: "whatsapp", name: "WhatsApp", type: "whatsapp" },
+      ]);
+      setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to fetch WhatsApp users.");
+    }
+  };
 
-    setConnectedPages((prev) => [
-      ...prev.filter((p) => p.id !== "whatsapp"),
-      { id: "whatsapp", name: "WhatsApp", type: "whatsapp" },
-    ]);
-    setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
-  } catch (err) {
-    console.error(err);
-    alert("Failed to fetch WhatsApp users.");
-  }
-};
-
+  // ✅ New ChatWidget connect
+  const handleChatWidgetConnect = async () => {
+    try {
+      setConnectedPages((prev) => [
+        ...prev.filter((p) => p.id !== "chatwidget"),
+        { id: "chatwidget", name: "Chat Widget", type: "chatwidget" },
+      ]);
+      setSelectedPage({ id: "chatwidget", name: "Chat Widget", type: "chatwidget" });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to connect ChatWidget.");
+    }
+  };
 
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
@@ -132,6 +136,7 @@ const handleWhatsAppConnect = async () => {
         <button onClick={handleFBLogin}>Connect Facebook</button>
         <button onClick={handleIGLogin}>Connect Instagram</button>
         <button onClick={handleWhatsAppConnect}>Connect WhatsApp</button>
+        <button onClick={handleChatWidgetConnect}>Connect ChatWidget</button>
       </div>
 
       {fbPages.length > 0 && (
