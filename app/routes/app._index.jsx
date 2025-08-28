@@ -16,15 +16,14 @@ export default function SocialChatDashboard() {
     "EAAHvZAZB8ZCmugBPfdUwAraWr6m9dNSZBuCDO7hAlbaFjK1bSqnFAb7s7VoMJGHrEkLL5Mth1DonGK9udcRVnyHuXnwT6P0ahEaVggNpZBmTZC5vErxn7rZBFnDIpFUny14ncDWlDvFZC4CYr09X8Khap2pIKBb4EwSazhWbq8nFFWu3eXjgx63jWgQthhHEm7XrgjNG6JUsqAVRcEdroZAbC1sbauhJhn9ahn8RT0OEMnT8ZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
+  /** ----------------- LOAD CONVERSATIONS ----------------- **/
   useEffect(() => {
     if (!connectedPages.length) return;
     connectedPages.forEach((page) => fetchConversations(page));
   }, [connectedPages]);
 
-  /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
     try {
-      // WhatsApp
       if (page.type === "whatsapp") {
         const res = await fetch("/whatsapp-users");
         const users = await res.json();
@@ -36,15 +35,11 @@ export default function SocialChatDashboard() {
           participants: { data: [{ name: u.name || u.number }] },
           userNumber: u.number,
         }));
-        setConversations((prev) => [
-          ...prev.filter((c) => c.pageId !== page.id),
-          ...convs,
-        ]);
+        setConversations((prev) => [...prev.filter((c) => c.pageId !== page.id), ...convs]);
         return;
       }
 
-      // Instagram
-      if (page.type === "instagram") {
+      if (page.type === "instagram" || page.type === "facebook") {
         const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
         const res = await fetch(url);
         const data = await res.json();
@@ -53,65 +48,33 @@ export default function SocialChatDashboard() {
             id: c.id,
             pageId: page.id,
             pageName: page.name,
-            pageType: "instagram",
+            pageType: page.type,
             participants: {
-              data:
-                c.participants?.data?.map((p) => ({
-                  name: p.name || p.username || p.id,
-                })) || [],
+              data: c.participants?.data?.map((p) => ({
+                name: p.name || p.username || p.id,
+                id: p.id,
+              })) || [],
             },
           }));
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...convs,
-          ]);
+          setConversations((prev) => [...prev.filter((c) => c.pageId !== page.id), ...convs]);
         }
         return;
       }
 
-      // Facebook
-      if (page.type === "facebook") {
-        const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const convs = data.data.map((c) => ({
-            id: c.id,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: "facebook",
-            participants: {
-              data:
-                c.participants?.data?.map((p) => ({
-                  name: p.name || p.id,
-                })) || [],
-            },
-          }));
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...convs,
-          ]);
-        }
-        return;
-      }
-
-      // ChatWidget
       if (page.type === "chatwidget") {
-        const res = await fetch(`/admin/chat/list?shop=myshop.com`); // TODO: replace with dynamic shop
+        const res = await fetch(`/admin/chat?widget=true`); // ✅ uses your loader
         const data = await res.json();
         if (Array.isArray(data?.sessions)) {
           const convs = data.sessions.map((s) => ({
-            id: s.id,
+            id: s.sessionId, // use sessionId as unique ID
             pageId: page.id,
             pageName: page.name,
             pageType: "chatwidget",
             participants: { data: [{ name: s.userName || s.sessionId }] },
             sessionId: s.sessionId,
+            storeDomain: s.storeDomain,
           }));
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...convs,
-          ]);
+          setConversations((prev) => [...prev.filter((c) => c.pageId !== page.id), ...convs]);
         }
         return;
       }
@@ -130,18 +93,7 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      if (page.type === "instagram") {
-        const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: Array.isArray(data?.data) ? data.data : [],
-        }));
-        return;
-      }
-
-      if (page.type === "facebook") {
+      if (page.type === "instagram" || page.type === "facebook") {
         const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
         const res = await fetch(url);
         const data = await res.json();
@@ -153,7 +105,9 @@ export default function SocialChatDashboard() {
       }
 
       if (page.type === "chatwidget") {
-        const res = await fetch(`/admin/chat/list?sessionId=${conversationId}`);
+        const res = await fetch(
+          `/admin/chat?storeDomain=${page.shopDomain || "myshop.com"}&sessionId=${conversationId}`
+        );
         const data = await res.json();
         setMessages((prev) => ({
           ...prev,
@@ -181,7 +135,6 @@ export default function SocialChatDashboard() {
     if (!page) return;
 
     try {
-      // WhatsApp
       if (page.type === "whatsapp") {
         const res = await fetch(
           `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
@@ -195,7 +148,6 @@ export default function SocialChatDashboard() {
             }),
           }
         );
-        const data = await res.json();
         if (res.ok) {
           setMessages((prev) => ({
             ...prev,
@@ -204,14 +156,10 @@ export default function SocialChatDashboard() {
               { from: "You", message: text, timestamp: new Date().toISOString() },
             ],
           }));
-        } else {
-          console.error("WhatsApp API error:", data);
-          alert("Failed to send WhatsApp message");
         }
         return;
       }
 
-      // Instagram (local only)
       if (page.type === "instagram") {
         setMessages((prev) => ({
           ...prev,
@@ -223,59 +171,41 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      // Facebook
       if (page.type === "facebook") {
-        const pageId = page.id;
         const userParticipant = activeConversation.participants?.data?.find(
-          (p) => p.id !== pageId
+          (p) => p.id !== page.id
         );
-
         if (!userParticipant) return alert("No user ID found for this conversation");
-
-        const psid = userParticipant.id;
-
-        const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-        const body = {
-          recipient: { id: psid },
-          message: { text },
-        };
-
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          console.error("Facebook API error:", data);
-          alert(`Failed to send Facebook message: ${data.error?.message}`);
-        } else {
-          fetchMessages(activeConversation.id, page);
-        }
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipient: { id: userParticipant.id },
+              message: { text },
+            }),
+          }
+        );
+        if (res.ok) fetchMessages(activeConversation.id, page);
         return;
       }
 
-      // ChatWidget
       if (page.type === "chatwidget") {
-        await fetch(`/admin/chat/send`, {
+        await fetch(`/admin/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sessionId: activeConversation.sessionId,
+            storeDomain: activeConversation.storeDomain || "myshop.com",
             message: text,
           }),
         });
-
         setMessages((prev) => ({
           ...prev,
           [activeConversation.id]: [
             ...(prev[activeConversation.id] || []),
-            {
-              from: { name: "You" },
-              message: text,
-              created_time: new Date().toISOString(),
-            },
+            { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
           ],
         }));
         return;
@@ -313,9 +243,7 @@ export default function SocialChatDashboard() {
       </div>
 
       {/* Chat Box */}
-      <div
-        style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}
-      >
+      <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}>
         <h3>
           Chat:{" "}
           {activeConversation
@@ -342,7 +270,7 @@ export default function SocialChatDashboard() {
                 <b>
                   {typeof msg.from === "string"
                     ? msg.from
-                    : msg.from?.name || msg.from?.username || "User"}
+                    : msg.from?.name || msg.from?.username || msg.sender || "User"}
                   :
                 </b>{" "}
                 {msg.text || msg.message}{" "}
