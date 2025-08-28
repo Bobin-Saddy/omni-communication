@@ -68,29 +68,41 @@ export default function SocialChatDashboard() {
       }
 
       // Facebook conversations
-      if (page.type === "facebook") {
-        const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const convs = data.data.map((c) => ({
-            id: c.id,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: "facebook",
-            participants: {
-              data: c.participants?.data?.map((p) => ({
-                name: p.name || p.id,
-              })) || [],
-            },
-          }));
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...convs,
-          ]);
-        }
-        return;
-      }
+   // Facebook conversations
+if (page.type === "facebook") {
+  const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (Array.isArray(data?.data)) {
+    const convs = data.data.map((c) => {
+      // PSID = wo participant jo page khud nahi hai
+      const user = c.participants?.data?.find((p) => p.id !== page.id);
+
+      return {
+        id: c.id,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: "facebook",
+        psid: user?.id || null,  // 👈 add PSID here
+        participants: {
+          data:
+            c.participants?.data?.map((p) => ({
+              id: p.id,
+              name: p.name || p.id,
+            })) || [],
+        },
+      };
+    });
+
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      ...convs,
+    ]);
+  }
+  return;
+}
+
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
@@ -190,7 +202,7 @@ export default function SocialChatDashboard() {
       // Facebook send
 // Facebook send
 if (page.type === "facebook") {
-  const psid = activeConversation.psid; // <- Webhook se mila hua PSID store karke yaha lao
+  const psid = activeConversation.psid; // ✅ ab ye null nahi hoga
 
   if (!psid) return alert("No PSID found for this conversation");
 
@@ -214,6 +226,7 @@ if (page.type === "facebook") {
     fetchMessages(activeConversation.id, page);
   }
 }
+
 
 
 
