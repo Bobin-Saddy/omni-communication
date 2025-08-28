@@ -137,14 +137,19 @@ export default function SocialChatDashboard() {
   };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
-// When user selects a conversation
-const handleSelectConversation = async (conversationId, page) => {
-  setActiveConversation(conversationId);
+const handleSelectConversation = async (conv) => {
+  setActiveConversation(conv);
+
+  const page = connectedPages.find((p) => p.id === conv.pageId);
+  if (!page) {
+    console.error("Page not found for conversation:", conv);
+    return;
+  }
 
   try {
     if (page.type === "chatwidget") {
       const res = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(page.shopDomain || "myshop.com")}&sessionId=${encodeURIComponent(conversationId)}`
+        `/api/chat?storeDomain=${encodeURIComponent(page.shopDomain || "myshop.com")}&sessionId=${encodeURIComponent(conv.id)}`
       );
 
       if (!res.ok) {
@@ -153,18 +158,13 @@ const handleSelectConversation = async (conversationId, page) => {
       }
 
       const data = await res.json();
-
-      // Ensure messages are in correct format
-      const messages = Array.isArray(data?.messages) ? data.messages : [];
-
       setMessages((prev) => ({
         ...prev,
-        [conversationId]: messages,
+        [conv.id]: Array.isArray(data?.messages) ? data.messages : [],
       }));
-    } else {
-      // Handle FB/Instagram
+    } else if (page.type === "instagram" || page.type === "facebook") {
       const res = await fetch(
-        `/api/messages?pageId=${page.id}&conversationId=${conversationId}`
+        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
       );
 
       if (!res.ok) {
@@ -173,12 +173,16 @@ const handleSelectConversation = async (conversationId, page) => {
       }
 
       const data = await res.json();
-
-      const messages = Array.isArray(data?.data) ? data.data : [];
-
       setMessages((prev) => ({
         ...prev,
-        [conversationId]: messages,
+        [conv.id]: Array.isArray(data?.data) ? data.data : [],
+      }));
+    } else if (page.type === "whatsapp") {
+      const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+      const data = await res.json();
+      setMessages((prev) => ({
+        ...prev,
+        [conv.id]: data,
       }));
     }
   } catch (error) {
