@@ -22,6 +22,28 @@ export default function SocialChatDashboard() {
     connectedPages.forEach((page) => fetchConversations(page));
   }, [connectedPages]);
 
+  useEffect(() => {
+  if (activeConversation?.pageType === "chatwidget") {
+    const es = new EventSource(
+      `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${activeConversation.storeDomain}`
+    );
+
+    es.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [
+          ...(prev[activeConversation.id] || []),
+          data, // new incoming message
+        ],
+      }));
+    };
+
+    return () => es.close();
+  }
+}, [activeConversation]);
+
+
   const fetchConversations = async (page) => {
     try {
       if (page.type === "whatsapp") {
