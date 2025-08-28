@@ -21,9 +21,10 @@ export default function SocialChatDashboard() {
     connectedPages.forEach((page) => fetchConversations(page));
   }, [connectedPages]);
 
+  /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
     try {
-      // WhatsApp conversations from backend
+      // WhatsApp
       if (page.type === "whatsapp") {
         const res = await fetch("/whatsapp-users");
         const users = await res.json();
@@ -42,7 +43,7 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      // Instagram conversations
+      // Instagram
       if (page.type === "instagram") {
         const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
         const res = await fetch(url);
@@ -54,9 +55,10 @@ export default function SocialChatDashboard() {
             pageName: page.name,
             pageType: "instagram",
             participants: {
-              data: c.participants?.data?.map((p) => ({
-                name: p.name || p.username || p.id,
-              })) || [],
+              data:
+                c.participants?.data?.map((p) => ({
+                  name: p.name || p.username || p.id,
+                })) || [],
             },
           }));
           setConversations((prev) => [
@@ -67,7 +69,7 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      // Facebook conversations
+      // Facebook
       if (page.type === "facebook") {
         const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
         const res = await fetch(url);
@@ -79,10 +81,32 @@ export default function SocialChatDashboard() {
             pageName: page.name,
             pageType: "facebook",
             participants: {
-              data: c.participants?.data?.map((p) => ({
-                name: p.name || p.id,
-              })) || [],
+              data:
+                c.participants?.data?.map((p) => ({
+                  name: p.name || p.id,
+                })) || [],
             },
+          }));
+          setConversations((prev) => [
+            ...prev.filter((c) => c.pageId !== page.id),
+            ...convs,
+          ]);
+        }
+        return;
+      }
+
+      // ChatWidget
+      if (page.type === "chatwidget") {
+        const res = await fetch(`/admin/chat/list?shop=myshop.com`); // TODO: replace with dynamic shop
+        const data = await res.json();
+        if (Array.isArray(data?.sessions)) {
+          const convs = data.sessions.map((s) => ({
+            id: s.id,
+            pageId: page.id,
+            pageName: page.name,
+            pageType: "chatwidget",
+            participants: { data: [{ name: s.userName || s.sessionId }] },
+            sessionId: s.sessionId,
           }));
           setConversations((prev) => [
             ...prev.filter((c) => c.pageId !== page.id),
@@ -94,29 +118,9 @@ export default function SocialChatDashboard() {
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
-    // inside fetchConversations
-if (page.type === "chatwidget") {
-  const res = await fetch(`/admin/chat/list?shop=myshop.com`); // ✅ adjust shop dynamically
-  const data = await res.json();
-  if (Array.isArray(data?.sessions)) {
-    const convs = data.sessions.map((s) => ({
-      id: s.id,
-      pageId: page.id,
-      pageName: page.name,
-      pageType: "chatwidget",
-      participants: { data: [{ name: s.userName || s.sessionId }] },
-      sessionId: s.sessionId,
-    }));
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      ...convs,
-    ]);
-  }
-  return;
-}
-
   };
 
+  /** ----------------- FETCH MESSAGES ----------------- **/
   const fetchMessages = async (conversationId, page) => {
     try {
       if (page.type === "whatsapp") {
@@ -147,24 +151,22 @@ if (page.type === "chatwidget") {
         }));
         return;
       }
+
+      if (page.type === "chatwidget") {
+        const res = await fetch(`/admin/chat/list?sessionId=${conversationId}`);
+        const data = await res.json();
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: Array.isArray(data?.messages) ? data.messages : [],
+        }));
+        return;
+      }
     } catch (err) {
       console.error("Error fetching messages:", err);
     }
-
-    // inside fetchMessages
-if (page.type === "chatwidget") {
-  const res = await fetch(`/admin/chat/list?sessionId=${conversationId}`);
-  const data = await res.json();
-  setMessages((prev) => ({
-    ...prev,
-    [conversationId]: Array.isArray(data?.messages) ? data.messages : [],
-  }));
-  return;
-}
-
-
   };
 
+  /** ----------------- SELECT CONVERSATION ----------------- **/
   const handleSelectConversation = (conv) => {
     setActiveConversation(conv);
     const page = connectedPages.find((p) => p.id === conv.pageId);
@@ -172,44 +174,44 @@ if (page.type === "chatwidget") {
     fetchMessages(conv.id, page);
   };
 
+  /** ----------------- SEND MESSAGE ----------------- **/
   const sendMessage = async (text) => {
     if (!activeConversation) return;
     const page = connectedPages.find((p) => p.id === activeConversation.pageId);
     if (!page) return;
 
     try {
-      // WhatsApp send
-   if (page.type === "whatsapp") {
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: activeConversation.userNumber,
-        text: { body: text },
-      }),
-    }
-  );
-  const data = await res.json();
-  if (res.ok) {
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        { from: "You", message: text, timestamp: new Date().toISOString() },
-      ],
-    }));
-  } else {
-    console.error("WhatsApp API error:", data);
-    alert("Failed to send WhatsApp message");
-  }
-  return;
-}
+      // WhatsApp
+      if (page.type === "whatsapp") {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.userNumber,
+              text: { body: text },
+            }),
+          }
+        );
+        const data = await res.json();
+        if (res.ok) {
+          setMessages((prev) => ({
+            ...prev,
+            [activeConversation.id]: [
+              ...(prev[activeConversation.id] || []),
+              { from: "You", message: text, timestamp: new Date().toISOString() },
+            ],
+          }));
+        } else {
+          console.error("WhatsApp API error:", data);
+          alert("Failed to send WhatsApp message");
+        }
+        return;
+      }
 
-
-      // Instagram send (local update, Graph API may require backend call)
+      // Instagram (local only)
       if (page.type === "instagram") {
         setMessages((prev) => ({
           ...prev,
@@ -221,73 +223,69 @@ if (page.type === "chatwidget") {
         return;
       }
 
-      // Facebook send
-if (page.type === "facebook") {
-  const pageId = page.id;
-  const userParticipant = activeConversation.participants?.data?.find(
-    (p) => p.id !== pageId
-  );
+      // Facebook
+      if (page.type === "facebook") {
+        const pageId = page.id;
+        const userParticipant = activeConversation.participants?.data?.find(
+          (p) => p.id !== pageId
+        );
 
-  if (!userParticipant) return alert("No user ID found for this conversation");
+        if (!userParticipant) return alert("No user ID found for this conversation");
 
-  const psid = userParticipant.id;
+        const psid = userParticipant.id;
 
-  const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
-  const body = {
-    recipient: { id: psid },
-    message: { text }, // ensure `text` is a string
-  };
+        const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
+        const body = {
+          recipient: { id: psid },
+          message: { text },
+        };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
 
-  const data = await res.json();
-  if (!res.ok) {
-    console.error("Facebook API error:", data);
-    alert(`Failed to send Facebook message: ${data.error?.message}`);
-  } else {
-    fetchMessages(activeConversation.id, page);
-  }
-}
+        const data = await res.json();
+        if (!res.ok) {
+          console.error("Facebook API error:", data);
+          alert(`Failed to send Facebook message: ${data.error?.message}`);
+        } else {
+          fetchMessages(activeConversation.id, page);
+        }
+        return;
+      }
 
+      // ChatWidget
+      if (page.type === "chatwidget") {
+        await fetch(`/admin/chat/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: activeConversation.sessionId,
+            message: text,
+          }),
+        });
 
-
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            {
+              from: { name: "You" },
+              message: text,
+              created_time: new Date().toISOString(),
+            },
+          ],
+        }));
+        return;
+      }
     } catch (err) {
       console.error("Error sending message:", err);
     }
-
-    // inside sendMessage
-if (page.type === "chatwidget") {
-  try {
-    await fetch(`/admin/chat/send`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: activeConversation.sessionId,
-        message: text,
-      }),
-    });
-
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
-      ],
-    }));
-  } catch (err) {
-    console.error("ChatWidget send error:", err);
-    alert("Failed to send ChatWidget message");
-  }
-  return;
-}
-
-
   };
 
+  /** ----------------- UI ----------------- **/
   return (
     <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
       {/* Conversations List */}
@@ -307,30 +305,48 @@ if (page.type === "chatwidget") {
               onClick={() => handleSelectConversation(conv)}
             >
               <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data?.map((p) => p.name || p.username).join(", ") || "Unnamed"}
+              {conv.participants?.data?.map((p) => p.name || p.username).join(", ") ||
+                "Unnamed"}
             </div>
           ))
         )}
       </div>
 
       {/* Chat Box */}
-      <div style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}>
+      <div
+        style={{ flex: 1, padding: 10, display: "flex", flexDirection: "column" }}
+      >
         <h3>
           Chat:{" "}
           {activeConversation
-            ? activeConversation.participants?.data?.map((p) => p.name || p.username).join(", ") ||
-              "Unnamed"
+            ? activeConversation.participants?.data
+                ?.map((p) => p.name || p.username)
+                .join(", ") || "Unnamed"
             : "Select a conversation"}
         </h3>
 
-        <div style={{ flex: 1, overflowY: "auto", border: "1px solid #ccc", marginBottom: 10, padding: 10 }}>
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            border: "1px solid #ccc",
+            marginBottom: 10,
+            padding: 10,
+          }}
+        >
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => (
               <div key={idx} style={{ marginBottom: 8 }}>
-                <b>{typeof msg.from === "string" ? msg.from : msg.from?.name || msg.from?.username || "User"}:</b>{" "}
-                {msg.text || msg.message} <small>{msg.timestamp || msg.created_time}</small>
+                <b>
+                  {typeof msg.from === "string"
+                    ? msg.from
+                    : msg.from?.name || msg.from?.username || "User"}
+                  :
+                </b>{" "}
+                {msg.text || msg.message}{" "}
+                <small>{msg.timestamp || msg.created_time}</small>
               </div>
             ))
           ) : (
