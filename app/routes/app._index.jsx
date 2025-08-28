@@ -67,37 +67,32 @@ export default function SocialChatDashboard() {
 
 if (page.type === "instagram") {
   const res = await fetch(
-    `https://graph.facebook.com/v18.0/${page.pageId}/conversations?fields=id,participants,updated_time&access_token=${page.access_token}`
+    `https://graph.facebook.com/v18.0/${page.pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${page.access_token}`
   );
   const data = await res.json();
   if (!Array.isArray(data?.data)) return;
 
   const conversationsWithNames = data.data.map((conv) => {
-    let userName = "Instagram User";
-
-    if (conv.participants?.data?.length) {
-      const other = conv.participants.data.find(
-        (p) => p.id !== page.pageId && p.id !== page.igId
-      );
-      if (other) {
-        userName = other.name || other.username || other.id;
-      }
-    }
-
+    const parts = conv.participants?.data || [];
+    // IG threads include the IG business (page.igId) and the user.
+    const other = parts.find(p => p.id !== page.igId && p.id !== page.pageId) || {};
+    const userName = other.name || other.username || "Instagram User";
     return {
-      id: conv.id,
-      pageId: page.id,
+     id: conv.id,
+      pageId: page.id,          // same as page.pageId after fix in Settings
       pageName: page.name,
       pageType: "instagram",
-      participants: { data: [{ name: userName }] },
+      participants: { data: [{ id: other.id, name: userName }] }, // keep id!
+      recipientId: other.id,    // store to send later
+      updated_time: conv.updated_time,
     };
   });
 
-  setConversations((prev) => [
-    ...prev.filter((c) => c.pageId !== page.id),
-    ...conversationsWithNames,
-  ]);
-  return;
+   setConversations((prev) => [
+     ...prev.filter((c) => c.pageId !== page.id),
+     ...conversationsWithNames,
+   ]);
+   return;
 }
 
 
@@ -301,37 +296,41 @@ if (page.type === "instagram" || page.type === "facebook") {
       }
 
       // ✅ Instagram (API for send requires permissions – simulate for now)
-if (page.type === "instagram") {
-  const userParticipant = activeConversation.participants?.data?.[0];
-  if (!userParticipant) return;
+ if (page.type === "instagram") {
+   const recipientId =
+     activeConversation.recipientId ||
+     activeConversation.participants?.data?.find(p => p.id && p.id !== page.igId)?.id;
+   if (!recipientId) {
+     console.error("No IG recipient id on conversation");
+     return;
+   }
 
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${page.igId}/messages?access_token=${page.access_token}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipient: { id: userParticipant.id }, // user ID from thread
+   const res = await fetch(
+     `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
+     {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({
+         messaging_type: "RESPONSE",
+         recipient: { id: recipientId },
         message: { text },
-      }),
+     }),
+     }
+   );
+    const result = await res.json();
+    if (res.ok && result.id) {
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [
+          ...(prev[activeConversation.id] || []),
+          { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
+        ],
+      }));
+    } else {
+      console.error("Instagram send failed:", result);
     }
-  );
-
-  const result = await res.json();
-  if (res.ok && result.id) {
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
-      ],
-    }));
-  } else {
-    console.error("Instagram send failed:", result);
-  }
-  return;
-}
-
+    return;
+ }
 
       // ✅ Facebook
       if (page.type === "facebook") {

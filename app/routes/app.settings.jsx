@@ -61,16 +61,16 @@ const fetchIGPages = async (token) => {
     if (!Array.isArray(data.data)) return;
 
     // Extract Instagram accounts from connected pages
-    const igAccounts = data.data
-      .filter((page) => page.instagram_business_account) // only pages with IG connected
-      .map((page) => ({
-        id: page.instagram_business_account.id,   // IG Business Account ID
-        name: page.name,                         // Page Name
-        type: "instagram",
-        pageId: page.id,                         // FB Page ID
-        igId: page.instagram_business_account.id, // IG ID
-        access_token: page.access_token,          // Page Access Token (needed for messaging)
-      }));
+ const igAccounts = data.data
+   .filter((page) => page.instagram_business_account)
+   .map((page) => ({
+     id: page.id,                         // <-- FB PAGE ID (critical)
+     pageId: page.id,                     // alias for clarity
+     igId: page.instagram_business_account.id, // IG user id
+     name: page.name,
+    type: "instagram",
+     access_token: page.access_token,     // Page access token
+   }));
 
     setIgPages(igAccounts);
   } catch (err) {
@@ -92,7 +92,7 @@ const fetchIGPages = async (token) => {
       (res) => res.authResponse && fetchIGPages(res.authResponse.accessToken),
       {
         scope:
-          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata",
+          "pages_show_list,instagram_basic,instagram_manage_messages,pages_read_engagement,pages_manage_metadata,pages_messaging",
       }
     );
   };
