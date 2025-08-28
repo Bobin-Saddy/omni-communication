@@ -62,7 +62,7 @@ export default function SocialChatDashboard() {
       }
 
       if (page.type === "chatwidget") {
-        const res = await fetch(`/admin/chat?widget=true`); // ✅ uses your loader
+        const res = await fetch(`/api/chat?widget=true`); // ✅ uses your loader
         const data = await res.json();
         if (Array.isArray(data?.sessions)) {
           const convs = data.sessions.map((s) => ({
@@ -106,7 +106,7 @@ export default function SocialChatDashboard() {
 
       if (page.type === "chatwidget") {
         const res = await fetch(
-          `/admin/chat?storeDomain=${page.shopDomain || "myshop.com"}&sessionId=${conversationId}`
+          `/api/chat?storeDomain=${page.shopDomain || "myshop.com"}&sessionId=${conversationId}`
         );
         const data = await res.json();
         setMessages((prev) => ({
@@ -192,7 +192,7 @@ export default function SocialChatDashboard() {
       }
 
       if (page.type === "chatwidget") {
-        await fetch(`/admin/chat`, {
+        await fetch(`/api/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
