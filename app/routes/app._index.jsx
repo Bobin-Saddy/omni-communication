@@ -1,11 +1,10 @@
 import { useEffect, useContext, useRef } from "react";
 import { AppContext } from "./AppContext";
+import { FiTrash2, FiUserMinus, FiUserPlus } from "react-icons/fi";
 
 export default function SocialChatDashboard() {
   const {
-    connectedPages,
     conversations,
-    setConversations,
     activeConversation,
     setActiveConversation,
     messages,
@@ -408,197 +407,112 @@ if (page.type === "instagram" || page.type === "facebook") {
   };
 
   /** ----------------- UI ----------------- **/
-return (
-    <div
-      style={{
-        display: "flex",
-        height: "90vh",
-        border: "1px solid #ddd",
-        borderRadius: 10,
-        overflow: "hidden",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      {/* Conversations Sidebar */}
-      <div
-        style={{
-          width: "28%",
-          borderRight: "1px solid #ddd",
-          padding: 15,
-          background: "#f8f9fa",
-          overflowY: "auto",
-        }}
-      >
-        <h3 style={{ marginBottom: 15 }}>💬 Conversations</h3>
-        {!conversations.length ? (
-          <p>No conversations</p>
-        ) : (
-          conversations.map((conv) => (
-            <div
-              key={conv.id}
-              style={{
-                padding: "10px 12px",
-                marginBottom: 8,
-                cursor: "pointer",
-                borderRadius: 8,
-                background:
-                  activeConversation?.id === conv.id ? "#007bff" : "#fff",
-                color:
-                  activeConversation?.id === conv.id ? "#fff" : "#333",
-                boxShadow:
-                  activeConversation?.id === conv.id
-                    ? "0 2px 6px rgba(0,0,0,0.15)"
-                    : "0 1px 3px rgba(0,0,0,0.08)",
-              }}
-              onClick={() => handleSelectConversation(conv)}
-            >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
-            </div>
-          ))
-        )}
-      </div>
 
-      {/* Chat Box */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          background: "#fff",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: "12px 16px",
-            borderBottom: "1px solid #ddd",
-            background: "#f1f3f5",
-            fontWeight: "bold",
-          }}
-        >
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
+  return (
+    <div className="flex h-screen font-sans text-sm text-gray-800">
+      {/* Sidebar */}
+      <div className="w-1/4 border-r bg-white flex flex-col">
+        <div className="p-3 border-b font-semibold text-purple-600">
+          Online 🔔
         </div>
-
-        {/* Messages */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: 15,
-            background: "#fafafa",
-          }}
-        >
-          {activeConversation &&
-          messages[activeConversation.id] &&
-          messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => {
-              const isOutgoing =
-                typeof msg.from === "string"
-                  ? msg.from === "You"
-                  : msg.from?.name === "You";
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: isOutgoing
-                      ? "flex-start"
-                      : "flex-end",
-                    marginBottom: 10,
-                  }}
-                >
-                  <div
-                    style={{
-                      maxWidth: "70%",
-                      padding: "10px 14px",
-                      borderRadius: 15,
-                      background: isOutgoing ? "#007bff" : "#e5e5ea",
-                      color: isOutgoing ? "#fff" : "#000",
-                      boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div style={{ marginBottom: 4, fontSize: 12, opacity: 0.8 }}>
-                      {isOutgoing ? "You" : msg.from?.name || "User"}
-                    </div>
-                    <div>{msg.text || msg.message}</div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        opacity: 0.7,
-                        marginTop: 5,
-                        textAlign: "right",
-                      }}
-                    >
-                      {msg.timestamp || msg.created_time}
-                    </div>
+        <div className="flex-1 overflow-y-auto">
+          {conversations.length === 0 ? (
+            <p className="p-4 text-gray-500">No conversations</p>
+          ) : (
+            conversations.map((conv) => (
+              <div
+                key={conv.id}
+                className={`flex items-center p-3 cursor-pointer border-b hover:bg-gray-100 ${
+                  activeConversation?.id === conv.id
+                    ? "bg-purple-50 border-l-4 border-purple-500"
+                    : ""
+                }`}
+                onClick={() => setActiveConversation(conv)}
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-3">
+                  {conv.participants?.data?.[0]?.name?.[0] || "?"}
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {conv.participants?.data?.map((p) => p.name).join(", ")}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {messages[conv.id]?.[0]?.text || "No messages yet"}
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <p style={{ textAlign: "center", color: "#888" }}>
-              No messages yet.
-            </p>
+                <div className="text-xs text-gray-400 ml-2">Aug 27</div>
+              </div>
+            ))
           )}
-          <div ref={messagesEndRef} />
         </div>
+      </div>
+
+      {/* Main Chat */}
+      <div className="flex-1 flex flex-col bg-gray-50">
+        {/* Header */}
+        {activeConversation ? (
+          <div className="flex items-center justify-between border-b bg-white p-3">
+            <div className="font-semibold text-lg">
+              {activeConversation.participants?.data
+                ?.map((p) => p.name)
+                .join(", ")}
+            </div>
+            <div className="flex space-x-4 text-gray-500">
+              <FiUserPlus className="cursor-pointer hover:text-purple-600" />
+              <FiUserMinus className="cursor-pointer hover:text-red-500" />
+              <FiTrash2 className="cursor-pointer hover:text-red-600" />
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-400">
+            Select a conversation
+          </div>
+        )}
+
+        {/* Messages */}
+        {activeConversation && (
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {messages[activeConversation.id] &&
+            messages[activeConversation.id].length ? (
+              messages[activeConversation.id].map((msg, idx) => (
+                <div key={idx}>
+                  <div className="font-medium text-gray-700">
+                    {msg.from?.name || "Unknown"}{" "}
+                    <span className="text-xs text-gray-400 ml-2">
+                      {msg.timestamp || msg.created_time}
+                    </span>
+                  </div>
+                  <div className="bg-white border rounded-lg p-3 mt-1 shadow-sm">
+                    {msg.text || msg.message}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400 text-center">No messages yet</p>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
 
         {/* Input */}
         {activeConversation && (
-          <div
-            style={{
-              display: "flex",
-              padding: 12,
-              borderTop: "1px solid #ddd",
-              background: "#f8f9fa",
-            }}
-          >
-            <input
-              type="text"
-              placeholder="Type a message..."
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: 20,
-                border: "1px solid #ccc",
-                marginRight: 8,
-                outline: "none",
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && e.target.value.trim()) {
-                  sendMessage(e.target.value.trim());
-                  e.target.value = "";
-                }
-              }}
-            />
-            <button
-              style={{
-                background: "#007bff",
-                color: "#fff",
-                border: "none",
-                borderRadius: 20,
-                padding: "10px 18px",
-                cursor: "pointer",
-                fontWeight: "bold",
-              }}
-              onClick={() => {
-                const input = document.querySelector("input");
-                if (input.value.trim()) {
-                  sendMessage(input.value.trim());
-                  input.value = "";
-                }
-              }}
-            >
-              Send
-            </button>
+          <div className="border-t bg-white p-3">
+            <div className="flex items-center border rounded-lg overflow-hidden">
+              <input
+                type="text"
+                placeholder="Start typing to join"
+                className="flex-1 px-3 py-2 outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.target.value.trim()) {
+                    // sendMessage(e.target.value.trim());
+                    e.target.value = "";
+                  }
+                }}
+              />
+              <button className="px-4 py-2 bg-purple-600 text-white font-semibold">
+                Reply
+              </button>
+            </div>
           </div>
         )}
       </div>
