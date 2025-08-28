@@ -279,25 +279,42 @@ const handleSelectConversation = async (conv) => {
         return;
       }
 
-      if (page.type === "facebook") {
-        const userParticipant = activeConversation.participants?.data?.find(
-          (p) => p.id !== page.id
-        );
-        if (!userParticipant) return alert("No user ID found for this conversation");
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipient: { id: userParticipant.id },
-              message: { text },
-            }),
-          }
-        );
-        if (res.ok) fetchMessages(activeConversation.id, page);
-        return;
-      }
+if (page.type === "facebook") {
+  const userParticipant = activeConversation.participants?.data?.find(
+    (p) => p.id !== page.id
+  );
+  if (!userParticipant) {
+    return alert("No user ID found for this conversation");
+  }
+
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/${page.id}/messages?access_token=${page.access_token}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: userParticipant.id },
+        message: { text },
+      }),
+    }
+  );
+
+  if (res.ok) {
+    // Optimistic update
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
+      ],
+    }));
+  } else {
+    const err = await res.json();
+    console.error("Facebook send failed:", err);
+    alert("Facebook send failed: " + (err.error?.message || "unknown error"));
+  }
+  return;
+}
 
    if (page.type === "chatwidget") {
   await fetch(`/api/chat`, {
