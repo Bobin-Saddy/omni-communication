@@ -277,25 +277,26 @@ const handleSelectConversation = async (conv) => {
         return;
       }
 
-      if (page.type === "chatwidget") {
-        await fetch(`/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: activeConversation.sessionId,
-            storeDomain: activeConversation.storeDomain || "myshop.com",
-            message: text,
-          }),
-        });
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
-          ],
-        }));
-        return;
-      }
+   if (page.type === "chatwidget") {
+  await fetch(`/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionId: activeConversation.id,   // ✅ use id
+      storeDomain: activeConversation.storeDomain || "myshop.com",
+      message: text,
+    }),
+  });
+  setMessages((prev) => ({
+    ...prev,
+    [activeConversation.id]: [
+      ...(prev[activeConversation.id] || []),
+      { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
+    ],
+  }));
+  return;
+}
+
     } catch (err) {
       console.error("Error sending message:", err);
     }
