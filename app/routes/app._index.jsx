@@ -1,4 +1,4 @@
-import { useEffect, useContext } from "react";
+import { useEffect, useContext, useRef } from "react";
 import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
@@ -11,6 +11,14 @@ export default function SocialChatDashboard() {
     messages,
     setMessages,
   } = useContext(AppContext);
+
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, activeConversation]);
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPT9NT85FLIES5xzEtGZCWq5jZAZBrVvYfkiFbCq1OLdzZCzVzVtRxjdI5PKgUQZBO5JTTNJl5B3bzbX74mZAQg8ty9CL4orxBcdq08ISeZC2A3ZCZBWLxwhBxZBVdisAnNuZB9ZAEZAOcjFQO3YctzonA381s5OPMjOcQsSZCJrcAbOjqpfATEM1eCaZBgCleBquTGqbTFNZA0oAIm9ZCuZAwj4EJ0PUNju566I3nZCqQZDZD";
@@ -400,10 +408,10 @@ if (page.type === "instagram" || page.type === "facebook") {
 
   /** ----------------- UI ----------------- **/
   return (
-    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
-      {/* Conversations List */}
-      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
-        <h3>Conversations</h3>
+    <div style={styles.container}>
+      {/* Sidebar: Conversations */}
+      <div style={styles.sidebar}>
+        <h3 style={styles.sidebarTitle}>Conversations</h3>
         {!conversations.length ? (
           <p>No conversations</p>
         ) : (
@@ -411,95 +419,106 @@ if (page.type === "instagram" || page.type === "facebook") {
             <div
               key={conv.id}
               style={{
-                padding: 8,
-                cursor: "pointer",
+                ...styles.conversationItem,
                 background:
-                  activeConversation?.id === conv.id ? "#eee" : "transparent",
+                  activeConversation?.id === conv.id ? "#e3f2fd" : "#fff",
               }}
-              onClick={() => handleSelectConversation(conv)}
+              onClick={() => setActiveConversation(conv)}
             >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
+              <div style={styles.convHeader}>
+                <span style={styles.platformBadge(conv.pageType)}>
+                  {conv.pageType.toUpperCase()}
+                </span>
+                <span style={styles.convName}>
+                  {conv.participants?.data
+                    ?.map((p) => p.name || p.username)
+                    .join(", ") || "Unnamed"}
+                </span>
+              </div>
+              <small style={{ color: "#666" }}>{conv.pageName}</small>
             </div>
           ))
         )}
       </div>
 
-      {/* Chat Box */}
-      <div
-        style={{
-          flex: 1,
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h3>
-          Chat:{" "}
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
-        </h3>
-
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            border: "1px solid #ccc",
-            marginBottom: 10,
-            padding: 10,
-          }}
-        >
-          {activeConversation &&
-          messages[activeConversation.id] &&
-          messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <b>
-                  {typeof msg.from === "string"
-                    ? msg.from
-                    : msg.from?.name ||
-                      msg.from?.username ||
-                      msg.sender ||
-                      "User"}
-                  :
-                </b>{" "}
-                {msg.text || msg.message}{" "}
-                <small>{msg.timestamp || msg.created_time}</small>
-              </div>
-            ))
+      {/* Chat Area */}
+      <div style={styles.chatArea}>
+        <div style={styles.chatHeader}>
+          {activeConversation ? (
+            <>
+              <span style={styles.platformBadge(activeConversation.pageType)}>
+                {activeConversation.pageType.toUpperCase()}
+              </span>
+              <span style={styles.chatTitle}>
+                {activeConversation.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ") || "Unnamed"}
+              </span>
+            </>
           ) : (
-            <p>No messages yet.</p>
+            "Select a conversation"
           )}
         </div>
 
+        {/* Messages */}
+        <div style={styles.messagesBox}>
+          {activeConversation &&
+          messages[activeConversation.id] &&
+          messages[activeConversation.id].length ? (
+            messages[activeConversation.id].map((msg, idx) => {
+              const isSent =
+                (typeof msg.from === "string" && msg.from === "You") ||
+                msg.from?.name === "You";
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    ...styles.messageBubble,
+                    ...(isSent ? styles.sent : styles.received),
+                  }}
+                >
+                  <div style={styles.messageText}>
+                    {msg.text || msg.message}
+                  </div>
+                  <div style={styles.messageTime}>
+                    {msg.timestamp ||
+                      msg.created_time ||
+                      new Date().toLocaleTimeString()}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p style={{ color: "#888" }}>No messages yet.</p>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Input */}
         {activeConversation && (
-          <div style={{ display: "flex" }}>
+          <div style={styles.inputBox}>
             <input
               type="text"
               placeholder="Type a message..."
-              style={{ flex: 1, padding: 8 }}
+              style={styles.input}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && e.target.value.trim()) {
                   sendMessage(e.target.value);
                   e.target.value = "";
                 }
               }}
             />
             <button
+              style={styles.sendBtn}
               onClick={() => {
                 const input = document.querySelector("input");
-                if (input.value) {
+                if (input.value.trim()) {
                   sendMessage(input.value);
                   input.value = "";
                 }
               }}
             >
-              Send
+              ➤
             </button>
           </div>
         )}
@@ -507,3 +526,125 @@ if (page.type === "instagram" || page.type === "facebook") {
     </div>
   );
 }
+
+/** ----------------- Styles ----------------- **/
+const styles = {
+  container: {
+    display: "flex",
+    height: "90vh",
+    border: "1px solid #ddd",
+    borderRadius: 8,
+    overflow: "hidden",
+    fontFamily: "Arial, sans-serif",
+  },
+  sidebar: {
+    width: "28%",
+    borderRight: "1px solid #ddd",
+    padding: 10,
+    background: "#fafafa",
+    overflowY: "auto",
+  },
+  sidebarTitle: {
+    margin: "5px 0 10px",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  conversationItem: {
+    padding: "10px 8px",
+    borderRadius: 6,
+    marginBottom: 6,
+    cursor: "pointer",
+    transition: "0.2s",
+    border: "1px solid #eee",
+  },
+  convHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  },
+  convName: { fontWeight: "bold", fontSize: 14 },
+  platformBadge: (type) => ({
+    fontSize: 10,
+    fontWeight: "bold",
+    padding: "2px 6px",
+    borderRadius: 4,
+    background:
+      type === "whatsapp"
+        ? "#25D366"
+        : type === "instagram"
+        ? "#E1306C"
+        : type === "facebook"
+        ? "#1877F2"
+        : "#333",
+    color: "#fff",
+  }),
+  chatArea: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    background: "#f9f9f9",
+  },
+  chatHeader: {
+    padding: "12px 15px",
+    borderBottom: "1px solid #ddd",
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    fontWeight: "bold",
+    fontSize: 16,
+    background: "#fff",
+  },
+  chatTitle: { fontSize: 15, fontWeight: "bold" },
+  messagesBox: {
+    flex: 1,
+    padding: 15,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  },
+  messageBubble: {
+    maxWidth: "60%",
+    padding: "8px 12px",
+    borderRadius: 16,
+    fontSize: 14,
+    position: "relative",
+    wordBreak: "break-word",
+  },
+  sent: {
+    alignSelf: "flex-end",
+    background: "#d1e7ff",
+    color: "#000",
+  },
+  received: {
+    alignSelf: "flex-start",
+    background: "#fff",
+    border: "1px solid #ddd",
+  },
+  messageText: { marginBottom: 4 },
+  messageTime: { fontSize: 10, color: "#666", textAlign: "right" },
+  inputBox: {
+    display: "flex",
+    borderTop: "1px solid #ddd",
+    padding: 8,
+    background: "#fff",
+  },
+  input: {
+    flex: 1,
+    padding: "10px 12px",
+    borderRadius: 20,
+    border: "1px solid #ccc",
+    outline: "none",
+  },
+  sendBtn: {
+    marginLeft: 8,
+    padding: "10px 15px",
+    border: "none",
+    borderRadius: "50%",
+    background: "#1877F2",
+    color: "#fff",
+    fontSize: 16,
+    cursor: "pointer",
+  },
+};
+
