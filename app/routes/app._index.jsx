@@ -202,14 +202,17 @@ if (page.type === "facebook") {
       // Facebook send
 // Facebook send
 if (page.type === "facebook") {
-  const psid = activeConversation.psid; // ✅ ab ye null nahi hoga
-
-  if (!psid) return alert("No PSID found for this conversation");
+  const psid = activeConversation.psid; // <- must be set from webhook!
+  if (!psid) {
+    alert("No PSID found for this conversation");
+    return;
+  }
 
   const url = `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`;
   const body = {
     recipient: { id: psid },
     message: { text },
+    messaging_type: "RESPONSE" // ✅ REQUIRED
   };
 
   const res = await fetch(url, {
@@ -221,7 +224,7 @@ if (page.type === "facebook") {
   const data = await res.json();
   if (!res.ok) {
     console.error("Facebook API error:", data);
-    alert(`Failed to send Facebook message: ${data.error?.message}`);
+    alert(`Failed: ${data.error?.message}`);
   } else {
     fetchMessages(activeConversation.id, page);
   }
