@@ -61,23 +61,46 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      if (page.type === "chatwidget") {
-        const res = await fetch(`/api/chat?widget=true`); // ✅ uses your loader
-        const data = await res.json();
-        if (Array.isArray(data?.sessions)) {
-          const convs = data.sessions.map((s) => ({
-            id: s.sessionId, // use sessionId as unique ID
-            pageId: page.id,
-            pageName: page.name,
-            pageType: "chatwidget",
-            participants: { data: [{ name: s.userName || s.sessionId }] },
-            sessionId: s.sessionId,
-            storeDomain: s.storeDomain,
-          }));
-          setConversations((prev) => [...prev.filter((c) => c.pageId !== page.id), ...convs]);
-        }
-        return;
+if (page.type === "chatwidget") {
+  const res = await fetch(`/api/chat?widget=true`);
+  const data = await res.json();
+
+  if (Array.isArray(data?.sessions)) {
+    const convs = data.sessions.map((s) => ({
+      id: s.sessionId, // ✅ we use sessionId as id everywhere
+      pageId: page.id,
+      pageName: page.name,
+      pageType: "chatwidget",
+      participants: { data: [{ name: s.userName || s.sessionId }] },
+      sessionId: s.sessionId,
+      storeDomain: s.storeDomain,
+    }));
+
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      ...convs,
+    ]);
+
+    // ✅ auto-select first chatwidget conversation & load its messages
+    if (convs.length > 0) {
+      const firstConv = convs[0];
+      setActiveConversation(firstConv);
+
+      const msgRes = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain || "myshop.com")}&sessionId=${encodeURIComponent(firstConv.id)}`
+      );
+      if (msgRes.ok) {
+        const msgData = await msgRes.json();
+        setMessages((prev) => ({
+          ...prev,
+          [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
+        }));
       }
+    }
+  }
+  return;
+}
+
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
