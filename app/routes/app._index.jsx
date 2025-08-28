@@ -288,33 +288,40 @@ if (page.type === "facebook") {
   }
 
   const res = await fetch(
-    `https://graph.facebook.com/v18.0/${page.id}/messages?access_token=${page.access_token}`,
+    `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         recipient: { id: userParticipant.id },
         message: { text },
+        messaging_type: "MESSAGE_TAG", // ✅ required if outside 24h window
+        tag: "ACCOUNT_UPDATE", // or "CONFIRMED_EVENT_UPDATE" depending on case
       }),
     }
   );
 
-  if (res.ok) {
-    // Optimistic update
+  const result = await res.json();
+  if (res.ok && result.message_id) {
+    // optimistic update
     setMessages((prev) => ({
       ...prev,
       [activeConversation.id]: [
         ...(prev[activeConversation.id] || []),
-        { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
+        {
+          from: { name: "You" },
+          message: text,
+          created_time: new Date().toISOString(),
+        },
       ],
     }));
   } else {
-    const err = await res.json();
-    console.error("Facebook send failed:", err);
-    alert("Facebook send failed: " + (err.error?.message || "unknown error"));
+    console.error("Facebook send failed:", result);
+    alert("Facebook send failed: " + (result.error?.message || "unknown error"));
   }
   return;
 }
+
 
    if (page.type === "chatwidget") {
   await fetch(`/api/chat`, {
