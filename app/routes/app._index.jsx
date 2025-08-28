@@ -67,9 +67,9 @@ export default function SocialChatDashboard() {
 
       // ✅ Instagram
       if (page.type === "instagram") {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${page.id}/conversations?platform=instagram&access_token=${page.access_token}`
-        );
+     const res = await fetch(
+    `https://graph.facebook.com/v18.0/${page.id}/conversations?access_token=${page.access_token}`
+  );
         const data = await res.json();
 
         if (!Array.isArray(data?.data)) return;
