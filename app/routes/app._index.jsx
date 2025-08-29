@@ -375,23 +375,52 @@ if (page.type === "whatsapp") {
 
   /** ----------------- UI ----------------- **/
   return (
-    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
+    <div
+      style={{
+        display: "flex",
+        height: "90vh",
+        border: "1px solid #ddd",
+        borderRadius: "12px",
+        overflow: "hidden",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        fontFamily: "Arial, sans-serif",
+      }}
+    >
       {/* Conversations List */}
-      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
-        <h3>Conversations</h3>
+      <div
+        style={{
+          width: "28%",
+          borderRight: "1px solid #ddd",
+          padding: 15,
+          background: "#f9fafb",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
         {!conversations.length ? (
-          <p>No conversations</p>
+          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
         ) : (
           conversations.map((conv) => (
             <div
               key={conv.id}
               style={{
-                padding: 8,
+                padding: "10px 12px",
                 cursor: "pointer",
+                borderRadius: "8px",
+                marginBottom: 8,
+                transition: "0.2s",
                 background:
-                  activeConversation?.id === conv.id ? "#eee" : "transparent",
+                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
+                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
+                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
               }}
               onClick={() => handleSelectConversation(conv)}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+              onMouseOut={(e) =>
+                (e.currentTarget.style.background =
+                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
+              }
             >
               <b>[{conv.pageName}]</b>{" "}
               {conv.participants?.data
@@ -406,12 +435,20 @@ if (page.type === "whatsapp") {
       <div
         style={{
           flex: 1,
-          padding: 10,
+          padding: 15,
           display: "flex",
           flexDirection: "column",
+          background: "#fff",
         }}
       >
-        <h3>
+        <h3
+          style={{
+            margin: "0 0 15px 0",
+            paddingBottom: "10px",
+            borderBottom: "1px solid #eee",
+            color: "#1a73e8",
+          }}
+        >
           Chat:{" "}
           {activeConversation
             ? activeConversation.participants?.data
@@ -425,16 +462,35 @@ if (page.type === "whatsapp") {
             flex: 1,
             overflowY: "auto",
             border: "1px solid #ccc",
-            marginBottom: 10,
-            padding: 10,
+            marginBottom: 12,
+            padding: 12,
+            borderRadius: "8px",
+            background: "#fafafa",
           }}
         >
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <b>
+              <div
+                key={idx}
+                style={{
+                  marginBottom: 12,
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  background:
+                    msg.from === "me" || msg.sender === "me"
+                      ? "#d1e7ff"
+                      : "#f1f5f9",
+                  alignSelf:
+                    msg.from === "me" || msg.sender === "me"
+                      ? "flex-end"
+                      : "flex-start",
+                  maxWidth: "75%",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                }}
+              >
+                <b style={{ fontSize: "0.9em", color: "#555" }}>
                   {typeof msg.from === "string"
                     ? msg.from
                     : msg.from?.name ||
@@ -443,21 +499,45 @@ if (page.type === "whatsapp") {
                       "User"}
                   :
                 </b>{" "}
-                {msg.text || msg.message}{" "}
-                <small>{msg.timestamp || msg.created_time}</small>
+                <span style={{ fontSize: "0.95em" }}>
+                  {msg.text || msg.message}
+                </span>
+                <div
+                  style={{
+                    fontSize: "0.75em",
+                    color: "#888",
+                    marginTop: 4,
+                    textAlign: "right",
+                  }}
+                >
+                  {msg.timestamp || msg.created_time}
+                </div>
               </div>
             ))
           ) : (
-            <p>No messages yet.</p>
+            <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
           )}
         </div>
 
         {activeConversation && (
-          <div style={{ display: "flex" }}>
+          <div style={{ display: "flex", gap: "8px" }}>
             <input
               type="text"
               placeholder="Type a message..."
-              style={{ flex: 1, padding: 8 }}
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                outline: "none",
+                transition: "0.2s",
+              }}
+              onFocus={(e) =>
+                (e.target.style.border = "1px solid #1a73e8")
+              }
+              onBlur={(e) =>
+                (e.target.style.border = "1px solid #ccc")
+              }
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   sendMessage(e.target.value);
@@ -466,6 +546,22 @@ if (page.type === "whatsapp") {
               }}
             />
             <button
+              style={{
+                padding: "10px 18px",
+                border: "none",
+                borderRadius: "8px",
+                background: "#1a73e8",
+                color: "#fff",
+                cursor: "pointer",
+                transition: "0.3s",
+                fontWeight: "bold",
+              }}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.background = "#1669c1")
+              }
+              onMouseOut={(e) =>
+                (e.currentTarget.style.background = "#1a73e8")
+              }
               onClick={() => {
                 const input = document.querySelector("input");
                 if (input.value) {
@@ -479,141 +575,7 @@ if (page.type === "whatsapp") {
           </div>
         )}
       </div>
-
-    <style>
-      {`
-        /* Global container */
-        .chat-dashboard {
-          display: flex;
-          height: 90vh;
-          border: 1px solid #e0e0e0;
-          font-family: 'Inter', 'Segoe UI', sans-serif;
-          background: #f5f7fb;
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-
-        /* Sidebar */
-        .chat-dashboard > div:first-child {
-          width: 28%;
-          background: #fff;
-          border-right: 1px solid #e6e6e6;
-          padding: 15px;
-          display: flex;
-          flex-direction: column;
-        }
-        .chat-dashboard h3 {
-          font-size: 18px;
-          font-weight: 600;
-          margin-bottom: 15px;
-          color: #222;
-        }
-        .chat-dashboard .conversation-item {
-          padding: 12px 14px;
-          border-radius: 10px;
-          margin-bottom: 8px;
-          cursor: pointer;
-          transition: background 0.2s, transform 0.1s;
-          font-size: 14px;
-          font-weight: 500;
-          color: #333;
-        }
-        .chat-dashboard .conversation-item:hover {
-          background: #f0f2f5;
-          transform: translateY(-1px);
-        }
-        .chat-dashboard .conversation-item.active {
-          background: #e3f2fd;
-          border-left: 4px solid #2196f3;
-          padding-left: 10px;
-        }
-
-        /* Chat window */
-        .chat-dashboard > div:last-child {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          background: #fdfdfd;
-        }
-        .chat-dashboard h3 {
-          border-bottom: 1px solid #eee;
-          padding-bottom: 12px;
-          margin-bottom: 10px;
-          font-size: 16px;
-        }
-
-        /* Messages area */
-        .chat-dashboard > div:last-child > div:nth-child(2) {
-          flex: 1;
-          overflow-y: auto;
-          padding: 20px;
-          background: #f0f2f5;
-          border-radius: 8px;
-        }
-        .chat-dashboard .message {
-          max-width: 65%;
-          margin-bottom: 14px;
-          padding: 10px 14px;
-          border-radius: 18px;
-          line-height: 1.4;
-          font-size: 14px;
-          position: relative;
-          word-break: break-word;
-        }
-        .chat-dashboard .message.you {
-          background: #dcf8c6;
-          align-self: flex-end;
-          border-bottom-right-radius: 6px;
-        }
-        .chat-dashboard .message.other {
-          background: #fff;
-          border: 1px solid #e6e6e6;
-          align-self: flex-start;
-          border-bottom-left-radius: 6px;
-        }
-        .chat-dashboard .message small {
-          display: block;
-          font-size: 11px;
-          margin-top: 4px;
-          color: #888;
-        }
-
-        /* Input area */
-        .chat-dashboard > div:last-child > div:last-child {
-          display: flex;
-          padding: 12px;
-          border-top: 1px solid #e6e6e6;
-          background: #fff;
-        }
-        .chat-dashboard input[type="text"] {
-          flex: 1;
-          padding: 12px 16px;
-          border: 1px solid #ccc;
-          border-radius: 24px;
-          outline: none;
-          font-size: 14px;
-          transition: border 0.2s;
-        }
-        .chat-dashboard input[type="text"]:focus {
-          border-color: #2196f3;
-        }
-        .chat-dashboard button {
-          margin-left: 10px;
-          padding: 10px 20px;
-          border: none;
-          border-radius: 24px;
-          background: #2196f3;
-          color: white;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .chat-dashboard button:hover {
-          background: #1976d2;
-        }
-      `}
-    </style>
     </div>
   );
+
 }
