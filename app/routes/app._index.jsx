@@ -226,32 +226,49 @@ if (page.type === "instagram") {
 
     try {
       // ✅ WhatsApp
-      if (page.type === "whatsapp") {
-        await fetch(
-          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: activeConversation.userNumber,
-              text: { body: text },
-            }),
-          }
-        );
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            {
-              from: "You",
-              message: text,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        }));
-        return;
-      }
+ // ✅ WhatsApp
+if (page.type === "whatsapp") {
+  // 1. Send to WhatsApp API
+  await fetch(
+    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: activeConversation.userNumber,
+        text: { body: text },
+      }),
+    }
+  );
+
+  // 2. Save OUTGOING message to your DB
+  await fetch("/save-whatsapp-messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: activeConversation.userNumber,
+      from: WHATSAPP_PHONE_NUMBER_ID, // business number
+      message: text,
+      direction: "outgoing",
+    }),
+  });
+
+  // 3. Update local state
+  setMessages((prev) => ({
+    ...prev,
+    [activeConversation.id]: [
+      ...(prev[activeConversation.id] || []),
+      {
+        from: "You",
+        message: text,
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  }));
+  return;
+}
+
 
       // ✅ Instagram (API for send requires permissions – simulate for now)
  if (page.type === "instagram") {
