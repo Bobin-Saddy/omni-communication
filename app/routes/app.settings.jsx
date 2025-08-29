@@ -10,8 +10,13 @@ export default function Settings() {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  const { connectedPages, setConnectedPages, setSelectedPage } =
-    useContext(AppContext);
+  const {
+    connectedPages,
+    setConnectedPages,
+    setSelectedPage,
+    setConversations,
+    setMessages,
+  } = useContext(AppContext);
 
   // Load FB SDK
   useEffect(() => {
@@ -124,17 +129,40 @@ export default function Settings() {
     });
   };
 
+  // Connect page
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
     }
   };
 
+  // Disconnect page
+  const handleDisconnectPage = (pageId) => {
+    // Remove from connectedPages
+    setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
+
+    // Remove conversations of that page
+    setConversations((prev) => prev.filter((c) => c.pageId !== pageId));
+
+    // Remove messages related to that page
+    setMessages((prev) => {
+      const newMsgs = {};
+      Object.keys(prev).forEach((key) => {
+        const msgs = prev[key];
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          const firstConv = msgs[0];
+          if (firstConv.pageId !== pageId) {
+            newMsgs[key] = msgs;
+          }
+        }
+      });
+      return newMsgs;
+    });
+  };
+
   return (
     <div style={{ padding: 20, display: "flex", gap: "30px" }}>
-      {/* <h2>Settings</h2> */}
-
-      {/* Left Sidebar Buttons (Connect + Tab) */}
+      {/* Left Sidebar Buttons */}
       <div className="seting" style={{ display: "block", minWidth: "180px" }}>
         <button style={{ marginBottom: 20 }} onClick={handleFBLogin}>
           <FaFacebook style={{ marginRight: 8 }} /> Facebook
@@ -208,8 +236,23 @@ export default function Settings() {
             <h3>Connected Pages</h3>
             <ul>
               {connectedPages.map((p) => (
-                <li key={p.id}>
-                  <b>{p.name}</b> ({p.type})
+                <li key={p.id} style={{ marginBottom: "8px" }}>
+                  <b>{p.name}</b> ({p.type}){" "}
+                  <button
+                    style={{
+                      marginLeft: "10px",
+                      padding: "4px 8px",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      background: "#f8d7da",
+                      color: "#721c24",
+                      border: "1px solid #f5c6cb",
+                      borderRadius: "4px",
+                    }}
+                    onClick={() => handleDisconnectPage(p.id)}
+                  >
+                    Disconnect
+                  </button>
                 </li>
               ))}
             </ul>
