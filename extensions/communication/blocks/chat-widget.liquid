@@ -4,51 +4,50 @@
      class="oc-chat-wrap" 
      style="all: initial;">
 
-
   <style>
     /* ---------- Chat Button ---------- */
     .oc-chat-toggle {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    background: #2563eb;
-    color: #ffffff;
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    padding: 7px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    cursor: pointer;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-    transition: transform 0.3s ease;
-    z-index: 99999;
-}
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      padding: 7px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      transition: transform 0.3s ease;
+      z-index: 99999;
+    }
     .oc-chat-toggle:hover { transform: scale(1.1); }
 
     /* ---------- Chat Container ---------- */
-   .oc-chat-container {
-    position: fixed;
-    right: -10%;
-    bottom: 90px;
-    width: 340px;
-    max-height: 70vh;
-    display: flex;
-    flex-direction: column;
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.2);
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
-    overflow: hidden;
-    transform: translateY(120%);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.35s ease;
-    z-index: 99999;
-}
+    .oc-chat-container {
+      position: fixed;
+      right: -10%;
+      bottom: 90px;
+      width: 340px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
+      overflow: hidden;
+      transform: translateY(120%);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s ease;
+      z-index: 99999;
+    }
     .oc-chat-container.open {
       transform: translateY(0);
       opacity: 1;
@@ -57,15 +56,15 @@
 
     /* ---------- Header ---------- */
     .oc-chat-header {
-    padding: 8px 14px;
-    font-weight: 600;
-    font-size: 15px;
-    background: #111827;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
+      padding: 8px 14px;
+      font-weight: 600;
+      font-size: 15px;
+      background: #111827;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
     .oc-chat-header span {
       display: flex; align-items: center; gap: 6px;
     }
@@ -82,16 +81,16 @@
       flex: 1;
       background: #f9fafb;
     }
-   .oc-bubble {
-    max-width: max-content;
-    padding: 10px 14px;
-    border-radius: 16px;
-    margin: 8px 0;
-    font-size: 14px;
-    line-height: 1.4;
-    word-break: break-word;
-    animation: fadeInUp 0.25s ease;
-}
+    .oc-bubble {
+      max-width: max-content;
+      padding: 10px 14px;
+      border-radius: 16px;
+      margin: 8px 0;
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+      animation: fadeInUp 0.25s ease;
+    }
     .oc-me   { background: #2563eb; color: #fff;  margin-left: auto;  border-bottom-right-radius: 4px; }
     .oc-them { background: #e5e7eb; color: #111; margin-right: auto; border-bottom-left-radius: 4px; }
 
@@ -102,9 +101,9 @@
 
     /* ---------- Input ---------- */
     .oc-chat-input {
-      display: flex; gap: 8px; border-top: 1px solid #eee; padding: 10px; background: #fff;
+      display: flex; gap: 6px; border-top: 1px solid #eee; padding: 10px; background: #fff; align-items: center;
     }
-    .oc-chat-input input {
+    .oc-chat-input input[type="text"] {
       flex: 1; border: 1px solid #ddd; border-radius: 12px; padding: 10px; outline: none; font-size: 14px;
     }
     .oc-chat-input button {
@@ -114,23 +113,43 @@
     }
     .oc-chat-input button:hover { background: #1d4ed8; }
 
+    /* ---------- Upload Button ---------- */
+    .oc-upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+    }
+    .oc-file-bubble img {
+      max-width: 200px;
+      border-radius: 8px;
+      display: block;
+    }
+    .oc-file-bubble a {
+      color: #2563eb;
+      text-decoration: underline;
+      font-size: 14px;
+    }
+
     /* ---------- New Messages Pill ---------- */
-   .oc-new-pill {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 60px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    border: 1px solid #e5e7eb;
-    background: black;
-    box-shadow: 0 6px 20px rgba(0,0,0,.12);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    display: none;
-    color: white;
-}
+    .oc-new-pill {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 60px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: black;
+      box-shadow: 0 6px 20px rgba(0,0,0,.12);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+      color: white;
+    }
   </style>
 
   <!-- Floating Button -->
@@ -147,6 +166,10 @@
     <button type="button" class="oc-new-pill">New messages ↓</button>
 
     <div class="oc-chat-input">
+      <label class="oc-upload-btn" title="Attach file">
+        📎
+        <input type="file" id="oc-file-input" hidden accept="image/*,.pdf,.doc,.docx,.txt" />
+      </label>
       <input type="text" placeholder="{{ block.settings.placeholder | default: 'Type your message…' }}" />
       <button type="button">{{ block.settings.send_label | default: "Send" }}</button>
     </div>
@@ -162,9 +185,10 @@
   const panel     = root.querySelector('.oc-chat-container');
   const closeBtn  = root.querySelector('.oc-close-btn');
   const list      = root.querySelector('.oc-chat-messages');
-  const input     = root.querySelector('.oc-chat-input input');
+  const input     = root.querySelector('.oc-chat-input input[type="text"]');
   const sendBtn   = root.querySelector('.oc-chat-input button');
   const newPill   = root.querySelector('.oc-new-pill');
+  const fileInput = root.querySelector('#oc-file-input');
 
   /* -------- Session -------- */
   const sidKey = 'oc_chat_sid';
@@ -209,55 +233,86 @@
     if (isNearBottom()) hideNewPill();
   });
 
-  /* -------- Rendering (prevent duplicates) -------- */
-  const renderedIds = new Set(); // which messages have been rendered
+  /* -------- Rendering -------- */
+  const renderedIds = new Set();
 
   function appendBubble(text, sender, id, forceScroll = false){
-    if (id && renderedIds.has(id)) return; // skip duplicates
+    if (id && renderedIds.has(id)) return;
     if (id) renderedIds.add(id);
-
     const b = document.createElement('div');
     b.className = sender === 'customer' ? 'oc-bubble oc-me' : 'oc-bubble oc-them';
     b.textContent = text;
-    const shouldScroll = forceScroll || isNearBottom();
     list.appendChild(b);
-    if (shouldScroll) scrollToBottom(true);
+    if (forceScroll || isNearBottom()) scrollToBottom(true);
   }
 
-  /* -------- Send (optimistic + register server id) -------- */
+  function appendFileBubble(imgUrl, fileName, sender, id, forceScroll = false) {
+    if (id && renderedIds.has(id)) return;
+    if (id) renderedIds.add(id);
+    const b = document.createElement('div');
+    b.className = sender === 'customer' ? 'oc-bubble oc-me oc-file-bubble' : 'oc-bubble oc-them oc-file-bubble';
+    if (imgUrl) {
+      const img = document.createElement('img');
+      img.src = imgUrl;
+      b.appendChild(img);
+    } else if (fileName) {
+      const link = document.createElement('a');
+      link.href = "#";
+      link.textContent = fileName;
+      b.appendChild(link);
+    }
+    list.appendChild(b);
+    if (forceScroll || isNearBottom()) scrollToBottom(true);
+  }
+
+  /* -------- Send Text -------- */
   async function sendMessage(){
     const msg = (input.value || '').trim();
     if(!msg) return;
-
-    const localId = 'local-' + Date.now();     // temp id for dedupe
+    const localId = 'local-' + Date.now();
     appendBubble(msg, 'customer', localId, true);
     input.value = '';
-
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          storeDomain: store,
-          sessionId: SID,
-          sender: 'customer',
-          message: msg
-        })
+        body: JSON.stringify({ storeDomain: store, sessionId: SID, sender: 'customer', message: msg })
       });
-
-      // IMPORTANT: read server response and register real id
       const data = await res.json().catch(()=>null);
       if (data && data.ok && data.message) {
-        // mark server id as already rendered so next poll won’t duplicate
         if (data.message.id) renderedIds.add(data.message.id);
         if (data.message.createdAt) lastISO = data.message.createdAt;
       }
-    } catch(e){
-      console.warn('send error', e);
-    }
+    } catch(e){ console.warn('send error', e); }
   }
   sendBtn.addEventListener('click', sendMessage);
   input.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+
+  /* -------- Send File -------- */
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    let localId = 'file-' + Date.now();
+    if (file.type.startsWith("image/")) {
+      appendFileBubble(URL.createObjectURL(file), null, 'customer', localId, true);
+    } else {
+      appendFileBubble(null, file.name, 'customer', localId, true);
+    }
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('storeDomain', store);
+      formData.append('sessionId', SID);
+      formData.append('sender', 'customer');
+      const res = await fetch(endpoint + '/upload', { method: 'POST', body: formData });
+      const data = await res.json().catch(()=>null);
+      if (data && data.ok && data.message) {
+        if (data.message.id) renderedIds.add(data.message.id);
+        if (data.message.createdAt) lastISO = data.message.createdAt;
+      }
+    } catch(e){ console.warn('upload error', e); }
+    fileInput.value = '';
+  });
 
   /* -------- Polling -------- */
   let lastISO = null;
@@ -267,25 +322,26 @@
       url.searchParams.set('storeDomain', store);
       url.searchParams.set('sessionId', SID);
       if(lastISO) url.searchParams.set('since', lastISO);
-
       const r = await fetch(url.toString());
       const data = await r.json();
-
       if(data && data.ok && Array.isArray(data.messages) && data.messages.length){
         const userWasNearBottom = isNearBottom();
         let appended = 0;
-
         data.messages.forEach(m => {
-          // Use server id when available; fallback to createdAt
           const mid = m.id ?? m.createdAt;
-          appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
+          if (m.fileUrl) {
+            if (m.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+              appendFileBubble(m.fileUrl, null, m.sender === 'customer' ? 'customer' : 'me', mid, false);
+            } else {
+              appendFileBubble(null, m.fileName || 'Download file', m.sender === 'customer' ? 'customer' : 'me', mid, false);
+            }
+          } else {
+            appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
+          }
           lastISO = m.createdAt;
           appended++;
         });
-
-        if (appended && !userWasNearBottom) {
-          showNewPill();
-        }
+        if (appended && !userWasNearBottom) showNewPill();
       }
     } catch(e){ console.warn(e); }
   }
@@ -300,7 +356,15 @@
     if(data && data.ok && Array.isArray(data.messages)){
       data.messages.forEach(m => {
         const mid = m.id ?? m.createdAt;
-        appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
+        if (m.fileUrl) {
+          if (m.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+            appendFileBubble(m.fileUrl, null, m.sender === 'customer' ? 'customer' : 'me', mid, false);
+          } else {
+            appendFileBubble(null, m.fileName || 'Download file', m.sender === 'customer' ? 'customer' : 'me', mid, false);
+          }
+        } else {
+          appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
+        }
       });
       if(data.messages.length) lastISO = data.messages[data.messages.length-1].createdAt;
       scrollToBottom(true);
@@ -311,7 +375,6 @@
 </script>
 
 </div>
-
 
 {% schema %}
 {

@@ -5,14 +5,12 @@ export default function Settings() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState("facebook"); // default tab
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  const {
-    connectedPages,
-    setConnectedPages,
-    setSelectedPage,
-  } = useContext(AppContext);
+  const { connectedPages, setConnectedPages, setSelectedPage } =
+    useContext(AppContext);
 
   // Load FB SDK
   useEffect(() => {
@@ -37,6 +35,7 @@ export default function Settings() {
     document.body.appendChild(js);
   }, []);
 
+  // Fetch Facebook Pages
   const fetchFBPages = async (token) => {
     try {
       const res = await fetch(
@@ -51,33 +50,33 @@ export default function Settings() {
     }
   };
 
-const fetchIGPages = async (token) => {
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
-    );
-    const data = await res.json();
+  // Fetch Instagram Accounts
+  const fetchIGPages = async (token) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
+      );
+      const data = await res.json();
+      if (!Array.isArray(data.data)) return;
 
-    if (!Array.isArray(data.data)) return;
+      const igAccounts = data.data
+        .filter((page) => page.instagram_business_account)
+        .map((page) => ({
+          id: `ig_${page.instagram_business_account.id}`,
+          pageId: page.id,
+          igId: page.instagram_business_account.id,
+          name: page.name,
+          type: "instagram",
+          access_token: page.access_token,
+        }));
 
-    // Extract Instagram accounts from connected pages
-const igAccounts = data.data
-  .filter((page) => page.instagram_business_account)
-  .map((page) => ({
-    id: `ig_${page.instagram_business_account.id}`, // unique key for IG
-   pageId: page.id,                                // FB Page ID
-    igId: page.instagram_business_account.id,       // IG user id
-    name: page.name,
-    type: "instagram",
-   access_token: page.access_token,    // Page access token
-   }));
+      setIgPages(igAccounts);
+    } catch (err) {
+      console.error("Error fetching Instagram pages:", err);
+    }
+  };
 
-    setIgPages(igAccounts);
-  } catch (err) {
-    console.error("Error fetching Instagram pages:", err);
-  }
-};
-
+  // FB Login
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded");
     window.FB.login(
@@ -86,6 +85,7 @@ const igAccounts = data.data
     );
   };
 
+  // IG Login
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded");
     window.FB.login(
@@ -97,11 +97,9 @@ const igAccounts = data.data
     );
   };
 
+  // WhatsApp Connect
   const handleWhatsAppConnect = async () => {
     try {
-      const res = await fetch("/whatsapp-users");
-      const users = await res.json();
-
       setConnectedPages((prev) => [
         ...prev.filter((p) => p.id !== "whatsapp"),
         { id: "whatsapp", name: "WhatsApp", type: "whatsapp" },
@@ -109,43 +107,56 @@ const igAccounts = data.data
       setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
     } catch (err) {
       console.error(err);
-      alert("Failed to fetch WhatsApp users.");
+      alert("Failed to connect WhatsApp.");
     }
   };
 
-  // ✅ New ChatWidget connect
+  // ChatWidget Connect
   const handleChatWidgetConnect = async () => {
     try {
       setConnectedPages((prev) => [
         ...prev.filter((p) => p.id !== "chatwidget"),
         { id: "chatwidget", name: "Chat Widget", type: "chatwidget" },
       ]);
-      setSelectedPage({ id: "chatwidget", name: "Chat Widget", type: "chatwidget" });
+      setSelectedPage({
+        id: "chatwidget",
+        name: "Chat Widget",
+        type: "chatwidget",
+      });
     } catch (err) {
       console.error(err);
       alert("Failed to connect ChatWidget.");
     }
   };
 
-const handleConnectPage = (page) => {
-  if (!connectedPages.some((p) => p.id === page.id)) {
-    setConnectedPages([...connectedPages, page]);
-  }
-};
-
+  const handleConnectPage = (page) => {
+    if (!connectedPages.some((p) => p.id === page.id)) {
+      setConnectedPages([...connectedPages, page]);
+    }
+  };
 
   return (
     <div style={{ padding: 20 }}>
       <h2>Settings</h2>
 
+      {/* Platform Tabs */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={handleFBLogin}>Connect Facebook</button>
-        <button onClick={handleIGLogin}>Connect Instagram</button>
-        <button onClick={handleWhatsAppConnect}>Connect WhatsApp</button>
-        <button onClick={handleChatWidgetConnect}>Connect ChatWidget</button>
+        <button onClick={() => setActiveTab("facebook")}>Facebook</button>
+        <button onClick={() => setActiveTab("instagram")}>Instagram</button>
+        <button onClick={() => setActiveTab("whatsapp")}>WhatsApp</button>
+        <button onClick={() => setActiveTab("chatwidget")}>ChatWidget</button>
       </div>
 
-      {fbPages.length > 0 && (
+      {/* Platform Connect Buttons */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        {activeTab === "facebook" && <button onClick={handleFBLogin}>Connect Facebook</button>}
+        {activeTab === "instagram" && <button onClick={handleIGLogin}>Connect Instagram</button>}
+        {activeTab === "whatsapp" && <button onClick={handleWhatsAppConnect}>Connect WhatsApp</button>}
+        {activeTab === "chatwidget" && <button onClick={handleChatWidgetConnect}>Connect ChatWidget</button>}
+      </div>
+
+      {/* Platform Pages */}
+      {activeTab === "facebook" && fbPages.length > 0 && (
         <div>
           <h3>Facebook Pages</h3>
           <ul>
@@ -161,7 +172,7 @@ const handleConnectPage = (page) => {
         </div>
       )}
 
-      {igPages.length > 0 && (
+      {activeTab === "instagram" && igPages.length > 0 && (
         <div>
           <h3>Instagram Accounts</h3>
           <ul>
@@ -177,6 +188,21 @@ const handleConnectPage = (page) => {
         </div>
       )}
 
+      {activeTab === "whatsapp" && (
+        <div>
+          <h3>WhatsApp</h3>
+          <p>Click connect to enable WhatsApp integration</p>
+        </div>
+      )}
+
+      {activeTab === "chatwidget" && (
+        <div>
+          <h3>Chat Widget</h3>
+          <p>Click connect to enable Chat Widget integration</p>
+        </div>
+      )}
+
+      {/* Connected Pages */}
       {connectedPages.length > 0 && (
         <div style={{ marginTop: 30 }}>
           <h3>Connected Pages</h3>
