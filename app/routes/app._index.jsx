@@ -1,5 +1,6 @@
 import { useEffect, useContext } from "react";
 import { AppContext } from "./AppContext";
+import "./ChatDashboard.css"; // ✅ Import CSS file
 
 export default function SocialChatDashboard() {
   const {
@@ -400,23 +401,20 @@ if (page.type === "instagram" || page.type === "facebook") {
 
   /** ----------------- UI ----------------- **/
   return (
-    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
-      {/* Conversations List */}
-      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
-        <h3>Conversations</h3>
+    <div className="chat-dashboard">
+      {/* Sidebar */}
+      <div className="sidebar">
+        <h3 className="sidebar-title">💬 Conversations</h3>
         {!conversations.length ? (
-          <p>No conversations</p>
+          <p className="empty">No conversations</p>
         ) : (
           conversations.map((conv) => (
             <div
               key={conv.id}
-              style={{
-                padding: 8,
-                cursor: "pointer",
-                background:
-                  activeConversation?.id === conv.id ? "#eee" : "transparent",
-              }}
-              onClick={() => handleSelectConversation(conv)}
+              className={`conversation-item ${
+                activeConversation?.id === conv.id ? "active" : ""
+              }`}
+              onClick={() => setActiveConversation(conv)}
             >
               <b>[{conv.pageName}]</b>{" "}
               {conv.participants?.data
@@ -428,63 +426,48 @@ if (page.type === "instagram" || page.type === "facebook") {
       </div>
 
       {/* Chat Box */}
-      <div
-        style={{
-          flex: 1,
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h3>
-          Chat:{" "}
+      <div className="chat-box">
+        <div className="chat-header">
           {activeConversation
             ? activeConversation.participants?.data
                 ?.map((p) => p.name || p.username)
                 .join(", ") || "Unnamed"
             : "Select a conversation"}
-        </h3>
+        </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            border: "1px solid #ccc",
-            marginBottom: 10,
-            padding: 10,
-          }}
-        >
+        <div className="messages">
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <b>
-                  {typeof msg.from === "string"
-                    ? msg.from
-                    : msg.from?.name ||
-                      msg.from?.username ||
-                      msg.sender ||
-                      "User"}
-                  :
-                </b>{" "}
-                {msg.text || msg.message}{" "}
-                <small>{msg.timestamp || msg.created_time}</small>
-              </div>
-            ))
+            messages[activeConversation.id].map((msg, idx) => {
+              const isOutgoing =
+                msg.from === "You" || msg.from?.name === "You";
+              return (
+                <div
+                  key={idx}
+                  className={`message ${isOutgoing ? "outgoing" : "incoming"}`}
+                >
+                  <div className="message-content">
+                    {msg.text || msg.message}
+                  </div>
+                  <div className="timestamp">
+                    {msg.timestamp || msg.created_time}
+                  </div>
+                </div>
+              );
+            })
           ) : (
-            <p>No messages yet.</p>
+            <p className="empty">No messages yet.</p>
           )}
         </div>
 
         {activeConversation && (
-          <div style={{ display: "flex" }}>
+          <div className="chat-input">
             <input
               type="text"
               placeholder="Type a message..."
-              style={{ flex: 1, padding: 8 }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && e.target.value.trim()) {
                   sendMessage(e.target.value);
                   e.target.value = "";
                 }
@@ -492,8 +475,8 @@ if (page.type === "instagram" || page.type === "facebook") {
             />
             <button
               onClick={() => {
-                const input = document.querySelector("input");
-                if (input.value) {
+                const input = document.querySelector(".chat-input input");
+                if (input.value.trim()) {
                   sendMessage(input.value);
                   input.value = "";
                 }
