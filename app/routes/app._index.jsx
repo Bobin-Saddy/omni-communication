@@ -479,77 +479,99 @@ if (page.type === "whatsapp") {
           </div>
         )}
       </div>
-      <style>
+
+    <style>
       {`
+        /* Global container */
         .chat-dashboard {
-          border: 1px solid #ddd;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          background: #f9f9f9;
+          display: flex;
+          height: 90vh;
+          border: 1px solid #e0e0e0;
+          font-family: 'Inter', 'Segoe UI', sans-serif;
+          background: #f5f7fb;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
         /* Sidebar */
-        .chat-dashboard h3 {
-          margin: 0 0 10px;
-          font-size: 16px;
-          font-weight: 600;
-          color: #444;
-        }
-
-        .chat-dashboard .conversation-item {
-          padding: 12px;
-          cursor: pointer;
-          border-radius: 8px;
-          transition: all 0.2s ease;
-          margin-bottom: 6px;
+        .chat-dashboard > div:first-child {
+          width: 28%;
           background: #fff;
-          border: 1px solid transparent;
-        }
-
-        .chat-dashboard .conversation-item:hover {
-          background: #f0f2f5;
-          border: 1px solid #ddd;
-        }
-
-        .chat-dashboard .conversation-item.active {
-          background: #e7f3ff;
-          border: 1px solid #2196f3;
-        }
-
-        /* Chat Box */
-        .chat-dashboard .chat-box {
+          border-right: 1px solid #e6e6e6;
+          padding: 15px;
           display: flex;
           flex-direction: column;
-          height: 100%;
         }
-
-        .chat-dashboard .chat-header {
+        .chat-dashboard h3 {
+          font-size: 18px;
           font-weight: 600;
-          padding-bottom: 10px;
-          border-bottom: 1px solid #ddd;
-          margin-bottom: 10px;
-          font-size: 15px;
+          margin-bottom: 15px;
+          color: #222;
+        }
+        .chat-dashboard .conversation-item {
+          padding: 12px 14px;
+          border-radius: 10px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          transition: background 0.2s, transform 0.1s;
+          font-size: 14px;
+          font-weight: 500;
           color: #333;
         }
+        .chat-dashboard .conversation-item:hover {
+          background: #f0f2f5;
+          transform: translateY(-1px);
+        }
+        .chat-dashboard .conversation-item.active {
+          background: #e3f2fd;
+          border-left: 4px solid #2196f3;
+          padding-left: 10px;
+        }
 
-        .chat-dashboard .messages {
+        /* Chat window */
+        .chat-dashboard > div:last-child {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: #fdfdfd;
+        }
+        .chat-dashboard h3 {
+          border-bottom: 1px solid #eee;
+          padding-bottom: 12px;
+          margin-bottom: 10px;
+          font-size: 16px;
+        }
+
+        /* Messages area */
+        .chat-dashboard > div:last-child > div:nth-child(2) {
           flex: 1;
           overflow-y: auto;
-          padding: 10px;
-          background: #fafafa;
+          padding: 20px;
+          background: #f0f2f5;
           border-radius: 8px;
-          border: 1px solid #ddd;
         }
-
         .chat-dashboard .message {
-          margin-bottom: 12px;
-          max-width: 70%;
-          padding: 8px 12px;
-          border-radius: 12px;
-          font-size: 14px;
+          max-width: 65%;
+          margin-bottom: 14px;
+          padding: 10px 14px;
+          border-radius: 18px;
           line-height: 1.4;
-          display: inline-block;
+          font-size: 14px;
+          position: relative;
+          word-break: break-word;
         }
-
+        .chat-dashboard .message.you {
+          background: #dcf8c6;
+          align-self: flex-end;
+          border-bottom-right-radius: 6px;
+        }
+        .chat-dashboard .message.other {
+          background: #fff;
+          border: 1px solid #e6e6e6;
+          align-self: flex-start;
+          border-bottom-left-radius: 6px;
+        }
         .chat-dashboard .message small {
           display: block;
           font-size: 11px;
@@ -557,48 +579,37 @@ if (page.type === "whatsapp") {
           color: #888;
         }
 
-        .chat-dashboard .message.you {
-          background: #dcf8c6;
-          align-self: flex-end;
-          text-align: right;
-        }
-
-        .chat-dashboard .message.other {
-          background: #fff;
-          border: 1px solid #eee;
-          text-align: left;
-        }
-
         /* Input area */
-        .chat-dashboard .input-area {
+        .chat-dashboard > div:last-child > div:last-child {
           display: flex;
-          padding: 8px;
-          border-top: 1px solid #ddd;
+          padding: 12px;
+          border-top: 1px solid #e6e6e6;
           background: #fff;
         }
-
-        .chat-dashboard .input-area input {
+        .chat-dashboard input[type="text"] {
           flex: 1;
-          padding: 10px;
+          padding: 12px 16px;
           border: 1px solid #ccc;
-          border-radius: 20px;
+          border-radius: 24px;
           outline: none;
           font-size: 14px;
+          transition: border 0.2s;
         }
-
-        .chat-dashboard .input-area button {
+        .chat-dashboard input[type="text"]:focus {
+          border-color: #2196f3;
+        }
+        .chat-dashboard button {
           margin-left: 10px;
-          padding: 8px 16px;
+          padding: 10px 20px;
           border: none;
-          border-radius: 20px;
+          border-radius: 24px;
           background: #2196f3;
           color: white;
+          font-weight: 600;
           cursor: pointer;
-          font-weight: 500;
           transition: background 0.2s;
         }
-
-        .chat-dashboard .input-area button:hover {
+        .chat-dashboard button:hover {
           background: #1976d2;
         }
       `}
