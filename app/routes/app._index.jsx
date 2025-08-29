@@ -497,6 +497,28 @@ if (page.type === "instagram" || page.type === "facebook") {
       </div>
 
       <style>{`
+
+      .message.sent .bubble {
+  background: #007bff;   /* Blue bubble */
+  color: #ffffff;        /* White text */
+  border-bottom-right-radius: 2px;
+}
+
+/* Received (Others) */
+.message.received .bubble {
+  background: #e9ecef;   /* Light grey bubble */
+  color: #222222;        /* Dark text */
+  border-bottom-left-radius: 2px;
+}
+
+/* Optionally, make timestamp also fit */
+.message.sent .timestamp {
+  color: rgba(255, 255, 255, 0.7); /* light on blue */
+}
+.message.received .timestamp {
+  color: #555; /* dark on grey */
+}
+  
         .dashboard-container {
           display: flex;
           height: 90vh;
