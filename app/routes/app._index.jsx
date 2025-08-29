@@ -13,7 +13,7 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPRgHGFSTweHGPR0O9m8iSRnzSZAkA8zAVZCUUgsP18KYtD5zQvhmxC7x4m9WBr3jehcU3SmVugIHCpfGisQe4ulaioGlBJb8PlzBtGnCKOPNvr2Br5pF6ZC4CJKOfFMLfZAg28YygayRGZCOjAdSyiGKqugZBqTMZCZBTOi1lJclcWUJCcmE1jCivOpHqHKKm1V6wtWmBwdZAP23HVhVMiIeHTdTBOk65DQZDZD";
+    "EAAHvZAZB8ZCmugBPT9NT85FLIES5xzEtGZCWq5jZAZBrVvYfkiFbCq1OLdzZCzVzVtRxjdI5PKgUQZBO5JTTNJl5B3bzbX74mZAQg8ty9CL4orxBcdq08ISeZC2A3ZCZBWLxwhBxZBVdisAnNuZB9ZAEZAOcjFQO3YctzonA381s5OPMjOcQsSZCJrcAbOjqpfATEM1eCaZBgCleBquTGqbTFNZA0oAIm9ZCuZAwj4EJ0PUNju566I3nZCqQZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   /** ----------------- LOAD CONVERSATIONS ----------------- **/
@@ -173,48 +173,48 @@ if (page.type === "instagram") {
   };
 
   /** ----------------- FETCH MESSAGES ----------------- **/
-//   const fetchMessages = async (conversationId, page) => {
-//     try {
-//       if (page.type === "whatsapp") {
-//         const res = await fetch(`/whatsapp-messages?number=${conversationId}`);
-//         const data = await res.json();
-//         setMessages((prev) => ({ ...prev, [conversationId]: data }));
-//         return;
-//       }
+  const fetchMessages = async (conversationId, page) => {
+    try {
+      if (page.type === "whatsapp") {
+        const res = await fetch(`/whatsapp-messages?number=${conversationId}`);
+        const data = await res.json();
+        setMessages((prev) => ({ ...prev, [conversationId]: data }));
+        return;
+      }
 
-// if (page.type === "instagram" || page.type === "facebook") {
-//   const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
-//   const res = await fetch(url);
-//   const data = await res.json();
-//   setMessages((prev) => ({
-//     ...prev,
-//     [conversationId]: Array.isArray(data?.data) ? data.data : [],
-//   }));
-//   return;
-// }
+if (page.type === "instagram" || page.type === "facebook") {
+  const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  setMessages((prev) => ({
+    ...prev,
+    [conversationId]: Array.isArray(data?.data) ? data.data : [],
+  }));
+  return;
+}
 
-//       if (page?.type === "chatwidget") {
-//         const res = await fetch(
-//           `/api/chat?storeDomain=${encodeURIComponent(
-//             page.shopDomain || "myshop.com"
-//           )}&sessionId=${encodeURIComponent(conversationId)}`
-//         );
+      if (page?.type === "chatwidget") {
+        const res = await fetch(
+          `/api/chat?storeDomain=${encodeURIComponent(
+            page.shopDomain || "myshop.com"
+          )}&sessionId=${encodeURIComponent(conversationId)}`
+        );
 
-//         if (res.ok) {
-//           const data = await res.json();
-//           setMessages((prev) => ({
-//             ...prev,
-//             [conversationId]: Array.isArray(data?.messages)
-//               ? data.messages
-//               : [],
-//           }));
-//         }
-//         return;
-//       }
-//     } catch (err) {
-//       console.error("Error fetching messages:", err);
-//     }
-//   };
+        if (res.ok) {
+          const data = await res.json();
+          setMessages((prev) => ({
+            ...prev,
+            [conversationId]: Array.isArray(data?.messages)
+              ? data.messages
+              : [],
+          }));
+        }
+        return;
+      }
+    } catch (err) {
+      console.error("Error fetching messages:", err);
+    }
+  };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
   const handleSelectConversation = async (conv) => {
@@ -400,73 +400,28 @@ if (page.type === "instagram") {
 
   /** ----------------- UI ----------------- **/
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "90vh",
-        border: "1px solid #ddd",
-        borderRadius: "12px",
-        overflow: "hidden",
-        fontFamily: "Arial, sans-serif",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      }}
-    >
+    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
       {/* Conversations List */}
-      <div
-        style={{
-          width: "28%",
-          borderRight: "1px solid #ddd",
-          padding: 15,
-          background: "#f9fafb",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h3
-          style={{
-            marginBottom: 15,
-            fontSize: "18px",
-            fontWeight: "600",
-            color: "#333",
-          }}
-        >
-          💬 Conversations
-        </h3>
+      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
+        <h3>Conversations</h3>
         {!conversations.length ? (
-          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
+          <p>No conversations</p>
         ) : (
           conversations.map((conv) => (
             <div
               key={conv.id}
               style={{
-                padding: "10px 12px",
-                marginBottom: "8px",
-                borderRadius: "8px",
+                padding: 8,
                 cursor: "pointer",
                 background:
-                  activeConversation?.id === conv.id ? "#e3f2fd" : "#fff",
-                boxShadow:
-                  activeConversation?.id === conv.id
-                    ? "0 2px 6px rgba(0,0,0,0.1)"
-                    : "0 1px 3px rgba(0,0,0,0.05)",
-                transition: "0.2s",
+                  activeConversation?.id === conv.id ? "#eee" : "transparent",
               }}
               onClick={() => handleSelectConversation(conv)}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background =
-                  activeConversation?.id === conv.id ? "#e3f2fd" : "#f1f5f9")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background =
-                  activeConversation?.id === conv.id ? "#e3f2fd" : "#fff")
-              }
             >
-              <b style={{ color: "#1976d2" }}>[{conv.pageName}]</b>{" "}
-              <span style={{ color: "#444" }}>
-                {conv.participants?.data
-                  ?.map((p) => p.name || p.username)
-                  .join(", ") || "Unnamed"}
-              </span>
+              <b>[{conv.pageName}]</b>{" "}
+              {conv.participants?.data
+                ?.map((p) => p.name || p.username)
+                .join(", ") || "Unnamed"}
             </div>
           ))
         )}
@@ -476,28 +431,18 @@ if (page.type === "instagram") {
       <div
         style={{
           flex: 1,
-          padding: 15,
+          padding: 10,
           display: "flex",
           flexDirection: "column",
-          background: "#fff",
         }}
       >
-        <h3
-          style={{
-            marginBottom: 10,
-            fontSize: "18px",
-            fontWeight: "600",
-            color: "#222",
-          }}
-        >
+        <h3>
           Chat:{" "}
-          <span style={{ color: "#555" }}>
-            {activeConversation
-              ? activeConversation.participants?.data
-                  ?.map((p) => p.name || p.username)
-                  .join(", ") || "Unnamed"
-              : "Select a conversation"}
-          </span>
+          {activeConversation
+            ? activeConversation.participants?.data
+                ?.map((p) => p.name || p.username)
+                .join(", ") || "Unnamed"
+            : "Select a conversation"}
         </h3>
 
         <div
@@ -506,29 +451,15 @@ if (page.type === "instagram") {
             overflowY: "auto",
             border: "1px solid #ccc",
             marginBottom: 10,
-            padding: 12,
-            borderRadius: "8px",
-            background: "#fafafa",
+            padding: 10,
           }}
         >
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => (
-              <div
-                key={idx}
-                style={{
-                  marginBottom: 12,
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  background:
-                    msg.from?.name || msg.from?.username
-                      ? "#e3f2fd"
-                      : "#e8f5e9",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                }}
-              >
-                <b style={{ color: "#1976d2" }}>
+              <div key={idx} style={{ marginBottom: 8 }}>
+                <b>
                   {typeof msg.from === "string"
                     ? msg.from
                     : msg.from?.name ||
@@ -537,35 +468,21 @@ if (page.type === "instagram") {
                       "User"}
                   :
                 </b>{" "}
-                <span style={{ color: "#333" }}>
-                  {msg.text || msg.message}
-                </span>
-                <br />
-                <small style={{ color: "#777" }}>
-                  {msg.timestamp || msg.created_time}
-                </small>
+                {msg.text || msg.message}{" "}
+                <small>{msg.timestamp || msg.created_time}</small>
               </div>
             ))
           ) : (
-            <p style={{ color: "#777", fontStyle: "italic" }}>
-              No messages yet.
-            </p>
+            <p>No messages yet.</p>
           )}
         </div>
 
         {activeConversation && (
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex" }}>
             <input
               type="text"
               placeholder="Type a message..."
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: "8px",
-                border: "1px solid #ccc",
-                outline: "none",
-                fontSize: "14px",
-              }}
+              style={{ flex: 1, padding: 8 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   sendMessage(e.target.value);
@@ -581,22 +498,6 @@ if (page.type === "instagram") {
                   input.value = "";
                 }
               }}
-              style={{
-                padding: "10px 16px",
-                border: "none",
-                borderRadius: "8px",
-                background: "#1976d2",
-                color: "#fff",
-                fontWeight: "600",
-                cursor: "pointer",
-                transition: "0.2s",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#1565c0")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "#1976d2")
-              }
             >
               Send
             </button>
