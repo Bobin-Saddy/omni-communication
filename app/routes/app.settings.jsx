@@ -5,7 +5,7 @@ export default function Settings() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState("facebook"); // default tab
+  const [activePlatform, setActivePlatform] = useState(null); // which platform is open
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -139,66 +139,68 @@ export default function Settings() {
     <div style={{ padding: 20 }}>
       <h2>Settings</h2>
 
-      {/* Platform Tabs */}
+      {/* One row of platform buttons only */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <button onClick={() => setActiveTab("facebook")}>Facebook</button>
-        <button onClick={() => setActiveTab("instagram")}>Instagram</button>
-        <button onClick={() => setActiveTab("whatsapp")}>WhatsApp</button>
-        <button onClick={() => setActiveTab("chatwidget")}>ChatWidget</button>
+        <button onClick={() => setActivePlatform("facebook")}>Facebook</button>
+        <button onClick={() => setActivePlatform("instagram")}>Instagram</button>
+        <button onClick={() => setActivePlatform("whatsapp")}>WhatsApp</button>
+        <button onClick={() => setActivePlatform("chatwidget")}>ChatWidget</button>
       </div>
 
-      {/* Platform Connect Buttons */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        {activeTab === "facebook" && <button onClick={handleFBLogin}>Connect Facebook</button>}
-        {activeTab === "instagram" && <button onClick={handleIGLogin}>Connect Instagram</button>}
-        {activeTab === "whatsapp" && <button onClick={handleWhatsAppConnect}>Connect WhatsApp</button>}
-        {activeTab === "chatwidget" && <button onClick={handleChatWidgetConnect}>Connect ChatWidget</button>}
-      </div>
-
-      {/* Platform Pages */}
-      {activeTab === "facebook" && fbPages.length > 0 && (
+      {/* Show content for the selected platform */}
+      {activePlatform === "facebook" && (
         <div>
-          <h3>Facebook Pages</h3>
-          <ul>
-            {fbPages.map((p) => (
-              <li key={p.id}>
-                {p.name}{" "}
-                <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <h3>Facebook</h3>
+          <button onClick={handleFBLogin}>Connect Facebook</button>
+          {fbPages.length > 0 && (
+            <ul>
+              {fbPages.map((p) => (
+                <li key={p.id}>
+                  {p.name}{" "}
+                  <button onClick={() => handleConnectPage(p)}>
+                    {connectedPages.some((cp) => cp.id === p.id)
+                      ? "✅ Connected"
+                      : "Connect"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
-      {activeTab === "instagram" && igPages.length > 0 && (
+      {activePlatform === "instagram" && (
         <div>
-          <h3>Instagram Accounts</h3>
-          <ul>
-            {igPages.map((p) => (
-              <li key={p.id}>
-                {p.name}{" "}
-                <button onClick={() => handleConnectPage(p)}>
-                  {connectedPages.some((cp) => cp.id === p.id) ? "✅ Connected" : "Connect"}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <h3>Instagram</h3>
+          <button onClick={handleIGLogin}>Connect Instagram</button>
+          {igPages.length > 0 && (
+            <ul>
+              {igPages.map((p) => (
+                <li key={p.id}>
+                  {p.name}{" "}
+                  <button onClick={() => handleConnectPage(p)}>
+                    {connectedPages.some((cp) => cp.id === p.id)
+                      ? "✅ Connected"
+                      : "Connect"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 
-      {activeTab === "whatsapp" && (
+      {activePlatform === "whatsapp" && (
         <div>
           <h3>WhatsApp</h3>
-          <p>Click connect to enable WhatsApp integration</p>
+          <button onClick={handleWhatsAppConnect}>Connect WhatsApp</button>
         </div>
       )}
 
-      {activeTab === "chatwidget" && (
+      {activePlatform === "chatwidget" && (
         <div>
           <h3>Chat Widget</h3>
-          <p>Click connect to enable Chat Widget integration</p>
+          <button onClick={handleChatWidgetConnect}>Connect ChatWidget</button>
         </div>
       )}
 
