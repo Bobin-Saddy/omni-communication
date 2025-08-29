@@ -173,48 +173,48 @@ if (page.type === "instagram") {
   };
 
   /** ----------------- FETCH MESSAGES ----------------- **/
-  const fetchMessages = async (conversationId, page) => {
-    try {
-      if (page.type === "whatsapp") {
-        const res = await fetch(`/whatsapp-messages?number=${conversationId}`);
-        const data = await res.json();
-        setMessages((prev) => ({ ...prev, [conversationId]: data }));
-        return;
-      }
+//   const fetchMessages = async (conversationId, page) => {
+//     try {
+//       if (page.type === "whatsapp") {
+//         const res = await fetch(`/whatsapp-messages?number=${conversationId}`);
+//         const data = await res.json();
+//         setMessages((prev) => ({ ...prev, [conversationId]: data }));
+//         return;
+//       }
 
-if (page.type === "instagram" || page.type === "facebook") {
-  const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  setMessages((prev) => ({
-    ...prev,
-    [conversationId]: Array.isArray(data?.data) ? data.data : [],
-  }));
-  return;
-}
+// if (page.type === "instagram" || page.type === "facebook") {
+//   const url = `https://graph.facebook.com/v18.0/${conversationId}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`;
+//   const res = await fetch(url);
+//   const data = await res.json();
+//   setMessages((prev) => ({
+//     ...prev,
+//     [conversationId]: Array.isArray(data?.data) ? data.data : [],
+//   }));
+//   return;
+// }
 
-      if (page?.type === "chatwidget") {
-        const res = await fetch(
-          `/api/chat?storeDomain=${encodeURIComponent(
-            page.shopDomain || "myshop.com"
-          )}&sessionId=${encodeURIComponent(conversationId)}`
-        );
+//       if (page?.type === "chatwidget") {
+//         const res = await fetch(
+//           `/api/chat?storeDomain=${encodeURIComponent(
+//             page.shopDomain || "myshop.com"
+//           )}&sessionId=${encodeURIComponent(conversationId)}`
+//         );
 
-        if (res.ok) {
-          const data = await res.json();
-          setMessages((prev) => ({
-            ...prev,
-            [conversationId]: Array.isArray(data?.messages)
-              ? data.messages
-              : [],
-          }));
-        }
-        return;
-      }
-    } catch (err) {
-      console.error("Error fetching messages:", err);
-    }
-  };
+//         if (res.ok) {
+//           const data = await res.json();
+//           setMessages((prev) => ({
+//             ...prev,
+//             [conversationId]: Array.isArray(data?.messages)
+//               ? data.messages
+//               : [],
+//           }));
+//         }
+//         return;
+//       }
+//     } catch (err) {
+//       console.error("Error fetching messages:", err);
+//     }
+//   };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
   const handleSelectConversation = async (conv) => {
