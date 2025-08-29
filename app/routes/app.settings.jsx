@@ -140,11 +140,11 @@ export default function Settings() {
       <h2>Settings</h2>
 
       {/* One row of platform buttons only */}
-      <div style={{ display: "block", marginBottom: 20 }}>
-        <button onClick={() => setActivePlatform("facebook")}>Facebook</button> <br/>
-        <button onClick={() => setActivePlatform("instagram")}>Instagram</button> <br/>
-        <button onClick={() => setActivePlatform("whatsapp")}>WhatsApp</button><br/>
-        <button onClick={() => setActivePlatform("chatwidget")}>ChatWidget</button><br/>
+      <div class="seting" style={{ display: "block", marginBottom: 20 }}>
+        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("facebook")}>Facebook</button> <br/>
+        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("instagram")}>Instagram</button> <br/>
+        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("whatsapp")}>WhatsApp</button><br/>
+        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("chatwidget")}>ChatWidget</button><br/>
       </div>
 
       {/* Show content for the selected platform */}
