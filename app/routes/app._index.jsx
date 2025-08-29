@@ -395,6 +395,7 @@ if (page.type === "whatsapp") {
           background: "#f9fafb",
           display: "flex",
           flexDirection: "column",
+          overflowY: "auto", // 👈 scroll bar for conversation list
         }}
       >
         <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
@@ -466,54 +467,60 @@ if (page.type === "whatsapp") {
             padding: 12,
             borderRadius: "8px",
             background: "#fafafa",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
           }}
         >
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => (
-              <div
-                key={idx}
-                style={{
-                  marginBottom: 12,
-                  padding: "8px 10px",
-                  borderRadius: "6px",
-                  background:
-                    msg.from === "me" || msg.sender === "me"
-                      ? "#d1e7ff"
-                      : "#f1f5f9",
-                  alignSelf:
-                    msg.from === "me" || msg.sender === "me"
-                      ? "flex-end"
-                      : "flex-start",
-                  maxWidth: "75%",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                }}
-              >
-                <b style={{ fontSize: "0.9em", color: "#555" }}>
-                  {typeof msg.from === "string"
-                    ? msg.from
-                    : msg.from?.name ||
-                      msg.from?.username ||
-                      msg.sender ||
-                      "User"}
-                  :
-                </b>{" "}
-                <span style={{ fontSize: "0.95em" }}>
-                  {msg.text || msg.message}
-                </span>
+            messages[activeConversation.id].map((msg, idx) => {
+              const isMe =
+                msg.from === "me" ||
+                msg.sender === "me" ||
+                msg.from?.name === "me";
+
+              return (
                 <div
+                  key={idx}
                   style={{
-                    fontSize: "0.75em",
-                    color: "#888",
-                    marginTop: 4,
-                    textAlign: "right",
+                    display: "flex",
+                    justifyContent: isMe ? "flex-end" : "flex-start",
                   }}
                 >
-                  {msg.timestamp || msg.created_time}
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "18px",
+                      background: isMe ? "#1a73e8" : "#e5e5ea",
+                      color: isMe ? "#fff" : "#000",
+                      maxWidth: "70%",
+                      wordWrap: "break-word",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                      position: "relative",
+                    }}
+                  >
+                    <div style={{ fontSize: "0.9em", marginBottom: "4px" }}>
+                      <b>{isMe ? "Me" : msg.from?.name || msg.sender || "User"}</b>
+                    </div>
+                    <div style={{ fontSize: "0.95em" }}>
+                      {msg.text || msg.message}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.7em",
+                        marginTop: "5px",
+                        color: isMe ? "#dce6f9" : "#555",
+                        textAlign: "right",
+                      }}
+                    >
+                      {msg.timestamp || msg.created_time}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
           )}
@@ -577,5 +584,6 @@ if (page.type === "whatsapp") {
       </div>
     </div>
   );
+
 
 }
