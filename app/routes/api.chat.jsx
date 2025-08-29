@@ -52,19 +52,21 @@ export async function loader({ request }) {
 }
 
 // POST message (text or file)
+// POST message (text or file)
 export async function action({ request }) {
   const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
-  // Handle file uploads (multipart/form-data)
+  let sessionId, storeDomain, sender, message, fileUrl = null, fileName = null;
+
+  // 🔹 Case 1: File Upload (multipart/form-data)
   if (request.headers.get("content-type")?.includes("multipart/form-data")) {
     const formData = await request.formData();
 
-    const sessionId = formData.get("sessionId") || formData.get("session_id");
-    const storeDomain =
-      formData.get("storeDomain") || formData.get("store_domain");
-    const sender = formData.get("sender") || "customer";
+    sessionId = formData.get("sessionId") || formData.get("session_id");
+    storeDomain = formData.get("storeDomain") || formData.get("store_domain");
+    sender = formData.get("sender") || "customer";
     const file = formData.get("file");
 
     if (!sessionId || !storeDomain || !file) {
@@ -74,58 +76,51 @@ export async function action({ request }) {
       );
     }
 
-    // NOTE: Right now we just use the uploaded file's name & URL (depends where you store it)
-    // If you’re using something like S3, replace this with actual upload logic
-    const fileName = file.name;
-    const fileUrl = `/uploads/${fileName}`; // replace with actual storage path
+    // ⚡️ fileUrl बनाओ (S3/Cloudinary use कर सकते हो, अभी local path demo है)
+    fileName = file.name;
+    fileUrl = `/uploads/${fileName}`; // TODO: Replace with actual storage upload
+    message = null;
+  } 
+  // 🔹 Case 2: Text message (application/json)
+  else {
+    const body = await request.json();
+    sessionId = body.sessionId || body.session_id;
+    storeDomain = body.storeDomain || body.store_domain;
+    message = body.message || null;
+    sender = body.sender || "me";
 
-    await prisma.storeChatSession.upsert({
-      where: { sessionId },
-      update: {},
-      create: { sessionId, storeDomain },
-    });
+    if (!sessionId || !storeDomain || (!message && !body.fileUrl)) {
+      return json(
+        { ok: false, error: "Missing fields" },
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
-    const savedMessage = await prisma.storeChatMessage.create({
-      data: {
-        sessionId,
-        storeDomain,
-        sender: sender === "customer" ? "customer" : "me",
-        text: null,
-        fileUrl,
-        fileName,
-      },
-    });
-
-    return json({ ok: true, message: savedMessage }, { headers: corsHeaders });
+    // अगर frontend से fileUrl आ रहा है तो उसे भी save कर सकते हैं
+    if (body.fileUrl) {
+      fileUrl = body.fileUrl;
+      fileName = body.fileName || "file";
+    }
   }
 
-  // Handle text messages (application/json)
-  const body = await request.json();
-  const sessionId = body.sessionId || body.session_id;
-  const storeDomain = body.storeDomain || body.store_domain;
-  const message = body.message;
-  let sender = body.sender;
-
-  if (!sessionId || !storeDomain || !message) {
-    return json(
-      { ok: false, error: "Missing fields" },
-      { status: 400, headers: corsHeaders }
-    );
-  }
-
-  // Map sender to standardized values
-  if (!sender) sender = "me";
+  // 🔹 Sender normalize
   sender = sender === "customer" ? "customer" : "me";
 
+  // ✅ Ensure session exists
   await prisma.storeChatSession.upsert({
     where: { sessionId },
     update: {},
     create: { sessionId, storeDomain },
   });
 
+  // ✅ Save message (text or file)
   const savedMessage = await prisma.storeChatMessage.create({
-    data: { sessionId, storeDomain, sender, text: message },
+    data: { sessionId, storeDomain, sender, text: message, fileUrl, fileName },
   });
 
-  return json({ ok: true, message: savedMessage }, { headers: corsHeaders });
+  // ✅ Return full message with fileUrl so frontend can show image
+  return json(
+    { ok: true, message: { ...savedMessage, fileUrl, fileName } },
+    { headers: corsHeaders }
+  );
 }
