@@ -138,13 +138,8 @@ export default function Settings() {
 
   // Disconnect page
   const handleDisconnectPage = (pageId) => {
-    // Remove from connectedPages
     setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
-
-    // Remove conversations of that page
     setConversations((prev) => prev.filter((c) => c.pageId !== pageId));
-
-    // Remove messages related to that page
     setMessages((prev) => {
       const newMsgs = {};
       Object.keys(prev).forEach((key) => {
@@ -161,33 +156,38 @@ export default function Settings() {
   };
 
   return (
-    <div style={{ padding: 20, display: "flex", gap: "30px" }}>
-      {/* Left Sidebar Buttons */}
-      <div className="seting" style={{ display: "block", minWidth: "180px" }}>
-        <button style={{ marginBottom: 20 }} onClick={handleFBLogin}>
-          <FaFacebook style={{ marginRight: 8 }} /> Facebook
+    <div className="settings-container">
+      {/* Sidebar */}
+      <div className="sidebar">
+        <h2>Platforms</h2>
+        <button onClick={handleFBLogin}>
+          <FaFacebook className="icon fb" /> Facebook
         </button>
-        <button style={{ marginBottom: 20 }} onClick={handleIGLogin}>
-          <FaInstagram style={{ marginRight: 8 }} /> Instagram
+        <button onClick={handleIGLogin}>
+          <FaInstagram className="icon ig" /> Instagram
         </button>
-        <button style={{ marginBottom: 20 }} onClick={handleWhatsAppConnect}>
-          <FaWhatsapp style={{ marginRight: 8 }} /> WhatsApp
+        <button onClick={handleWhatsAppConnect}>
+          <FaWhatsapp className="icon wa" /> WhatsApp
         </button>
-        <button style={{ marginBottom: 20 }} onClick={handleChatWidgetConnect}>
-          <FaComments style={{ marginRight: 8 }} /> ChatWidget
+        <button onClick={handleChatWidgetConnect}>
+          <FaComments className="icon cw" /> ChatWidget
         </button>
       </div>
 
-      {/* Right Content Area */}
-      <div style={{ flex: 1 }}>
+      {/* Main Content */}
+      <div className="content">
+        {/* Available Pages */}
         {activePlatform === "facebook" && fbPages.length > 0 && (
-          <div>
+          <div className="card">
             <h3>Facebook Pages</h3>
             <ul>
               {fbPages.map((p) => (
                 <li key={p.id}>
-                  {p.name}{" "}
-                  <button onClick={() => handleConnectPage(p)}>
+                  {p.name}
+                  <button
+                    className="connect-btn"
+                    onClick={() => handleConnectPage(p)}
+                  >
                     {connectedPages.some((cp) => cp.id === p.id)
                       ? "✅ Connected"
                       : "Connect"}
@@ -199,13 +199,16 @@ export default function Settings() {
         )}
 
         {activePlatform === "instagram" && igPages.length > 0 && (
-          <div>
+          <div className="card">
             <h3>Instagram Accounts</h3>
             <ul>
               {igPages.map((p) => (
                 <li key={p.id}>
-                  {p.name}{" "}
-                  <button onClick={() => handleConnectPage(p)}>
+                  {p.name}
+                  <button
+                    className="connect-btn"
+                    onClick={() => handleConnectPage(p)}
+                  >
                     {connectedPages.some((cp) => cp.id === p.id)
                       ? "✅ Connected"
                       : "Connect"}
@@ -217,14 +220,14 @@ export default function Settings() {
         )}
 
         {activePlatform === "whatsapp" && (
-          <div>
+          <div className="card">
             <h3>WhatsApp</h3>
             <p>✅ Connected to WhatsApp</p>
           </div>
         )}
 
         {activePlatform === "chatwidget" && (
-          <div>
+          <div className="card">
             <h3>Chat Widget</h3>
             <p>✅ Connected to Chat Widget</p>
           </div>
@@ -232,23 +235,16 @@ export default function Settings() {
 
         {/* Connected Pages */}
         {connectedPages.length > 0 && (
-          <div style={{ marginTop: 30 }}>
+          <div className="card connected">
             <h3>Connected Pages</h3>
             <ul>
               {connectedPages.map((p) => (
-                <li key={p.id} style={{ marginBottom: "8px" }}>
-                  <b>{p.name}</b> ({p.type}){" "}
+                <li key={p.id}>
+                  <span>
+                    <b>{p.name}</b> <em>({p.type})</em>
+                  </span>
                   <button
-                    style={{
-                      marginLeft: "10px",
-                      padding: "4px 8px",
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      background: "#f8d7da",
-                      color: "#721c24",
-                      border: "1px solid #f5c6cb",
-                      borderRadius: "4px",
-                    }}
+                    className="disconnect-btn"
                     onClick={() => handleDisconnectPage(p.id)}
                   >
                     Disconnect
@@ -260,21 +256,107 @@ export default function Settings() {
         )}
       </div>
 
+      {/* CSS */}
       <style>{`
-        .seting button {
-          width: 100%;
-          text-align: left;
-          padding: 10px 15px;
-          font-size: 16px;
-          border: none;
-          border-radius: 6px;
-          background: #f5f5f5;
-          cursor: pointer;
+        .settings-container {
+          display: flex;
+          gap: 30px;
+          padding: 20px;
+          font-family: "Segoe UI", sans-serif;
+          background: #f9fafb;
+        }
+        .sidebar {
+          width: 220px;
+          background: #fff;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .sidebar h2 {
+          margin-bottom: 20px;
+          font-size: 18px;
+          color: #333;
+        }
+        .sidebar button {
           display: flex;
           align-items: center;
+          width: 100%;
+          padding: 10px 12px;
+          margin-bottom: 12px;
+          border: none;
+          border-radius: 8px;
+          font-size: 15px;
+          background: #f1f3f5;
+          cursor: pointer;
+          transition: background 0.2s;
         }
-        .seting button:hover {
+        .sidebar button:hover {
           background: #e9ecef;
+        }
+        .icon {
+          margin-right: 10px;
+          font-size: 18px;
+        }
+        .fb { color: #1877f2; }
+        .ig { color: #e4405f; }
+        .wa { color: #25d366; }
+        .cw { color: #555; }
+
+        .content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .card {
+          background: #fff;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+        }
+        .card h3 {
+          margin-bottom: 15px;
+          font-size: 17px;
+          color: #444;
+        }
+        .card ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .card li {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 0;
+          border-bottom: 1px solid #eee;
+        }
+        .card li:last-child {
+          border-bottom: none;
+        }
+        .connect-btn {
+          padding: 6px 12px;
+          border: none;
+          border-radius: 6px;
+          background: #4cafef;
+          color: #fff;
+          font-size: 14px;
+          cursor: pointer;
+        }
+        .connect-btn:hover {
+          background: #379ce3;
+        }
+        .disconnect-btn {
+          padding: 6px 12px;
+          border: none;
+          border-radius: 6px;
+          background: #f44336;
+          color: #fff;
+          font-size: 14px;
+          cursor: pointer;
+        }
+        .disconnect-btn:hover {
+          background: #d32f2f;
         }
       `}</style>
     </div>
