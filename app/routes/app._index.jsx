@@ -477,11 +477,12 @@ if (page.type === "whatsapp") {
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => {
               // ✅ Detect outgoing (me) vs incoming (user)
-              const isMe =
-                msg.from?.id === activeConversation.pageId || // FB/IG page or WA business ID
-                msg.from?.phone_number_id === activeConversation.pageId ||
-                msg.sender === "me" || // fallback
-                msg.from === "me"; // fallback
+       const isMe =
+  (msg.from?.id && activeConversation?.pageId && msg.from.id === activeConversation.pageId) || 
+  (msg.from?.phone_number_id && activeConversation?.pageId && msg.from.phone_number_id === activeConversation.pageId) ||
+  msg.sender === "me" || 
+  msg.from === "me";
+
 
               return (
                 <div
