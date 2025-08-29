@@ -1,11 +1,12 @@
 import { useState, useEffect, useContext } from "react";
 import { AppContext } from "./AppContext";
+import { FaFacebook, FaInstagram, FaWhatsapp, FaComments } from "react-icons/fa";
 
 export default function Settings() {
   const [fbPages, setFbPages] = useState([]);
   const [igPages, setIgPages] = useState([]);
   const [sdkLoaded, setSdkLoaded] = useState(false);
-  const [activePlatform, setActivePlatform] = useState(null); // which platform is open
+  const [activePlatform, setActivePlatform] = useState(null);
 
   const FACEBOOK_APP_ID = "544704651303656";
 
@@ -76,18 +77,20 @@ export default function Settings() {
     }
   };
 
-  // FB Login
+  // FB Connect
   const handleFBLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded");
+    setActivePlatform("facebook");
     window.FB.login(
       (res) => res.authResponse && fetchFBPages(res.authResponse.accessToken),
       { scope: "pages_show_list,pages_read_engagement,pages_manage_posts" }
     );
   };
 
-  // IG Login
+  // IG Connect
   const handleIGLogin = () => {
     if (!sdkLoaded) return alert("FB SDK not loaded");
+    setActivePlatform("instagram");
     window.FB.login(
       (res) => res.authResponse && fetchIGPages(res.authResponse.accessToken),
       {
@@ -99,34 +102,26 @@ export default function Settings() {
 
   // WhatsApp Connect
   const handleWhatsAppConnect = async () => {
-    try {
-      setConnectedPages((prev) => [
-        ...prev.filter((p) => p.id !== "whatsapp"),
-        { id: "whatsapp", name: "WhatsApp", type: "whatsapp" },
-      ]);
-      setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
-    } catch (err) {
-      console.error(err);
-      alert("Failed to connect WhatsApp.");
-    }
+    setActivePlatform("whatsapp");
+    setConnectedPages((prev) => [
+      ...prev.filter((p) => p.id !== "whatsapp"),
+      { id: "whatsapp", name: "WhatsApp", type: "whatsapp" },
+    ]);
+    setSelectedPage({ id: "whatsapp", name: "WhatsApp", type: "whatsapp" });
   };
 
   // ChatWidget Connect
   const handleChatWidgetConnect = async () => {
-    try {
-      setConnectedPages((prev) => [
-        ...prev.filter((p) => p.id !== "chatwidget"),
-        { id: "chatwidget", name: "Chat Widget", type: "chatwidget" },
-      ]);
-      setSelectedPage({
-        id: "chatwidget",
-        name: "Chat Widget",
-        type: "chatwidget",
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Failed to connect ChatWidget.");
-    }
+    setActivePlatform("chatwidget");
+    setConnectedPages((prev) => [
+      ...prev.filter((p) => p.id !== "chatwidget"),
+      { id: "chatwidget", name: "Chat Widget", type: "chatwidget" },
+    ]);
+    setSelectedPage({
+      id: "chatwidget",
+      name: "Chat Widget",
+      type: "chatwidget",
+    });
   };
 
   const handleConnectPage = (page) => {
@@ -136,23 +131,30 @@ export default function Settings() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, display: "flex", gap: "30px" }}>
       <h2>Settings</h2>
 
-      {/* One row of platform buttons only */}
-      <div class="seting" style={{ display: "block", marginBottom: 20 }}>
-        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("facebook")}>Facebook</button> <br/>
-        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("instagram")}>Instagram</button> <br/>
-        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("whatsapp")}>WhatsApp</button><br/>
-        <button style={{marginBottom: 20}} onClick={() => setActivePlatform("chatwidget")}>ChatWidget</button><br/>
+      {/* Left Sidebar Buttons (Connect + Tab) */}
+      <div className="seting" style={{ display: "block", minWidth: "180px" }}>
+        <button style={{ marginBottom: 20 }} onClick={handleFBLogin}>
+          <FaFacebook style={{ marginRight: 8 }} /> Facebook
+        </button>
+        <button style={{ marginBottom: 20 }} onClick={handleIGLogin}>
+          <FaInstagram style={{ marginRight: 8 }} /> Instagram
+        </button>
+        <button style={{ marginBottom: 20 }} onClick={handleWhatsAppConnect}>
+          <FaWhatsapp style={{ marginRight: 8 }} /> WhatsApp
+        </button>
+        <button style={{ marginBottom: 20 }} onClick={handleChatWidgetConnect}>
+          <FaComments style={{ marginRight: 8 }} /> ChatWidget
+        </button>
       </div>
 
-      {/* Show content for the selected platform */}
-      {activePlatform === "facebook" && (
-        <div>
-          <h3>Facebook</h3>
-          <button onClick={handleFBLogin}>Connect Facebook</button>
-          {fbPages.length > 0 && (
+      {/* Right Content Area */}
+      <div style={{ flex: 1 }}>
+        {activePlatform === "facebook" && fbPages.length > 0 && (
+          <div>
+            <h3>Facebook Pages</h3>
             <ul>
               {fbPages.map((p) => (
                 <li key={p.id}>
@@ -165,15 +167,12 @@ export default function Settings() {
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {activePlatform === "instagram" && (
-        <div>
-          <h3>Instagram</h3>
-          <button onClick={handleIGLogin}>Connect Instagram</button>
-          {igPages.length > 0 && (
+        {activePlatform === "instagram" && igPages.length > 0 && (
+          <div>
+            <h3>Instagram Accounts</h3>
             <ul>
               {igPages.map((p) => (
                 <li key={p.id}>
@@ -186,43 +185,55 @@ export default function Settings() {
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {activePlatform === "whatsapp" && (
-        <div>
-          <h3>WhatsApp</h3>
-          <button onClick={handleWhatsAppConnect}>Connect WhatsApp</button>
-        </div>
-      )}
+        {activePlatform === "whatsapp" && (
+          <div>
+            <h3>WhatsApp</h3>
+            <p>✅ Connected to WhatsApp</p>
+          </div>
+        )}
 
-      {activePlatform === "chatwidget" && (
-        <div>
-          <h3>Chat Widget</h3>
-          <button onClick={handleChatWidgetConnect}>Connect ChatWidget</button>
-        </div>
-      )}
+        {activePlatform === "chatwidget" && (
+          <div>
+            <h3>Chat Widget</h3>
+            <p>✅ Connected to Chat Widget</p>
+          </div>
+        )}
 
-      {/* Connected Pages */}
-      {connectedPages.length > 0 && (
-        <div style={{ marginTop: 30 }}>
-          <h3>Connected Pages</h3>
-          <ul>
-            {connectedPages.map((p) => (
-              <li key={p.id}>
-                <b>{p.name}</b> ({p.type})
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-       <style>{`
-      .seting button {
-    border: none;
-}
-    `}</style>
+        {/* Connected Pages */}
+        {connectedPages.length > 0 && (
+          <div style={{ marginTop: 30 }}>
+            <h3>Connected Pages</h3>
+            <ul>
+              {connectedPages.map((p) => (
+                <li key={p.id}>
+                  <b>{p.name}</b> ({p.type})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        .seting button {
+          width: 100%;
+          text-align: left;
+          padding: 10px 15px;
+          font-size: 16px;
+          border: none;
+          border-radius: 6px;
+          background: #f5f5f5;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+        }
+        .seting button:hover {
+          background: #e9ecef;
+        }
+      `}</style>
     </div>
-  
   );
 }
