@@ -1,4 +1,4 @@
-import { useEffect, useContext } from "react";
+import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 
 export default function SocialChatDashboard() {
@@ -12,6 +12,11 @@ export default function SocialChatDashboard() {
     setMessages,
   } = useContext(AppContext);
 
+  const [uploading, setUploading] = useState(false);
+
+  const textInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPRgHGFSTweHGPR0O9m8iSRnzSZAkA8zAVZCUUgsP18KYtD5zQvhmxC7x4m9WBr3jehcU3SmVugIHCpfGisQe4ulaioGlBJb8PlzBtGnCKOPNvr2Br5pF6ZC4CJKOfFMLfZAg28YygayRGZCOjAdSyiGKqugZBqTMZCZBTOi1lJclcWUJCcmE1jCivOpHqHKKm1V6wtWmBwdZAP23HVhVMiIeHTdTBOk65DQZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
@@ -20,37 +25,50 @@ export default function SocialChatDashboard() {
   useEffect(() => {
     if (!connectedPages.length) return;
     connectedPages.forEach((page) => fetchConversations(page));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedPages]);
 
+  /** ----------------- SSE for chatwidget (real-time) ----------------- **/
   useEffect(() => {
     if (activeConversation?.pageType === "chatwidget") {
       const es = new EventSource(
-        `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${activeConversation.storeDomain}`
+        `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
+          activeConversation.storeDomain || ""
+        )}`
       );
 
       es.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            data,
-          ],
-        }));
+        try {
+          const data = JSON.parse(event.data);
+          setMessages((prev) => ({
+            ...prev,
+            [activeConversation.id]: [
+              ...(prev[activeConversation.id] || []),
+              data,
+            ],
+          }));
+        } catch (e) {
+          console.warn("SSE parse error", e);
+        }
+      };
+
+      es.onerror = (err) => {
+        // optionally reconnect logic
+        console.warn("SSE error", err);
       };
 
       return () => es.close();
     }
-  }, [activeConversation]);
+  }, [activeConversation, setMessages]);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
     try {
-      // ✅ WhatsApp
+      // WhatsApp
       if (page.type === "whatsapp") {
         const res = await fetch("/whatsapp-users");
         const users = await res.json();
-        const convs = users.map((u) => ({
+        const convs = (users || []).map((u) => ({
           id: u.number,
           pageId: page.id,
           pageName: page.name,
@@ -65,39 +83,39 @@ export default function SocialChatDashboard() {
         return;
       }
 
-if (page.type === "instagram") {
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${page.pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${page.access_token}`
-  );
-  const data = await res.json();
-  if (!Array.isArray(data?.data)) return;
+      // Instagram
+      if (page.type === "instagram") {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${page.pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${page.access_token}`
+        );
+        const data = await res.json();
+        if (!Array.isArray(data?.data)) return;
 
-  const conversationsWithNames = data.data.map((conv) => {
-    const parts = conv.participants?.data || [];
-    // IG threads include the IG business (page.igId) and the user.
-    const other = parts.find(p => p.id !== page.igId && p.id !== page.pageId) || {};
-    const userName = other.name || other.username || "Instagram User";
-    return {
-     id: conv.id,
-      pageId: page.id,          // same as page.pageId after fix in Settings
-      pageName: page.name,
-      pageType: "instagram",
-      participants: { data: [{ id: other.id, name: userName }] }, // keep id!
-      recipientId: other.id,    // store to send later
-      updated_time: conv.updated_time,
-    };
-  });
+        const conversationsWithNames = data.data.map((conv) => {
+          const parts = conv.participants?.data || [];
+          const other = parts.find(
+            (p) => p.id !== page.igId && p.id !== page.pageId
+          ) || {};
+          const userName = other.name || other.username || "Instagram User";
+          return {
+            id: conv.id,
+            pageId: page.id,
+            pageName: page.name,
+            pageType: "instagram",
+            participants: { data: [{ id: other.id, name: userName }] },
+            recipientId: other.id,
+            updated_time: conv.updated_time,
+          };
+        });
 
-   setConversations((prev) => [
-     ...prev.filter((c) => c.pageId !== page.id),
-     ...conversationsWithNames,
-   ]);
-   return;
-}
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          ...conversationsWithNames,
+        ]);
+        return;
+      }
 
-
-
-      // ✅ Facebook
+      // Facebook
       if (page.type === "facebook") {
         const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
         const res = await fetch(url);
@@ -124,7 +142,7 @@ if (page.type === "instagram") {
         return;
       }
 
-      // ✅ Chat Widget
+      // Chat Widget (fetch sessions)
       if (page.type === "chatwidget") {
         const res = await fetch(`/api/chat?widget=true`);
         const data = await res.json();
@@ -145,6 +163,7 @@ if (page.type === "instagram") {
             ...convs,
           ]);
 
+          // Auto-select first conversation and load messages
           if (convs.length > 0) {
             const firstConv = convs[0];
             setActiveConversation(firstConv);
@@ -171,8 +190,6 @@ if (page.type === "instagram") {
       console.error("Error fetching conversations:", err);
     }
   };
-
-  /** ----------------- FETCH MESSAGES ----------------- **/
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
   const handleSelectConversation = async (conv) => {
@@ -218,96 +235,94 @@ if (page.type === "instagram") {
     }
   };
 
-  /** ----------------- SEND MESSAGE ----------------- **/
-  const sendMessage = async (text) => {
+  /** ----------------- SEND MESSAGE (supports file for chatwidget) ----------------- **/
+  const sendMessage = async (text = "", file = null) => {
     if (!activeConversation) return;
     const page = connectedPages.find((p) => p.id === activeConversation.pageId);
     if (!page) return;
 
     try {
-      // ✅ WhatsApp
- // ✅ WhatsApp
-if (page.type === "whatsapp") {
-  // 1. Send to WhatsApp API
-  await fetch(
-    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: activeConversation.userNumber,
-        text: { body: text },
-      }),
-    }
-  );
+      // ---------- WhatsApp ----------
+      if (page.type === "whatsapp") {
+        await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.userNumber,
+              text: { body: text },
+            }),
+          }
+        );
 
-  // 2. Save OUTGOING message to your DB
-  await fetch("/save-whatsapp-messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: activeConversation.userNumber,
-      from: WHATSAPP_PHONE_NUMBER_ID, // business number
-      message: text,
-      direction: "outgoing",
-    }),
-  });
+        await fetch("/save-whatsapp-messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: activeConversation.userNumber,
+            from: WHATSAPP_PHONE_NUMBER_ID,
+            message: text,
+            direction: "outgoing",
+          }),
+        });
 
-  // 3. Update local state
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [
-      ...(prev[activeConversation.id] || []),
-      {
-        from: "You",
-        message: text,
-        timestamp: new Date().toISOString(),
-      },
-    ],
-  }));
-  return;
-}
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            {
+              from: "You",
+              message: text,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        }));
+        return;
+      }
 
+      // ---------- Instagram ----------
+      if (page.type === "instagram") {
+        const recipientId =
+          activeConversation.recipientId ||
+          activeConversation.participants?.data?.find(
+            (p) => p.id && p.id !== page.igId
+          )?.id;
+        if (!recipientId) return console.error("No IG recipient id");
 
-      // ✅ Instagram (API for send requires permissions – simulate for now)
- if (page.type === "instagram") {
-   const recipientId =
-     activeConversation.recipientId ||
-     activeConversation.participants?.data?.find(p => p.id && p.id !== page.igId)?.id;
-   if (!recipientId) {
-     console.error("No IG recipient id on conversation");
-     return;
-   }
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_type: "RESPONSE",
+              recipient: { id: recipientId },
+              message: { text },
+            }),
+          }
+        );
+        const result = await res.json();
+        if (res.ok && result.id) {
+          setMessages((prev) => ({
+            ...prev,
+            [activeConversation.id]: [
+              ...(prev[activeConversation.id] || []),
+              {
+                from: { name: "You" },
+                message: text,
+                created_time: new Date().toISOString(),
+              },
+            ],
+          }));
+        } else {
+          console.error("Instagram send failed:", result);
+        }
+        return;
+      }
 
-   const res = await fetch(
-     `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
-     {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({
-         messaging_type: "RESPONSE",
-         recipient: { id: recipientId },
-        message: { text },
-     }),
-     }
-   );
-    const result = await res.json();
-    if (res.ok && result.id) {
-      setMessages((prev) => ({
-        ...prev,
-        [activeConversation.id]: [
-          ...(prev[activeConversation.id] || []),
-          { from: { name: "You" }, message: text, created_time: new Date().toISOString() },
-        ],
-      }));
-    } else {
-      console.error("Instagram send failed:", result);
-    }
-    return;
- }
-
-      // ✅ Facebook
+      // ---------- Facebook ----------
       if (page.type === "facebook") {
         const userParticipant = activeConversation.participants?.data?.find(
           (p) => p.id !== page.id
@@ -345,31 +360,112 @@ if (page.type === "whatsapp") {
         return;
       }
 
-      // ✅ ChatWidget
+      // ---------- ChatWidget (text or file) ----------
       if (page.type === "chatwidget") {
-        await fetch(`/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: activeConversation.id,
-            storeDomain: activeConversation.storeDomain || "myshop.com",
-            message: text,
-          }),
-        });
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            {
-              from: { name: "You" },
+        if (file) {
+          // send file via FormData
+          try {
+            const localId = "temp-" + Date.now();
+            // Optimistic UI: add temp message
+            const optimistic = {
+              _tempId: localId,
+              sender: "me",
+              text: text || null,
+              fileUrl: URL.createObjectURL(file),
+              fileName: file.name,
+              createdAt: new Date().toISOString(),
+              uploading: true,
+            };
+            setMessages((prev) => ({
+              ...prev,
+              [activeConversation.id]: [
+                ...(prev[activeConversation.id] || []),
+                optimistic,
+              ],
+            }));
+
+            setUploading(true);
+
+            const formData = new FormData();
+            formData.append("sessionId", activeConversation.id);
+            formData.append(
+              "storeDomain",
+              activeConversation.storeDomain || "myshop.com"
+            );
+            formData.append("sender", "customer"); // or "me" based on your mapping
+            formData.append("file", file);
+            // include localId so you can track it server-side if desired (server may ignore)
+            formData.append("localId", localId);
+
+            const res = await fetch(`/api/chat`, {
+              method: "POST",
+              body: formData,
+            });
+            const data = await res.json().catch(() => null);
+
+            setUploading(false);
+
+            if (data && data.ok && data.message) {
+              // replace optimistic message by finding _tempId
+              setMessages((prev) => {
+                const arr = [...(prev[activeConversation.id] || [])];
+                const idx = arr.findIndex((m) => m._tempId === localId);
+                if (idx !== -1) {
+                  arr[idx] = data.message;
+                } else {
+                  arr.push(data.message);
+                }
+                return { ...prev, [activeConversation.id]: arr };
+              });
+            } else {
+              // on failure: mark optimistic as failed
+              setMessages((prev) => {
+                const arr = [...(prev[activeConversation.id] || [])];
+                const idx = arr.findIndex((m) => m._tempId === localId);
+                if (idx !== -1) {
+                  arr[idx] = {
+                    ...arr[idx],
+                    uploading: false,
+                    failed: true,
+                    error: data?.error || "Upload failed",
+                  };
+                }
+                return { ...prev, [activeConversation.id]: arr };
+              });
+            }
+          } catch (err) {
+            console.error("File upload failed", err);
+            setUploading(false);
+          }
+          return;
+        } else {
+          // text message (JSON)
+          await fetch(`/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId: activeConversation.id,
+              storeDomain: activeConversation.storeDomain || "myshop.com",
               message: text,
-              created_time: new Date().toISOString(),
-            },
-          ],
-        }));
+              sender: "me",
+            }),
+          });
+          setMessages((prev) => ({
+            ...prev,
+            [activeConversation.id]: [
+              ...(prev[activeConversation.id] || []),
+              {
+                from: { name: "You" },
+                text,
+                createdAt: new Date().toISOString(),
+              },
+            ],
+          }));
+        }
       }
     } catch (err) {
       console.error("Error sending message:", err);
+      setUploading(false);
     }
   };
 
@@ -395,7 +491,7 @@ if (page.type === "whatsapp") {
           background: "#f9fafb",
           display: "flex",
           flexDirection: "column",
-          overflowY: "auto", // scroll bar
+          overflowY: "auto",
         }}
       >
         <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
@@ -476,12 +572,14 @@ if (page.type === "whatsapp") {
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => {
-              // ✅ Detect outgoing (me) vs incoming (user)
               const isMe =
-                msg.from?.id === activeConversation.pageId || // FB/IG page or WA business ID
+                msg.from?.id === activeConversation.pageId ||
                 msg.from?.phone_number_id === activeConversation.pageId ||
-                msg.sender === "me" || // fallback
-                msg.from === "me"; // fallback
+                msg.sender === "me" ||
+                msg.from === "me" ||
+                msg._tempId; // optimistic sent messages
+
+              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
 
               return (
                 <div
@@ -502,9 +600,47 @@ if (page.type === "whatsapp") {
                       boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     }}
                   >
-                    <div style={{ fontSize: "0.95em" }}>
-                      {msg.text || msg.message}
-                    </div>
+                    {/* text */}
+                    {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
+
+                    {/* file */}
+                    {msg.fileUrl && (
+                      <div style={{ marginTop: text ? 8 : 0 }}>
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                          <img
+                            src={msg.fileUrl}
+                            alt={msg.fileName || "image"}
+                            style={{ maxWidth: "220px", borderRadius: 10 }}
+                          />
+                        ) : (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                          >
+                            📎 {msg.fileName || "Download file"}
+                          </a>
+                        )}
+                        {msg.uploading && (
+                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+                            Uploading...
+                          </div>
+                        )}
+                        {msg.failed && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#ff6b6b",
+                              marginTop: 6,
+                            }}
+                          >
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div
                       style={{
                         fontSize: "0.7em",
@@ -513,7 +649,7 @@ if (page.type === "whatsapp") {
                         textAlign: "right",
                       }}
                     >
-                      {msg.timestamp || msg.created_time}
+                      {msg.timestamp || msg.createdAt || msg.created_time || ""}
                     </div>
                   </div>
                 </div>
@@ -525,8 +661,39 @@ if (page.type === "whatsapp") {
         </div>
 
         {activeConversation && (
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {/* Hidden file input */}
             <input
+              ref={fileInputRef}
+              id="dashboard-file-input"
+              type="file"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  // send file (no text)
+                  sendMessage("", f);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <label
+              htmlFor="dashboard-file-input"
+              style={{
+                padding: "10px 12px",
+                borderRadius: "8px",
+                background: "#eef2ff",
+                color: "#1a73e8",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              📎
+            </label>
+
+            {/* Text input */}
+            <input
+              ref={textInputRef}
               type="text"
               placeholder="Type a message..."
               style={{
@@ -537,19 +704,20 @@ if (page.type === "whatsapp") {
                 outline: "none",
                 transition: "0.2s",
               }}
-              onFocus={(e) =>
-                (e.target.style.border = "1px solid #1a73e8")
-              }
-              onBlur={(e) =>
-                (e.target.style.border = "1px solid #ccc")
-              }
+              onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
+              onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  sendMessage(e.target.value);
-                  e.target.value = "";
+                  const v = e.target.value.trim();
+                  if (v) {
+                    sendMessage(v, null);
+                    e.target.value = "";
+                  }
                 }
               }}
             />
+
+            {/* Send button */}
             <button
               style={{
                 padding: "10px 18px",
@@ -561,28 +729,21 @@ if (page.type === "whatsapp") {
                 transition: "0.3s",
                 fontWeight: "bold",
               }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#1669c1")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.background = "#1a73e8")
-              }
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
               onClick={() => {
-                const input = document.querySelector("input");
-                if (input.value) {
-                  sendMessage(input.value);
+                const input = textInputRef.current;
+                if (input && input.value.trim()) {
+                  sendMessage(input.value.trim(), null);
                   input.value = "";
                 }
               }}
             >
-              Send
+              {uploading ? "Uploading..." : "Send"}
             </button>
           </div>
         )}
       </div>
     </div>
   );
-
-
-
 }
