@@ -373,7 +373,6 @@ if (page.type === "whatsapp") {
     }
   };
 
-  /** ----------------- UI ----------------- **/
   return (
     <div
       style={{
@@ -476,13 +475,14 @@ if (page.type === "whatsapp") {
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => {
-              // ✅ Detect outgoing (me) vs incoming (user)
-       const isMe =
-  (msg.from?.id && activeConversation?.pageId && msg.from.id === activeConversation.pageId) || 
-  (msg.from?.phone_number_id && activeConversation?.pageId && msg.from.phone_number_id === activeConversation.pageId) ||
-  msg.sender === "me" || 
-  msg.from === "me";
-
+              // ✅ Only color blue if it was sent from your UI
+              const isMe =
+                msg?.sender === "me" ||
+                msg?.from === "me" ||
+                msg?.outgoing === true ||
+                msg?.direction === "out" ||
+                msg?._local === true ||
+                msg?.from_me === true;
 
               return (
                 <div
