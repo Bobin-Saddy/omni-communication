@@ -400,28 +400,73 @@ if (page.type === "instagram" || page.type === "facebook") {
 
   /** ----------------- UI ----------------- **/
   return (
-    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
+    <div
+      style={{
+        display: "flex",
+        height: "90vh",
+        border: "1px solid #ddd",
+        borderRadius: "12px",
+        overflow: "hidden",
+        fontFamily: "Arial, sans-serif",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+      }}
+    >
       {/* Conversations List */}
-      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
-        <h3>Conversations</h3>
+      <div
+        style={{
+          width: "28%",
+          borderRight: "1px solid #ddd",
+          padding: 15,
+          background: "#f9fafb",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <h3
+          style={{
+            marginBottom: 15,
+            fontSize: "18px",
+            fontWeight: "600",
+            color: "#333",
+          }}
+        >
+          💬 Conversations
+        </h3>
         {!conversations.length ? (
-          <p>No conversations</p>
+          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
         ) : (
           conversations.map((conv) => (
             <div
               key={conv.id}
               style={{
-                padding: 8,
+                padding: "10px 12px",
+                marginBottom: "8px",
+                borderRadius: "8px",
                 cursor: "pointer",
                 background:
-                  activeConversation?.id === conv.id ? "#eee" : "transparent",
+                  activeConversation?.id === conv.id ? "#e3f2fd" : "#fff",
+                boxShadow:
+                  activeConversation?.id === conv.id
+                    ? "0 2px 6px rgba(0,0,0,0.1)"
+                    : "0 1px 3px rgba(0,0,0,0.05)",
+                transition: "0.2s",
               }}
               onClick={() => handleSelectConversation(conv)}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background =
+                  activeConversation?.id === conv.id ? "#e3f2fd" : "#f1f5f9")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  activeConversation?.id === conv.id ? "#e3f2fd" : "#fff")
+              }
             >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
+              <b style={{ color: "#1976d2" }}>[{conv.pageName}]</b>{" "}
+              <span style={{ color: "#444" }}>
+                {conv.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ") || "Unnamed"}
+              </span>
             </div>
           ))
         )}
@@ -431,18 +476,28 @@ if (page.type === "instagram" || page.type === "facebook") {
       <div
         style={{
           flex: 1,
-          padding: 10,
+          padding: 15,
           display: "flex",
           flexDirection: "column",
+          background: "#fff",
         }}
       >
-        <h3>
+        <h3
+          style={{
+            marginBottom: 10,
+            fontSize: "18px",
+            fontWeight: "600",
+            color: "#222",
+          }}
+        >
           Chat:{" "}
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
+          <span style={{ color: "#555" }}>
+            {activeConversation
+              ? activeConversation.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ") || "Unnamed"
+              : "Select a conversation"}
+          </span>
         </h3>
 
         <div
@@ -451,15 +506,29 @@ if (page.type === "instagram" || page.type === "facebook") {
             overflowY: "auto",
             border: "1px solid #ccc",
             marginBottom: 10,
-            padding: 10,
+            padding: 12,
+            borderRadius: "8px",
+            background: "#fafafa",
           }}
         >
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <b>
+              <div
+                key={idx}
+                style={{
+                  marginBottom: 12,
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  background:
+                    msg.from?.name || msg.from?.username
+                      ? "#e3f2fd"
+                      : "#e8f5e9",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                }}
+              >
+                <b style={{ color: "#1976d2" }}>
                   {typeof msg.from === "string"
                     ? msg.from
                     : msg.from?.name ||
@@ -468,21 +537,35 @@ if (page.type === "instagram" || page.type === "facebook") {
                       "User"}
                   :
                 </b>{" "}
-                {msg.text || msg.message}{" "}
-                <small>{msg.timestamp || msg.created_time}</small>
+                <span style={{ color: "#333" }}>
+                  {msg.text || msg.message}
+                </span>
+                <br />
+                <small style={{ color: "#777" }}>
+                  {msg.timestamp || msg.created_time}
+                </small>
               </div>
             ))
           ) : (
-            <p>No messages yet.</p>
+            <p style={{ color: "#777", fontStyle: "italic" }}>
+              No messages yet.
+            </p>
           )}
         </div>
 
         {activeConversation && (
-          <div style={{ display: "flex" }}>
+          <div style={{ display: "flex", gap: 10 }}>
             <input
               type="text"
               placeholder="Type a message..."
-              style={{ flex: 1, padding: 8 }}
+              style={{
+                flex: 1,
+                padding: "10px 12px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                outline: "none",
+                fontSize: "14px",
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   sendMessage(e.target.value);
@@ -498,6 +581,22 @@ if (page.type === "instagram" || page.type === "facebook") {
                   input.value = "";
                 }
               }}
+              style={{
+                padding: "10px 16px",
+                border: "none",
+                borderRadius: "8px",
+                background: "#1976d2",
+                color: "#fff",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "0.2s",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#1565c0")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "#1976d2")
+              }
             >
               Send
             </button>
