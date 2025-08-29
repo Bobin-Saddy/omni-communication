@@ -217,6 +217,12 @@ export default function Settings() {
           </ul>
         </div>
       )}
+       <style>{`
+      .seting button {
+    border: none;
+}
+    `}</style>
     </div>
+  
   );
 }
