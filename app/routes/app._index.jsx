@@ -395,7 +395,7 @@ if (page.type === "whatsapp") {
           background: "#f9fafb",
           display: "flex",
           flexDirection: "column",
-          overflowY: "auto", // 👈 scroll bar for conversation list
+          overflowY: "auto", // scroll bar
         }}
       >
         <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
@@ -476,10 +476,12 @@ if (page.type === "whatsapp") {
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => {
+              // ✅ Detect outgoing (me) vs incoming (user)
               const isMe =
-                msg.from === "me" ||
-                msg.sender === "me" ||
-                msg.from?.name === "me";
+                msg.from?.id === activeConversation.pageId || // FB/IG page or WA business ID
+                msg.from?.phone_number_id === activeConversation.pageId ||
+                msg.sender === "me" || // fallback
+                msg.from === "me"; // fallback
 
               return (
                 <div
@@ -498,12 +500,8 @@ if (page.type === "whatsapp") {
                       maxWidth: "70%",
                       wordWrap: "break-word",
                       boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                      position: "relative",
                     }}
                   >
-                    <div style={{ fontSize: "0.9em", marginBottom: "4px" }}>
-                      <b>{isMe ? "Me" : msg.from?.name || msg.sender || "User"}</b>
-                    </div>
                     <div style={{ fontSize: "0.95em" }}>
                       {msg.text || msg.message}
                     </div>
@@ -584,6 +582,7 @@ if (page.type === "whatsapp") {
       </div>
     </div>
   );
+
 
 
 }
