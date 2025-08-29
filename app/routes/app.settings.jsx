@@ -132,7 +132,7 @@ export default function Settings() {
 
   return (
     <div style={{ padding: 20, display: "flex", gap: "30px" }}>
-      <h2>Settings</h2>
+      {/* <h2>Settings</h2> */}
 
       {/* Left Sidebar Buttons (Connect + Tab) */}
       <div className="seting" style={{ display: "block", minWidth: "180px" }}>
