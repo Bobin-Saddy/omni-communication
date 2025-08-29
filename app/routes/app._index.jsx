@@ -172,6 +172,8 @@ if (page.type === "instagram") {
     }
   };
 
+  /** ----------------- FETCH MESSAGES ----------------- **/
+
   /** ----------------- SELECT CONVERSATION ----------------- **/
   const handleSelectConversation = async (conv) => {
     setActiveConversation(conv);
@@ -207,11 +209,10 @@ if (page.type === "instagram") {
           }));
         }
       } else if (page.type === "whatsapp") {
-  const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
-  const data = await res.json();
-  setMessages((prev) => ({ ...prev, [conv.id]: data }));
-}
-
+        const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+        const data = await res.json();
+        setMessages((prev) => ({ ...prev, [conv.id]: data }));
+      }
     } catch (error) {
       console.error("Error loading messages:", error);
     }
