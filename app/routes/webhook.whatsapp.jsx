@@ -18,6 +18,7 @@ export async function loader({ request }) {
   return new Response("Verification failed", { status: 403 });
 }
 
+// webhook.whatsapp.jsx
 export async function action({ request }) {
   const body = await request.json();
   const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
@@ -28,27 +29,22 @@ export async function action({ request }) {
     const text = msg?.text?.body || "";
     const name = msg?.profile?.name || "";
 
-    // Save to customerWhatsAppMessage
- await prisma.customerWhatsAppMessage.create({
-  data: {
-    to: activeConversation.userNumber,
-    from: BUSINESS_NUMBER,
-    message: text,
-    direction: "outgoing",
-    timestamp: new Date(),
-  },
-});
+    // Save INCOMING message
+    await prisma.customerWhatsAppMessage.create({
+      data: {
+        to: BUSINESS_NUMBER,
+        from: from,
+        message: text,
+        direction: "incoming",
+        timestamp: new Date(),
+      },
+    });
 
-
-    // (Optional) still maintain chatSession + chatMessage if needed by other parts of app
     await prisma.chatSession.upsert({
       where: { phone: from },
       update: {
         messages: {
-          create: {
-            content: text,
-            sender: "user",
-          },
+          create: { content: text, sender: "user" },
         },
       },
       create: {
@@ -56,10 +52,7 @@ export async function action({ request }) {
         userName: name,
         phone: from,
         messages: {
-          create: {
-            content: text,
-            sender: "user",
-          },
+          create: { content: text, sender: "user" },
         },
       },
     });

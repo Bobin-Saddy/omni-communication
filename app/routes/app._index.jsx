@@ -239,18 +239,17 @@ if (page.type === "instagram") {
             }),
           }
         );
-setMessages((prev) => ({
-  ...prev,
-  [activeConversation.id]: [
-    ...(prev[activeConversation.id] || []),
-    {
-      from: "You",
-      message: text,
-      timestamp: new Date().toISOString(),
-    },
-  ],
-}));
-
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            {
+              from: "You",
+              message: text,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        }));
         return;
       }
 
