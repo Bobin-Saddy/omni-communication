@@ -1,6 +1,5 @@
 import { useEffect, useContext } from "react";
 import { AppContext } from "./AppContext";
-import "./ChatDashboard.css"; // ✅ Import CSS file
 
 export default function SocialChatDashboard() {
   const {
@@ -400,93 +399,213 @@ if (page.type === "instagram" || page.type === "facebook") {
   };
 
   /** ----------------- UI ----------------- **/
+
   return (
-    <div className="chat-dashboard">
-      {/* Sidebar */}
-      <div className="sidebar">
-        <h3 className="sidebar-title">💬 Conversations</h3>
-        {!conversations.length ? (
-          <p className="empty">No conversations</p>
-        ) : (
-          conversations.map((conv) => (
-            <div
-              key={conv.id}
-              className={`conversation-item ${
-                activeConversation?.id === conv.id ? "active" : ""
-              }`}
-              onClick={() => setActiveConversation(conv)}
-            >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
-            </div>
-          ))
-        )}
-      </div>
+    <>
+      {/* ✅ Inline CSS inside same file */}
+      <style>{`
+        .chat-dashboard {
+          display: flex;
+          height: 90vh;
+          font-family: "Inter", sans-serif;
+          border: 1px solid #ddd;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        .sidebar {
+          width: 28%;
+          background: #f8f9fa;
+          border-right: 1px solid #ddd;
+          padding: 12px;
+          overflow-y: auto;
+        }
+        .sidebar-title {
+          font-size: 1.2rem;
+          font-weight: 600;
+          margin-bottom: 12px;
+        }
+        .conversation-item {
+          padding: 10px;
+          border-radius: 8px;
+          cursor: pointer;
+          margin-bottom: 6px;
+          transition: background 0.2s;
+        }
+        .conversation-item:hover {
+          background: #e9ecef;
+        }
+        .conversation-item.active {
+          background: #007bff;
+          color: white;
+        }
+        .chat-box {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: #ffffff;
+        }
+        .chat-header {
+          padding: 14px;
+          background: #007bff;
+          color: white;
+          font-weight: 600;
+          font-size: 1.1rem;
+        }
+        .messages {
+          flex: 1;
+          padding: 12px;
+          overflow-y: auto;
+          background: #f4f6f9;
+          display: flex;
+          flex-direction: column;
+        }
+        .message {
+          max-width: 70%;
+          margin-bottom: 12px;
+          padding: 10px 14px;
+          border-radius: 16px;
+          font-size: 0.95rem;
+          line-height: 1.4;
+          position: relative;
+          word-wrap: break-word;
+        }
+        .message.incoming {
+          background: #ffffff;
+          align-self: flex-start;
+          border: 1px solid #ddd;
+        }
+        .message.outgoing {
+          background: #007bff;
+          color: white;
+          align-self: flex-end;
+        }
+        .timestamp {
+          font-size: 0.75rem;
+          color: #888;
+          margin-top: 4px;
+          text-align: right;
+        }
+        .chat-input {
+          display: flex;
+          border-top: 1px solid #ddd;
+          padding: 10px;
+          background: #fff;
+        }
+        .chat-input input {
+          flex: 1;
+          padding: 10px;
+          border-radius: 8px;
+          border: 1px solid #ddd;
+          outline: none;
+          margin-right: 8px;
+        }
+        .chat-input input:focus {
+          border-color: #007bff;
+        }
+        .chat-input button {
+          background: #007bff;
+          border: none;
+          color: white;
+          padding: 10px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .chat-input button:hover {
+          background: #0056b3;
+        }
+        .empty {
+          color: #777;
+          font-style: italic;
+        }
+      `}</style>
 
-      {/* Chat Box */}
-      <div className="chat-box">
-        <div className="chat-header">
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
-        </div>
-
-        <div className="messages">
-          {activeConversation &&
-          messages[activeConversation.id] &&
-          messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => {
-              const isOutgoing =
-                msg.from === "You" || msg.from?.name === "You";
-              return (
-                <div
-                  key={idx}
-                  className={`message ${isOutgoing ? "outgoing" : "incoming"}`}
-                >
-                  <div className="message-content">
-                    {msg.text || msg.message}
-                  </div>
-                  <div className="timestamp">
-                    {msg.timestamp || msg.created_time}
-                  </div>
-                </div>
-              );
-            })
+      <div className="chat-dashboard">
+        {/* Sidebar */}
+        <div className="sidebar">
+          <h3 className="sidebar-title">💬 Conversations</h3>
+          {!conversations.length ? (
+            <p className="empty">No conversations</p>
           ) : (
-            <p className="empty">No messages yet.</p>
+            conversations.map((conv) => (
+              <div
+                key={conv.id}
+                className={`conversation-item ${
+                  activeConversation?.id === conv.id ? "active" : ""
+                }`}
+                onClick={() => setActiveConversation(conv)}
+              >
+                <b>[{conv.pageName}]</b>{" "}
+                {conv.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ") || "Unnamed"}
+              </div>
+            ))
           )}
         </div>
 
-        {activeConversation && (
-          <div className="chat-input">
-            <input
-              type="text"
-              placeholder="Type a message..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && e.target.value.trim()) {
-                  sendMessage(e.target.value);
-                  e.target.value = "";
-                }
-              }}
-            />
-            <button
-              onClick={() => {
-                const input = document.querySelector(".chat-input input");
-                if (input.value.trim()) {
-                  sendMessage(input.value);
-                  input.value = "";
-                }
-              }}
-            >
-              Send
-            </button>
+        {/* Chat Box */}
+        <div className="chat-box">
+          <div className="chat-header">
+            {activeConversation
+              ? activeConversation.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ") || "Unnamed"
+              : "Select a conversation"}
           </div>
-        )}
+
+          <div className="messages">
+            {activeConversation &&
+            messages[activeConversation.id] &&
+            messages[activeConversation.id].length ? (
+              messages[activeConversation.id].map((msg, idx) => {
+                const isOutgoing =
+                  msg.from === "You" || msg.from?.name === "You";
+                return (
+                  <div
+                    key={idx}
+                    className={`message ${isOutgoing ? "outgoing" : "incoming"}`}
+                  >
+                    <div>{msg.text || msg.message}</div>
+                    <div className="timestamp">
+                      {msg.timestamp || msg.created_time}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="empty">No messages yet.</p>
+            )}
+          </div>
+
+          {activeConversation && (
+            <div className="chat-input">
+              <input
+                type="text"
+                placeholder="Type a message..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.target.value.trim()) {
+                    sendMessage(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const input = document.querySelector(".chat-input input");
+                  if (input.value.trim()) {
+                    sendMessage(input.value);
+                    input.value = "";
+                  }
+                }}
+              >
+                Send
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
