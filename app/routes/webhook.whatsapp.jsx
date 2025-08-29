@@ -29,15 +29,16 @@ export async function action({ request }) {
     const name = msg?.profile?.name || "";
 
     // Save to customerWhatsAppMessage
-    await prisma.customerWhatsAppMessage.create({
-      data: {
-        to: BUSINESS_NUMBER,
-        from: from,
-        message: text,
-        direction: "incoming",
-        timestamp: new Date(),
-      },
-    });
+ await prisma.customerWhatsAppMessage.create({
+  data: {
+    to: activeConversation.userNumber,
+    from: BUSINESS_NUMBER,
+    message: text,
+    direction: "outgoing",
+    timestamp: new Date(),
+  },
+});
+
 
     // (Optional) still maintain chatSession + chatMessage if needed by other parts of app
     await prisma.chatSession.upsert({
