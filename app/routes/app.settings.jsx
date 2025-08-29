@@ -124,22 +124,16 @@ export default function Settings() {
     });
   };
 
-  // Connect Page
   const handleConnectPage = (page) => {
     if (!connectedPages.some((p) => p.id === page.id)) {
       setConnectedPages([...connectedPages, page]);
-      setSelectedPage(page);
     }
-  };
-
-  // Disconnect Page
-  const handleDisconnectPage = (pageId) => {
-    setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
-    setSelectedPage(null);
   };
 
   return (
     <div style={{ padding: 20, display: "flex", gap: "30px" }}>
+      {/* <h2>Settings</h2> */}
+
       {/* Left Sidebar Buttons (Connect + Tab) */}
       <div className="seting" style={{ display: "block", minWidth: "180px" }}>
         <button style={{ marginBottom: 20 }} onClick={handleFBLogin}>
@@ -162,23 +156,16 @@ export default function Settings() {
           <div>
             <h3>Facebook Pages</h3>
             <ul>
-              {fbPages.map((p) => {
-                const isConnected = connectedPages.some((cp) => cp.id === p.id);
-                return (
-                  <li key={p.id}>
-                    {p.name}{" "}
-                    {isConnected ? (
-                      <button onClick={() => handleDisconnectPage(p.id)}>
-                        ❌ Disconnect
-                      </button>
-                    ) : (
-                      <button onClick={() => handleConnectPage(p)}>
-                        Connect
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
+              {fbPages.map((p) => (
+                <li key={p.id}>
+                  {p.name}{" "}
+                  <button onClick={() => handleConnectPage(p)}>
+                    {connectedPages.some((cp) => cp.id === p.id)
+                      ? "✅ Connected"
+                      : "Connect"}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         )}
@@ -187,23 +174,16 @@ export default function Settings() {
           <div>
             <h3>Instagram Accounts</h3>
             <ul>
-              {igPages.map((p) => {
-                const isConnected = connectedPages.some((cp) => cp.id === p.id);
-                return (
-                  <li key={p.id}>
-                    {p.name}{" "}
-                    {isConnected ? (
-                      <button onClick={() => handleDisconnectPage(p.id)}>
-                        ❌ Disconnect
-                      </button>
-                    ) : (
-                      <button onClick={() => handleConnectPage(p)}>
-                        Connect
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
+              {igPages.map((p) => (
+                <li key={p.id}>
+                  {p.name}{" "}
+                  <button onClick={() => handleConnectPage(p)}>
+                    {connectedPages.some((cp) => cp.id === p.id)
+                      ? "✅ Connected"
+                      : "Connect"}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         )}
@@ -211,26 +191,14 @@ export default function Settings() {
         {activePlatform === "whatsapp" && (
           <div>
             <h3>WhatsApp</h3>
-            {connectedPages.some((p) => p.id === "whatsapp") ? (
-              <button onClick={() => handleDisconnectPage("whatsapp")}>
-                ❌ Disconnect
-              </button>
-            ) : (
-              <button onClick={handleWhatsAppConnect}>Connect</button>
-            )}
+            <p>✅ Connected to WhatsApp</p>
           </div>
         )}
 
         {activePlatform === "chatwidget" && (
           <div>
             <h3>Chat Widget</h3>
-            {connectedPages.some((p) => p.id === "chatwidget") ? (
-              <button onClick={() => handleDisconnectPage("chatwidget")}>
-                ❌ Disconnect
-              </button>
-            ) : (
-              <button onClick={handleChatWidgetConnect}>Connect</button>
-            )}
+            <p>✅ Connected to Chat Widget</p>
           </div>
         )}
 
