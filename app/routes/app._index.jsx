@@ -373,216 +373,222 @@ if (page.type === "whatsapp") {
     }
   };
 
-  return (
+return (
+  <div
+    style={{
+      display: "flex",
+      height: "90vh",
+      border: "1px solid #ddd",
+      borderRadius: "12px",
+      overflow: "hidden",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+      fontFamily: "Arial, sans-serif",
+      background: "#f5f7fb", // overall light bg
+    }}
+  >
+    {/* Conversations List */}
     <div
       style={{
+        width: "28%",
+        borderRight: "1px solid #ddd",
+        padding: 15,
+        background: "#f0f2f9", // sidebar background color
         display: "flex",
-        height: "90vh",
-        border: "1px solid #ddd",
-        borderRadius: "12px",
-        overflow: "hidden",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-        fontFamily: "Arial, sans-serif",
+        flexDirection: "column",
+        overflowY: "auto",
       }}
     >
-      {/* Conversations List */}
-      <div
+      <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
+      {!conversations.length ? (
+        <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
+      ) : (
+        conversations.map((conv) => (
+          <div
+            key={conv.id}
+            style={{
+              padding: "10px 12px",
+              cursor: "pointer",
+              borderRadius: "8px",
+              marginBottom: 8,
+              transition: "0.2s",
+              background:
+                activeConversation?.id === conv.id ? "#e6f0ff" : "#fff",
+              fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
+              color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
+              border:
+                activeConversation?.id === conv.id
+                  ? "1px solid #c3dafe"
+                  : "1px solid #eee",
+              boxShadow:
+                activeConversation?.id === conv.id
+                  ? "0 2px 6px rgba(26,115,232,0.15)"
+                  : "none",
+            }}
+            onClick={() => handleSelectConversation(conv)}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.background =
+                activeConversation?.id === conv.id ? "#e6f0ff" : "#f9fafb")
+            }
+            onMouseOut={(e) =>
+              (e.currentTarget.style.background =
+                activeConversation?.id === conv.id ? "#e6f0ff" : "#fff")
+            }
+          >
+            <b>[{conv.pageName}]</b>{" "}
+            {conv.participants?.data
+              ?.map((p) => p.name || p.username)
+              .join(", ") || "Unnamed"}
+          </div>
+        ))
+      )}
+    </div>
+
+    {/* Chat Box */}
+    <div
+      style={{
+        flex: 1,
+        padding: 15,
+        display: "flex",
+        flexDirection: "column",
+        background: "#fff", // chat area clean white
+      }}
+    >
+      <h3
         style={{
-          width: "28%",
-          borderRight: "1px solid #ddd",
-          padding: 15,
-          background: "#f9fafb",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto", // scroll bar
+          margin: "0 0 15px 0",
+          paddingBottom: "10px",
+          borderBottom: "1px solid #eee",
+          color: "#1a73e8",
         }}
       >
-        <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
-        {!conversations.length ? (
-          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
-        ) : (
-          conversations.map((conv) => (
-            <div
-              key={conv.id}
-              style={{
-                padding: "10px 12px",
-                cursor: "pointer",
-                borderRadius: "8px",
-                marginBottom: 8,
-                transition: "0.2s",
-                background:
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
-                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
-              }}
-              onClick={() => handleSelectConversation(conv)}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-              onMouseOut={(e) =>
-                (e.currentTarget.style.background =
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
-              }
-            >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
-            </div>
-          ))
-        )}
-      </div>
+        Chat:{" "}
+        {activeConversation
+          ? activeConversation.participants?.data
+              ?.map((p) => p.name || p.username)
+              .join(", ") || "Unnamed"
+          : "Select a conversation"}
+      </h3>
 
-      {/* Chat Box */}
       <div
         style={{
           flex: 1,
-          padding: 15,
+          overflowY: "auto",
+          border: "1px solid #ccc",
+          marginBottom: 12,
+          padding: 12,
+          borderRadius: "8px",
+          background: "#fafafa",
           display: "flex",
           flexDirection: "column",
-          background: "#fff",
+          gap: "10px",
         }}
       >
-        <h3
-          style={{
-            margin: "0 0 15px 0",
-            paddingBottom: "10px",
-            borderBottom: "1px solid #eee",
-            color: "#1a73e8",
-          }}
-        >
-          Chat:{" "}
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
-        </h3>
+        {activeConversation &&
+        messages[activeConversation.id] &&
+        messages[activeConversation.id].length ? (
+          messages[activeConversation.id].map((msg, idx) => {
+            const isMe =
+              msg?.sender === "me" ||
+              msg?.from === "me" ||
+              msg?.outgoing === true ||
+              msg?.direction === "out" ||
+              msg?._local === true ||
+              msg?.from_me === true;
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            border: "1px solid #ccc",
-            marginBottom: 12,
-            padding: 12,
-            borderRadius: "8px",
-            background: "#fafafa",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-          }}
-        >
-          {activeConversation &&
-          messages[activeConversation.id] &&
-          messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => {
-              // ✅ Only color blue if it was sent from your UI
-              const isMe =
-                msg?.sender === "me" ||
-                msg?.from === "me" ||
-                msg?.outgoing === true ||
-                msg?.direction === "out" ||
-                msg?._local === true ||
-                msg?.from_me === true;
-
-              return (
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  justifyContent: isMe ? "flex-end" : "flex-start",
+                }}
+              >
                 <div
-                  key={idx}
                   style={{
-                    display: "flex",
-                    justifyContent: isMe ? "flex-end" : "flex-start",
+                    padding: "10px 14px",
+                    borderRadius: "18px",
+                    background: isMe ? "#1a73e8" : "#e5e5ea",
+                    color: isMe ? "#fff" : "#000",
+                    maxWidth: "70%",
+                    wordWrap: "break-word",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                   }}
                 >
+                  <div style={{ fontSize: "0.95em" }}>
+                    {msg.text || msg.message}
+                  </div>
                   <div
                     style={{
-                      padding: "10px 14px",
-                      borderRadius: "18px",
-                      background: isMe ? "#1a73e8" : "#e5e5ea",
-                      color: isMe ? "#fff" : "#000",
-                      maxWidth: "70%",
-                      wordWrap: "break-word",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                      fontSize: "0.7em",
+                      marginTop: "5px",
+                      color: isMe ? "#dce6f9" : "#555",
+                      textAlign: "right",
                     }}
                   >
-                    <div style={{ fontSize: "0.95em" }}>
-                      {msg.text || msg.message}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.7em",
-                        marginTop: "5px",
-                        color: isMe ? "#dce6f9" : "#555",
-                        textAlign: "right",
-                      }}
-                    >
-                      {msg.timestamp || msg.created_time}
-                    </div>
+                    {msg.timestamp || msg.created_time}
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
-          )}
-        </div>
-
-        {activeConversation && (
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              type="text"
-              placeholder="Type a message..."
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid #ccc",
-                outline: "none",
-                transition: "0.2s",
-              }}
-              onFocus={(e) =>
-                (e.target.style.border = "1px solid #1a73e8")
-              }
-              onBlur={(e) =>
-                (e.target.style.border = "1px solid #ccc")
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  sendMessage(e.target.value);
-                  e.target.value = "";
-                }
-              }}
-            />
-            <button
-              style={{
-                padding: "10px 18px",
-                border: "none",
-                borderRadius: "8px",
-                background: "#1a73e8",
-                color: "#fff",
-                cursor: "pointer",
-                transition: "0.3s",
-                fontWeight: "bold",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#1669c1")
-              }
-              onMouseOut={(e) =>
-                (e.currentTarget.style.background = "#1a73e8")
-              }
-              onClick={() => {
-                const input = document.querySelector("input");
-                if (input.value) {
-                  sendMessage(input.value);
-                  input.value = "";
-                }
-              }}
-            >
-              Send
-            </button>
-          </div>
+              </div>
+            );
+          })
+        ) : (
+          <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
         )}
       </div>
+
+      {activeConversation && (
+        <div style={{ display: "flex", gap: "8px" }}>
+          <input
+            type="text"
+            placeholder="Type a message..."
+            style={{
+              flex: 1,
+              padding: "10px",
+              borderRadius: "8px",
+              border: "1px solid #ccc",
+              outline: "none",
+              transition: "0.2s",
+            }}
+            onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
+            onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                sendMessage(e.target.value);
+                e.target.value = "";
+              }
+            }}
+          />
+          <button
+            style={{
+              padding: "10px 18px",
+              border: "none",
+              borderRadius: "8px",
+              background: "#1a73e8",
+              color: "#fff",
+              cursor: "pointer",
+              transition: "0.3s",
+              fontWeight: "bold",
+            }}
+            onMouseOver={(e) =>
+              (e.currentTarget.style.background = "#1669c1")
+            }
+            onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
+            onClick={() => {
+              const input = document.querySelector("input");
+              if (input.value) {
+                sendMessage(input.value);
+                input.value = "";
+              }
+            }}
+          >
+            Send
+          </button>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
+
 
 
 
