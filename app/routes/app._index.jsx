@@ -400,89 +400,80 @@ if (page.type === "instagram" || page.type === "facebook") {
 
   /** ----------------- UI ----------------- **/
   return (
-    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
-      {/* Conversations List */}
-      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
-        <h3>Conversations</h3>
+    <div className="dashboard-container">
+      {/* Sidebar - Conversations */}
+      <div className="sidebar">
+        <h3>💬 Conversations</h3>
         {!conversations.length ? (
-          <p>No conversations</p>
+          <p className="empty">No conversations</p>
         ) : (
           conversations.map((conv) => (
             <div
               key={conv.id}
-              style={{
-                padding: 8,
-                cursor: "pointer",
-                background:
-                  activeConversation?.id === conv.id ? "#eee" : "transparent",
-              }}
+              className={`conversation-item ${
+                activeConversation?.id === conv.id ? "active" : ""
+              }`}
               onClick={() => handleSelectConversation(conv)}
             >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
+              <span className="page-tag">[{conv.pageName}]</span>
+              <span className="conv-name">
+                {conv.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ") || "Unnamed"}
+              </span>
             </div>
           ))
         )}
       </div>
 
       {/* Chat Box */}
-      <div
-        style={{
-          flex: 1,
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h3>
-          Chat:{" "}
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
-        </h3>
+      <div className="chat-box">
+        <div className="chat-header">
+          {activeConversation ? (
+            <>
+              <h3>
+                {activeConversation.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ") || "Unnamed"}
+              </h3>
+              <span className="chat-meta">from {activeConversation.pageName}</span>
+            </>
+          ) : (
+            <h3>Select a conversation</h3>
+          )}
+        </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            border: "1px solid #ccc",
-            marginBottom: 10,
-            padding: 10,
-          }}
-        >
+        <div className="chat-messages">
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <b>
-                  {typeof msg.from === "string"
-                    ? msg.from
-                    : msg.from?.name ||
-                      msg.from?.username ||
-                      msg.sender ||
-                      "User"}
-                  :
-                </b>{" "}
-                {msg.text || msg.message}{" "}
-                <small>{msg.timestamp || msg.created_time}</small>
+              <div
+                key={idx}
+                className={`message ${
+                  msg.from === "You" || msg.from?.name === "You"
+                    ? "sent"
+                    : "received"
+                }`}
+              >
+                <div className="bubble">
+                  <p>{msg.text || msg.message}</p>
+                  <span className="timestamp">
+                    {msg.timestamp || msg.created_time}
+                  </span>
+                </div>
               </div>
             ))
           ) : (
-            <p>No messages yet.</p>
+            <p className="empty">No messages yet.</p>
           )}
         </div>
 
         {activeConversation && (
-          <div style={{ display: "flex" }}>
+          <div className="chat-input">
             <input
               type="text"
               placeholder="Type a message..."
-              style={{ flex: 1, padding: 8 }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   sendMessage(e.target.value);
@@ -492,18 +483,170 @@ if (page.type === "instagram" || page.type === "facebook") {
             />
             <button
               onClick={() => {
-                const input = document.querySelector("input");
+                const input = document.querySelector(".chat-input input");
                 if (input.value) {
                   sendMessage(input.value);
                   input.value = "";
                 }
               }}
             >
-              Send
+              ➤
             </button>
           </div>
         )}
       </div>
+
+      <style>{`
+        .dashboard-container {
+          display: flex;
+          height: 90vh;
+          border-radius: 12px;
+          overflow: hidden;
+          background: #f8f9fa;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Sidebar */
+        .sidebar {
+          width: 28%;
+          background: #fff;
+          border-right: 1px solid #ddd;
+          padding: 15px;
+          overflow-y: auto;
+        }
+        .sidebar h3 {
+          margin-bottom: 15px;
+          font-size: 18px;
+          color: #333;
+        }
+        .conversation-item {
+          padding: 10px;
+          border-radius: 8px;
+          margin-bottom: 8px;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          background: #f1f3f5;
+          transition: background 0.2s;
+        }
+        .conversation-item:hover {
+          background: #e9ecef;
+        }
+        .conversation-item.active {
+          background: #007bff;
+          color: white;
+        }
+        .page-tag {
+          font-size: 12px;
+          color: #666;
+        }
+        .conversation-item.active .page-tag {
+          color: #dce7ff;
+        }
+        .conv-name {
+          font-weight: bold;
+          font-size: 14px;
+        }
+
+        /* Chat Box */
+        .chat-box {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: #fff;
+        }
+        .chat-header {
+          padding: 12px 15px;
+          border-bottom: 1px solid #ddd;
+          background: #f1f3f5;
+        }
+        .chat-header h3 {
+          margin: 0;
+          font-size: 16px;
+        }
+        .chat-meta {
+          font-size: 12px;
+          color: #666;
+        }
+
+        .chat-messages {
+          flex: 1;
+          padding: 15px;
+          overflow-y: auto;
+          background: #f8f9fa;
+        }
+        .message {
+          margin-bottom: 12px;
+          display: flex;
+        }
+        .message.sent {
+          justify-content: flex-end;
+        }
+        .message .bubble {
+          max-width: 70%;
+          padding: 10px 14px;
+          border-radius: 12px;
+          font-size: 14px;
+          line-height: 1.4;
+          position: relative;
+        }
+        .message.sent .bubble {
+          background: #007bff;
+          color: white;
+          border-bottom-right-radius: 2px;
+        }
+        .message.received .bubble {
+          background: #e9ecef;
+          color: #333;
+          border-bottom-left-radius: 2px;
+        }
+        .timestamp {
+          display: block;
+          font-size: 10px;
+          margin-top: 4px;
+          color: rgba(255,255,255,0.7);
+        }
+        .message.received .timestamp {
+          color: #777;
+        }
+
+        /* Input Area */
+        .chat-input {
+          display: flex;
+          border-top: 1px solid #ddd;
+          padding: 10px;
+          background: #fff;
+        }
+        .chat-input input {
+          flex: 1;
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 20px;
+          outline: none;
+          font-size: 14px;
+        }
+        .chat-input button {
+          margin-left: 8px;
+          background: #007bff;
+          border: none;
+          color: white;
+          padding: 0 16px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 18px;
+          transition: background 0.2s;
+        }
+        .chat-input button:hover {
+          background: #0056b3;
+        }
+
+        /* Empty States */
+        .empty {
+          color: #888;
+          text-align: center;
+          margin-top: 20px;
+        }
+      `}</style>
     </div>
   );
 }
