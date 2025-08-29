@@ -1,5 +1,6 @@
 import { useEffect, useContext } from "react";
 import { AppContext } from "./AppContext";
+import { Send } from "lucide-react";
 
 export default function SocialChatDashboard() {
   const {
@@ -374,98 +375,110 @@ if (page.type === "whatsapp") {
   };
 
   /** ----------------- UI ----------------- **/
+  /** ----------------- UI ----------------- **/
   return (
-    <div style={{ display: "flex", height: "90vh", border: "1px solid #ddd" }}>
+    <div className="flex h-[90vh] border rounded-lg shadow-md overflow-hidden">
       {/* Conversations List */}
-      <div style={{ width: "30%", borderRight: "1px solid #ddd", padding: 10 }}>
-        <h3>Conversations</h3>
+      <div className="w-1/3 border-r bg-gray-50 p-4 flex flex-col">
+        <h3 className="text-lg font-semibold mb-3">Conversations</h3>
         {!conversations.length ? (
-          <p>No conversations</p>
+          <p className="text-gray-500 text-sm">No conversations</p>
         ) : (
-          conversations.map((conv) => (
-            <div
-              key={conv.id}
-              style={{
-                padding: 8,
-                cursor: "pointer",
-                background:
-                  activeConversation?.id === conv.id ? "#eee" : "transparent",
-              }}
-              onClick={() => handleSelectConversation(conv)}
-            >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
-            </div>
-          ))
+          <div className="space-y-2 overflow-y-auto">
+            {conversations.map((conv) => (
+              <div
+                key={conv.id}
+                onClick={() => setActiveConversation(conv)}
+                className={`p-3 rounded-lg cursor-pointer transition 
+                  ${
+                    activeConversation?.id === conv.id
+                      ? "bg-blue-100 border border-blue-400"
+                      : "hover:bg-gray-200"
+                  }`}
+              >
+                <b className="block text-sm text-gray-800">
+                  [{conv.pageName}]
+                </b>
+                <span className="text-gray-600 text-sm">
+                  {conv.participants?.data
+                    ?.map((p) => p.name || p.username)
+                    .join(", ") || "Unnamed"}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
       {/* Chat Box */}
-      <div
-        style={{
-          flex: 1,
-          padding: 10,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <h3>
-          Chat:{" "}
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
-        </h3>
+      <div className="flex flex-col flex-1">
+        {/* Chat Header */}
+        <div className="p-4 border-b bg-white shadow-sm">
+          <h3 className="text-base font-medium text-gray-800">
+            Chat:{" "}
+            {activeConversation
+              ? activeConversation.participants?.data
+                  ?.map((p) => p.name || p.username)
+                  .join(", ")
+              : "Select a conversation"}
+          </h3>
+        </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            border: "1px solid #ccc",
-            marginBottom: 10,
-            padding: 10,
-          }}
-        >
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-4 space-y-3">
           {activeConversation &&
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => (
-              <div key={idx} style={{ marginBottom: 8 }}>
-                <b>
-                  {typeof msg.from === "string"
-                    ? msg.from
-                    : msg.from?.name ||
-                      msg.from?.username ||
-                      msg.sender ||
-                      "User"}
-                  :
-                </b>{" "}
-                {msg.text || msg.message}{" "}
-                <small>{msg.timestamp || msg.created_time}</small>
-              </div>
-            ))
+            messages[activeConversation.id].map((msg, idx) => {
+              const isOutgoing =
+                msg.from === "You" ||
+                msg.from?.name === "You" ||
+                msg.sender === "agent";
+              return (
+                <div
+                  key={idx}
+                  className={`flex ${
+                    isOutgoing ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-xs p-3 rounded-xl shadow 
+                      ${
+                        isOutgoing
+                          ? "bg-blue-500 text-white"
+                          : "bg-white text-gray-800"
+                      }`}
+                  >
+                    <p className="text-sm">{msg.text || msg.message}</p>
+                    <small className="block text-[10px] opacity-70 mt-1">
+                      {msg.timestamp || msg.created_time}
+                    </small>
+                  </div>
+                </div>
+              );
+            })
           ) : (
-            <p>No messages yet.</p>
+            <p className="text-gray-500 text-sm">No messages yet.</p>
           )}
         </div>
 
+        {/* Input */}
         {activeConversation && (
-          <div style={{ display: "flex" }}>
+          <div className="p-3 border-t bg-white flex items-center space-x-2">
             <input
               type="text"
               placeholder="Type a message..."
-              style={{ flex: 1, padding: 8 }}
+              className="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === "Enter" && e.target.value.trim()) {
+                  // call your sendMessage
                   sendMessage(e.target.value);
                   e.target.value = "";
                 }
               }}
             />
             <button
+              className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg"
               onClick={() => {
                 const input = document.querySelector("input");
                 if (input.value) {
@@ -474,7 +487,7 @@ if (page.type === "whatsapp") {
                 }
               }}
             >
-              Send
+              <Send size={18} />
             </button>
           </div>
         )}
@@ -482,3 +495,4 @@ if (page.type === "whatsapp") {
     </div>
   );
 }
+
