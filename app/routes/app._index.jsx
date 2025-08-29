@@ -399,7 +399,7 @@ if (page.type === "instagram" || page.type === "facebook") {
   };
 
   /** ----------------- UI ----------------- **/
-  return (
+ return (
     <div className="dashboard-container">
       {/* Sidebar - Conversations */}
       <div className="sidebar">
@@ -413,7 +413,7 @@ if (page.type === "instagram" || page.type === "facebook") {
               className={`conversation-item ${
                 activeConversation?.id === conv.id ? "active" : ""
               }`}
-              onClick={() => handleSelectConversation(conv)}
+              onClick={() => setActiveConversation(conv)}
             >
               <span className="page-tag">[{conv.pageName}]</span>
               <span className="conv-name">
@@ -436,13 +436,16 @@ if (page.type === "instagram" || page.type === "facebook") {
                   ?.map((p) => p.name || p.username)
                   .join(", ") || "Unnamed"}
               </h3>
-              <span className="chat-meta">from {activeConversation.pageName}</span>
+              <span className="chat-meta">
+                from {activeConversation.pageName}
+              </span>
             </>
           ) : (
             <h3>Select a conversation</h3>
           )}
         </div>
 
+        {/* Messages */}
         <div className="chat-messages">
           {activeConversation &&
           messages[activeConversation.id] &&
@@ -469,14 +472,25 @@ if (page.type === "instagram" || page.type === "facebook") {
           )}
         </div>
 
+        {/* Input */}
         {activeConversation && (
           <div className="chat-input">
             <input
               type="text"
               placeholder="Type a message..."
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  sendMessage(e.target.value);
+                if (e.key === "Enter" && e.target.value.trim()) {
+                  setMessages((prev) => ({
+                    ...prev,
+                    [activeConversation.id]: [
+                      ...(prev[activeConversation.id] || []),
+                      {
+                        from: "You",
+                        message: e.target.value,
+                        timestamp: new Date().toISOString(),
+                      },
+                    ],
+                  }));
                   e.target.value = "";
                 }
               }}
@@ -484,8 +498,18 @@ if (page.type === "instagram" || page.type === "facebook") {
             <button
               onClick={() => {
                 const input = document.querySelector(".chat-input input");
-                if (input.value) {
-                  sendMessage(input.value);
+                if (input.value.trim()) {
+                  setMessages((prev) => ({
+                    ...prev,
+                    [activeConversation.id]: [
+                      ...(prev[activeConversation.id] || []),
+                      {
+                        from: "You",
+                        message: input.value,
+                        timestamp: new Date().toISOString(),
+                      },
+                    ],
+                  }));
                   input.value = "";
                 }
               }}
@@ -496,14 +520,16 @@ if (page.type === "instagram" || page.type === "facebook") {
         )}
       </div>
 
+      {/* ✅ Styling */}
       <style>{`
         .dashboard-container {
           display: flex;
           height: 90vh;
           border-radius: 12px;
           overflow: hidden;
-          background: #f8f9fa;
+          background: #f0f2f5;
           box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          font-family: 'Segoe UI', sans-serif;
         }
 
         /* Sidebar */
@@ -526,14 +552,14 @@ if (page.type === "instagram" || page.type === "facebook") {
           cursor: pointer;
           display: flex;
           flex-direction: column;
-          background: #f1f3f5;
+          background: #f7f9fa;
           transition: background 0.2s;
         }
         .conversation-item:hover {
           background: #e9ecef;
         }
         .conversation-item.active {
-          background: #007bff;
+          background: #25d366;
           color: white;
         }
         .page-tag {
@@ -541,7 +567,7 @@ if (page.type === "instagram" || page.type === "facebook") {
           color: #666;
         }
         .conversation-item.active .page-tag {
-          color: #dce7ff;
+          color: #d8f8e5;
         }
         .conv-name {
           font-weight: bold;
@@ -553,12 +579,12 @@ if (page.type === "instagram" || page.type === "facebook") {
           flex: 1;
           display: flex;
           flex-direction: column;
-          background: #fff;
+          background: #ece5dd;
         }
         .chat-header {
           padding: 12px 15px;
           border-bottom: 1px solid #ddd;
-          background: #f1f3f5;
+          background: #fff;
         }
         .chat-header h3 {
           margin: 0;
@@ -573,7 +599,7 @@ if (page.type === "instagram" || page.type === "facebook") {
           flex: 1;
           padding: 15px;
           overflow-y: auto;
-          background: #f8f9fa;
+          background: #e5ddd5;
         }
         .message {
           margin-bottom: 12px;
@@ -583,34 +609,41 @@ if (page.type === "instagram" || page.type === "facebook") {
           justify-content: flex-end;
         }
         .message .bubble {
-          max-width: 70%;
+          max-width: 65%;
           padding: 10px 14px;
-          border-radius: 12px;
+          border-radius: 18px;
           font-size: 14px;
           line-height: 1.4;
           position: relative;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* ✅ DIFFERENT COLORS */
+        /* ✅ Different colors */
         .message.sent .bubble {
-          background: #007bff; /* Blue */
-          color: #fff;         /* White text */
-          border-bottom-right-radius: 2px;
+          background: #25d366; /* WhatsApp green */
+          color: white;
+          border-bottom-right-radius: 4px;
         }
         .message.received .bubble {
-          background: #e9ecef; /* Light gray */
-          color: #222;         /* Dark text */
-          border-bottom-left-radius: 2px;
+          background: #fff;
+          color: #222;
+          border-bottom-left-radius: 4px;
         }
 
+        .timestamp {
+          display: block;
+          font-size: 10px;
+          margin-top: 4px;
+          opacity: 0.7;
+        }
         .message.sent .timestamp {
-          color: rgba(255, 255, 255, 0.7);
+          color: #f0f0f0;
         }
         .message.received .timestamp {
-          color: #555;
+          color: #888;
         }
 
-        /* Input Area */
+        /* Input */
         .chat-input {
           display: flex;
           border-top: 1px solid #ddd;
@@ -619,15 +652,18 @@ if (page.type === "instagram" || page.type === "facebook") {
         }
         .chat-input input {
           flex: 1;
-          padding: 10px;
+          padding: 10px 14px;
           border: 1px solid #ccc;
           border-radius: 20px;
           outline: none;
           font-size: 14px;
         }
+        .chat-input input:focus {
+          border-color: #25d366;
+        }
         .chat-input button {
           margin-left: 8px;
-          background: #007bff;
+          background: #25d366;
           border: none;
           color: white;
           padding: 0 16px;
@@ -637,10 +673,9 @@ if (page.type === "instagram" || page.type === "facebook") {
           transition: background 0.2s;
         }
         .chat-input button:hover {
-          background: #0056b3;
+          background: #1ebe5c;
         }
 
-        /* Empty States */
         .empty {
           color: #888;
           text-align: center;
@@ -649,5 +684,4 @@ if (page.type === "instagram" || page.type === "facebook") {
       `}</style>
     </div>
   );
-
 }
