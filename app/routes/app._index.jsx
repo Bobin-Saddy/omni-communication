@@ -17,15 +17,18 @@ export default function SocialChatDashboard() {
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const WHATSAPP_TOKEN = "EAAHv...ZDZD"; // keep your token
+  const WHATSAPP_TOKEN =
+    "EAAHvZAZB8ZCmugBPRgHGFSTweHGPR0O9m8iSRnzSZAkA8zAVZCUUgsP18KYtD5zQvhmxC7x4m9WBr3jehcU3SmVugIHCpfGisQe4ulaioGlBJb8PlzBtGnCKOPNvr2Br5pF6ZC4CJKOfFMLfZAg28YygayRGZCOjAdSyiGKqugZBqTMZCZBTOi1lJclcWUJCcmE1jCivOpHqHKKm1V6wtWmBwdZAP23HVhVMiIeHTdTBOk65DQZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
+  /** ----------------- LOAD CONVERSATIONS ----------------- **/
   useEffect(() => {
     if (!connectedPages.length) return;
     connectedPages.forEach((page) => fetchConversations(page));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedPages]);
 
+  /** ----------------- SSE for chatwidget (real-time) ----------------- **/
   useEffect(() => {
     if (activeConversation?.pageType === "chatwidget") {
       const es = new EventSource(
@@ -33,6 +36,7 @@ export default function SocialChatDashboard() {
           activeConversation.storeDomain || ""
         )}`
       );
+
       es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -47,12 +51,20 @@ export default function SocialChatDashboard() {
           console.warn("SSE parse error", e);
         }
       };
+
+      es.onerror = (err) => {
+        // optionally reconnect logic
+        console.warn("SSE error", err);
+      };
+
       return () => es.close();
     }
   }, [activeConversation, setMessages]);
 
+  /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
     try {
+      // WhatsApp
       if (page.type === "whatsapp") {
         const res = await fetch("/whatsapp-users");
         const users = await res.json();
@@ -71,12 +83,14 @@ export default function SocialChatDashboard() {
         return;
       }
 
+      // Instagram
       if (page.type === "instagram") {
         const res = await fetch(
           `https://graph.facebook.com/v18.0/${page.pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${page.access_token}`
         );
         const data = await res.json();
         if (!Array.isArray(data?.data)) return;
+
         const conversationsWithNames = data.data.map((conv) => {
           const parts = conv.participants?.data || [];
           const other = parts.find(
@@ -93,6 +107,7 @@ export default function SocialChatDashboard() {
             updated_time: conv.updated_time,
           };
         });
+
         setConversations((prev) => [
           ...prev.filter((c) => c.pageId !== page.id),
           ...conversationsWithNames,
@@ -100,6 +115,7 @@ export default function SocialChatDashboard() {
         return;
       }
 
+      // Facebook
       if (page.type === "facebook") {
         const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
         const res = await fetch(url);
@@ -126,9 +142,11 @@ export default function SocialChatDashboard() {
         return;
       }
 
+      // Chat Widget (fetch sessions)
       if (page.type === "chatwidget") {
         const res = await fetch(`/api/chat?widget=true`);
         const data = await res.json();
+
         if (Array.isArray(data?.sessions)) {
           const convs = data.sessions.map((s) => ({
             id: s.sessionId,
@@ -145,9 +163,11 @@ export default function SocialChatDashboard() {
             ...convs,
           ]);
 
+          // Auto-select first conversation and load messages
           if (convs.length > 0) {
             const firstConv = convs[0];
             setActiveConversation(firstConv);
+
             const msgRes = await fetch(
               `/api/chat?storeDomain=${encodeURIComponent(
                 firstConv.storeDomain || "myshop.com"
@@ -171,10 +191,13 @@ export default function SocialChatDashboard() {
     }
   };
 
+  /** ----------------- SELECT CONVERSATION ----------------- **/
   const handleSelectConversation = async (conv) => {
     setActiveConversation(conv);
+
     const page = connectedPages.find((p) => p.id === conv.pageId);
     if (!page) return;
+
     try {
       if (page.type === "chatwidget") {
         const res = await fetch(
@@ -182,6 +205,7 @@ export default function SocialChatDashboard() {
             conv.storeDomain || "myshop.com"
           )}&sessionId=${encodeURIComponent(conv.id)}`
         );
+
         if (res.ok) {
           const data = await res.json();
           setMessages((prev) => ({
@@ -193,6 +217,7 @@ export default function SocialChatDashboard() {
         const res = await fetch(
           `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
         );
+
         if (res.ok) {
           const data = await res.json();
           setMessages((prev) => ({
@@ -210,91 +235,190 @@ export default function SocialChatDashboard() {
     }
   };
 
-  // ----------------- FIXED sendMessage -----------------
+  /** ----------------- SEND MESSAGE (supports file for chatwidget) ----------------- **/
   const sendMessage = async (text = "", file = null) => {
     if (!activeConversation) return;
     const page = connectedPages.find((p) => p.id === activeConversation.pageId);
     if (!page) return;
 
     try {
-      // other channels kept same (WhatsApp/IG/FB) — omitted here for brevity in this snippet
-      // ---------- ChatWidget (text or file) ----------
-      if (page.type === "chatwidget") {
-        if (file) {
-          const localId = "temp-" + Date.now();
+      // ---------- WhatsApp ----------
+      if (page.type === "whatsapp") {
+        await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.userNumber,
+              text: { body: text },
+            }),
+          }
+        );
 
-          // optimistic message (shows blob image immediately)
-          const optimistic = {
-            _tempId: localId,
-            sender: "me",                 // <-- IMPORTANT: mark as 'me'
-            text: text || null,
-            fileUrl: URL.createObjectURL(file), // blob URL for immediate preview
-            fileName: file.name,
-            createdAt: new Date().toISOString(),
-            uploading: true,
-          };
+        await fetch("/save-whatsapp-messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: activeConversation.userNumber,
+            from: WHATSAPP_PHONE_NUMBER_ID,
+            message: text,
+            direction: "outgoing",
+          }),
+        });
 
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            {
+              from: "You",
+              message: text,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        }));
+        return;
+      }
+
+      // ---------- Instagram ----------
+      if (page.type === "instagram") {
+        const recipientId =
+          activeConversation.recipientId ||
+          activeConversation.participants?.data?.find(
+            (p) => p.id && p.id !== page.igId
+          )?.id;
+        if (!recipientId) return console.error("No IG recipient id");
+
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_type: "RESPONSE",
+              recipient: { id: recipientId },
+              message: { text },
+            }),
+          }
+        );
+        const result = await res.json();
+        if (res.ok && result.id) {
           setMessages((prev) => ({
             ...prev,
             [activeConversation.id]: [
               ...(prev[activeConversation.id] || []),
-              optimistic,
+              {
+                from: { name: "You" },
+                message: text,
+                created_time: new Date().toISOString(),
+              },
             ],
           }));
+        } else {
+          console.error("Instagram send failed:", result);
+        }
+        return;
+      }
 
-          setUploading(true);
+      // ---------- Facebook ----------
+      if (page.type === "facebook") {
+        const userParticipant = activeConversation.participants?.data?.find(
+          (p) => p.id !== page.id
+        );
+        if (!userParticipant) return;
 
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipient: { id: userParticipant.id },
+              message: { text },
+              messaging_type: "MESSAGE_TAG",
+              tag: "ACCOUNT_UPDATE",
+            }),
+          }
+        );
+
+        const result = await res.json();
+        if (res.ok && result.message_id) {
+          setMessages((prev) => ({
+            ...prev,
+            [activeConversation.id]: [
+              ...(prev[activeConversation.id] || []),
+              {
+                from: { name: "You" },
+                message: text,
+                created_time: new Date().toISOString(),
+              },
+            ],
+          }));
+        }
+        return;
+      }
+
+      // ---------- ChatWidget (text or file) ----------
+      if (page.type === "chatwidget") {
+        if (file) {
+          // send file via FormData
           try {
+            const localId = "temp-" + Date.now();
+            // Optimistic UI: add temp message
+            const optimistic = {
+              _tempId: localId,
+              sender: "me",
+              text: text || null,
+              fileUrl: URL.createObjectURL(file),
+              fileName: file.name,
+              createdAt: new Date().toISOString(),
+              uploading: true,
+            };
+            setMessages((prev) => ({
+              ...prev,
+              [activeConversation.id]: [
+                ...(prev[activeConversation.id] || []),
+                optimistic,
+              ],
+            }));
+
+            setUploading(true);
+
             const formData = new FormData();
             formData.append("sessionId", activeConversation.id);
             formData.append(
               "storeDomain",
               activeConversation.storeDomain || "myshop.com"
             );
-            // <-- SEND SENDER AS "me" (fixes your issue)
-            formData.append("sender", "me");
+            formData.append("sender", "customer"); // or "me" based on your mapping
             formData.append("file", file);
-            formData.append("localId", localId); // optional: server can echo it back
+            // include localId so you can track it server-side if desired (server may ignore)
+            formData.append("localId", localId);
 
             const res = await fetch(`/api/chat`, {
               method: "POST",
               body: formData,
             });
-
             const data = await res.json().catch(() => null);
+
             setUploading(false);
 
             if (data && data.ok && data.message) {
-              // server returned saved message
-              let serverMsg = data.message;
-
-              // FALLBACK: server might only return fileName (no fileUrl)
-              if (!serverMsg.fileUrl && serverMsg.fileName) {
-                // if fileName is already an absolute URL use it, else build path
-                if (/^https?:\/\//i.test(serverMsg.fileName)) {
-                  serverMsg.fileUrl = serverMsg.fileName;
-                } else {
-                  // adjust this fallback to match your server storage path
-                  const fallbackPath = `/uploads/${serverMsg.fileName}`;
-                  // make absolute
-                  serverMsg.fileUrl =
-                    serverMsg.fileUrl || window.location.origin + fallbackPath;
-                }
-              }
-
-              // replace optimistic message with server message (match by localId)
+              // replace optimistic message by finding _tempId
               setMessages((prev) => {
                 const arr = [...(prev[activeConversation.id] || [])];
                 const idx = arr.findIndex((m) => m._tempId === localId);
                 if (idx !== -1) {
-                  arr[idx] = serverMsg;
+                  arr[idx] = data.message;
                 } else {
-                  arr.push(serverMsg);
+                  arr.push(data.message);
                 }
                 return { ...prev, [activeConversation.id]: arr };
               });
             } else {
-              // mark optimistic as failed
+              // on failure: mark optimistic as failed
               setMessages((prev) => {
                 const arr = [...(prev[activeConversation.id] || [])];
                 const idx = arr.findIndex((m) => m._tempId === localId);
@@ -312,19 +436,10 @@ export default function SocialChatDashboard() {
           } catch (err) {
             console.error("File upload failed", err);
             setUploading(false);
-            setMessages((prev) => {
-              const arr = [...(prev[activeConversation.id] || [])];
-              const idx = arr.findIndex((m) => m._tempId === localId);
-              if (idx !== -1) {
-                arr[idx] = { ...arr[idx], uploading: false, failed: true };
-              }
-              return { ...prev, [activeConversation.id]: arr };
-            });
           }
-
           return;
         } else {
-          // text-only
+          // text message (JSON)
           await fetch(`/api/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -354,7 +469,7 @@ export default function SocialChatDashboard() {
     }
   };
 
-  // ----------------- UI & Render (file rendering updated) -----------------
+  /** ----------------- UI ----------------- **/
   return (
     <div
       style={{
@@ -462,24 +577,9 @@ export default function SocialChatDashboard() {
                 msg.from?.phone_number_id === activeConversation.pageId ||
                 msg.sender === "me" ||
                 msg.from === "me" ||
-                msg._tempId;
+                msg._tempId; // optimistic sent messages
 
               const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
-
-              // compute displayable file URL (handles blob, server fileUrl, or fallback from fileName)
-              let displayFileUrl = null;
-              if (msg.fileUrl) {
-                displayFileUrl = msg.fileUrl;
-              } else if (msg.fileName) {
-                if (/^https?:\/\//i.test(msg.fileName)) {
-                  displayFileUrl = msg.fileName;
-                } else {
-                  // fallback path (change if your server stores files somewhere else)
-                  displayFileUrl = window.location.origin + `/uploads/${msg.fileName}`;
-                }
-              }
-
-              const isImage = displayFileUrl && /\.(jpe?g|png|gif|webp|bmp)$/i.test(displayFileUrl);
 
               return (
                 <div
@@ -500,19 +600,21 @@ export default function SocialChatDashboard() {
                       boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     }}
                   >
+                    {/* text */}
                     {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
 
-                    {displayFileUrl && (
+                    {/* file */}
+                    {msg.fileUrl && (
                       <div style={{ marginTop: text ? 8 : 0 }}>
-                        {isImage ? (
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
                           <img
-                            src={displayFileUrl}
+                            src={msg.fileUrl}
                             alt={msg.fileName || "image"}
                             style={{ maxWidth: "220px", borderRadius: 10 }}
                           />
                         ) : (
                           <a
-                            href={displayFileUrl}
+                            href={msg.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
@@ -520,7 +622,6 @@ export default function SocialChatDashboard() {
                             📎 {msg.fileName || "Download file"}
                           </a>
                         )}
-
                         {msg.uploading && (
                           <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
                             Uploading...
@@ -561,6 +662,7 @@ export default function SocialChatDashboard() {
 
         {activeConversation && (
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {/* Hidden file input */}
             <input
               ref={fileInputRef}
               id="dashboard-file-input"
@@ -569,6 +671,7 @@ export default function SocialChatDashboard() {
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) {
+                  // send file (no text)
                   sendMessage("", f);
                   e.target.value = "";
                 }
@@ -588,6 +691,7 @@ export default function SocialChatDashboard() {
               📎
             </label>
 
+            {/* Text input */}
             <input
               ref={textInputRef}
               type="text"
@@ -613,6 +717,7 @@ export default function SocialChatDashboard() {
               }}
             />
 
+            {/* Send button */}
             <button
               style={{
                 padding: "10px 18px",
@@ -624,6 +729,8 @@ export default function SocialChatDashboard() {
                 transition: "0.3s",
                 fontWeight: "bold",
               }}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
               onClick={() => {
                 const input = textInputRef.current;
                 if (input && input.value.trim()) {
