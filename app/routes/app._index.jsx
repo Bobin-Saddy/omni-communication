@@ -745,39 +745,37 @@ setMessages((prev) => {
                     {/* file */}
         {msg.fileUrl && (
   <div style={{ marginTop: text ? 8 : 0 }}>
+    {/* Display image if fileUrl ends with common image extensions */}
     {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
       <img
         src={msg.fileUrl}
         alt={msg.fileName || "image"}
-        style={{ maxWidth: "220px", borderRadius: 10 }}
+        style={{
+          maxWidth: "220px",
+          borderRadius: 10,
+          objectFit: "cover",
+        }}
       />
     ) : (
+      // Display a download link for other files
       <a
         href={msg.fileUrl}
         target="_blank"
         rel="noopener noreferrer"
-        style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+        style={{ color: isMe ? "#dce6f9" : "#1a73e8", textDecoration: "underline" }}
       >
         📎 {msg.fileName || "Download file"}
       </a>
     )}
 
+    {/* Uploading indicator */}
     {msg.uploading && (
-      <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-        Uploading...
-      </div>
+      <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>
     )}
 
+    {/* Failed upload indicator */}
     {msg.failed && (
-      <div
-        style={{
-          fontSize: 12,
-          color: "#ff6b6b",
-          marginTop: 6,
-        }}
-      >
-        Upload failed
-      </div>
+      <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 6 }}>Upload failed</div>
     )}
   </div>
 )}
