@@ -316,7 +316,6 @@ const sendMessage = async (text = "", file = null) => {
     // Optimistic message (only once!)
     const optimistic = {
       _tempId: localId,
-      sender: "me",
       text: text || null,
       createdAt: new Date().toISOString(),
       uploading: !!file,
