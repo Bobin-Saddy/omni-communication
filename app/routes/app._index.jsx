@@ -532,12 +532,13 @@ const sendMessage = async (text = "", file = null) => {
  const optimistic = {
   _tempId: localId,
   sender: "me",
-  text: text || null,
-  fileUrl: file ? URL.createObjectURL(file) : null,
+  text: null,  // keep text null for files
+  fileUrl: file ? URL.createObjectURL(file) : null, // this creates a temporary local URL
   fileName: file?.name || null,
   createdAt: new Date().toISOString(),
   uploading: !!file,
 };
+
 
     setMessages((prev) => ({
       ...prev,
@@ -578,14 +579,14 @@ const sendMessage = async (text = "", file = null) => {
     const res = await fetch(`/api/chat`, { method: "POST", body: formData });
     const data = await res.json().catch(() => null);
 
- setMessages((prev) => {
+setMessages((prev) => {
   const arr = [...(prev[activeConversation.id] || [])];
   const idx = arr.findIndex((m) => m._tempId === localId);
   if (idx !== -1) {
     arr[idx] = {
       ...arr[idx],
-      ...data?.message,
-      fileUrl: data?.message?.fileUrl || arr[idx].fileUrl, // fallback to optimistic
+      ...data?.message,                       // backend returned data
+      fileUrl: data?.message?.fileUrl || arr[idx].fileUrl, // fallback
       uploading: false,
       failed: data?.ok ? false : true,
     };
@@ -593,6 +594,7 @@ const sendMessage = async (text = "", file = null) => {
   }
   return { ...prev, [activeConversation.id]: arr };
 });
+
 
   }
 };
@@ -741,39 +743,21 @@ const sendMessage = async (text = "", file = null) => {
                     {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
 
                     {/* file */}
-                    {msg.fileUrl && (
-                      <div style={{ marginTop: text ? 8 : 0 }}>
-                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-                          <img
-                            src={msg.fileUrl}
-                            alt={msg.fileName || "image"}
-                            style={{ maxWidth: "220px", borderRadius: 10 }}
-                          />
-                        ) : (
-                          <a
-                            href={msg.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-                          >
-                            📎 {msg.fileName || "Download file"}
-                          </a>
-                        )}
-                {msg.uploading && <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>}
-
-                        {msg.failed && (
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#ff6b6b",
-                              marginTop: 6,
-                            }}
-                          >
-                            Upload failed
-                          </div>
-                        )}
-                      </div>
-                    )}
+             {msg.fileUrl ? (
+  /\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+    <img
+      src={msg.fileUrl}
+      alt={msg.fileName || "image"}
+      style={{ maxWidth: "220px", borderRadius: 10 }}
+    />
+  ) : (
+    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+      📎 {msg.fileName || "Download file"}
+    </a>
+  )
+) : (
+  <div>{msg.text}</div>
+)}
 
                     <div
                       style={{
