@@ -307,14 +307,15 @@ if (page.type === "whatsapp") {
 
 
   /** ----------------- SEND MESSAGE (supports file for chatwidget) ----------------- **/
-const sendMessage = async (text = "", file = null, conversationId = null) => {
-  const convId = conversationId || activeConversation?.id;
-  if (!convId) return;
+const sendMessage = async (text = "", file = null) => {
+  if (!activeConversation) return;
+  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+  if (!page) return;
 
   const localId = "temp-" + Date.now();
   const optimistic = {
     _tempId: localId,
-    sender: "me",
+    sender: "me",                   // <-- always "me" for outgoing
     text: text || null,
     fileUrl: file ? URL.createObjectURL(file) : null,
     fileName: file?.name || null,
@@ -325,9 +326,11 @@ const sendMessage = async (text = "", file = null, conversationId = null) => {
   // Add optimistic message
   setMessages((prev) => ({
     ...prev,
-    [convId]: [...(prev[convId] || []), optimistic],
+    [activeConversation.id]: [
+      ...(prev[activeConversation.id] || []),
+      optimistic,
+    ],
   }));
-
 
   try {
     // ---------- WhatsApp ----------
