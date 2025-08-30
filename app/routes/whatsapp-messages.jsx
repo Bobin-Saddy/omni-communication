@@ -2,8 +2,6 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const BUSINESS_NUMBER = "106660072463312"; // your business WhatsApp number
-// ----------------- FETCH MESSAGES -----------------
-// ----------------- FETCH MESSAGES -----------------
 export async function loader({ request }) {
   const url = new URL(request.url);
   const number = url.searchParams.get("number");
@@ -22,7 +20,7 @@ export async function loader({ request }) {
     orderBy: { timestamp: "asc" },
   });
 
-  // Only include text and sender, no business number
+  // Only text and sender, remove business number completely
   const normalized = messages.map((m) => ({
     id: m.id,
     text: m.message,
@@ -35,6 +33,7 @@ export async function loader({ request }) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
 
 
 // ----------------- HANDLE OUTGOING MESSAGES -----------------
