@@ -648,10 +648,11 @@ const sendMessage = async (text = "", file = null) => {
                   activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
               }
             >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
+            <b>[WhatsApp]</b>{" "} {/* don't show the number */}
+{conv.participants?.data
+  ?.map((p) => p.name || p.username)
+  .join(", ") || "Unnamed"}
+
             </div>
           ))
         )}
