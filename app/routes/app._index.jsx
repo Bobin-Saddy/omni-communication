@@ -576,7 +576,7 @@ export default function SocialChatDashboard() {
                 msg.from?.id === activeConversation.pageId ||
                 msg.from?.phone_number_id === activeConversation.pageId ||
                 msg.sender === "me" ||
-                msg.from === "me" ||
+                msg.from === "customer" ||
                 msg._tempId; // optimistic sent messages
 
               const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
