@@ -284,21 +284,22 @@ const handleSelectConversation = async (conv) => {
     }
 
     // ---------- WhatsApp ----------
-    if (page.type === "whatsapp") {
-      const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [conv.id]: Array.isArray(data)
-            ? data.map((msg) => ({
-                ...msg,
-                sender: msg.fromMe ? "me" : "them",
-              }))
-            : [],
-        }));
-      }
-    }
+if (page.type === "whatsapp") {
+  const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+  if (res.ok) {
+    const data = await res.json();
+    setMessages((prev) => ({
+      ...prev,
+      [conv.id]: Array.isArray(data)
+        ? data.map((msg) => ({
+            ...msg,
+            sender: msg.fromMe ? "me" : "them",
+          }))
+        : [],
+    }));
+  }
+}
+
   } catch (error) {
     console.error("Error loading messages:", error);
   }
@@ -333,28 +334,51 @@ const sendMessage = async (text = "", file = null) => {
 
   try {
     // ---------- WhatsApp ----------
-    if (page.type === "whatsapp") {
-      await fetch(
-        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            to: activeConversation.userNumber,
-            text: { body: text },
-          }),
-        }
-      );
-      // mark uploaded
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) arr[idx].uploading = false;
-        return { ...prev, [activeConversation.id]: arr };
-      });
-      return;
+if (page.type === "whatsapp") {
+  const localId = "temp-" + Date.now();
+  const optimistic = {
+    _tempId: localId,
+    sender: "me",
+    text,
+    createdAt: new Date().toISOString(),
+    uploading: false,
+  };
+
+  setMessages((prev) => ({
+    ...prev,
+    [activeConversation.id]: [
+      ...(prev[activeConversation.id] || []),
+      optimistic,
+    ],
+  }));
+
+  // Send via API
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: activeConversation.userNumber,
+        text: { body: text },
+      }),
     }
+  );
+
+  const data = await res.json().catch(() => null);
+
+  // Mark optimistic message as sent
+  setMessages((prev) => {
+    const arr = [...(prev[activeConversation.id] || [])];
+    const idx = arr.findIndex((m) => m._tempId === localId);
+    if (idx !== -1) arr[idx] = { ...arr[idx], _tempId: undefined };
+    return { ...prev, [activeConversation.id]: arr };
+  });
+
+  if (!res.ok) console.error("WhatsApp send failed:", data);
+  return;
+}
 
     // ---------- Instagram ----------
     if (page.type === "instagram") {
