@@ -651,7 +651,8 @@ const sendMessage = async (text = "", file = null) => {
 {conv.participants?.data
   ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
   .map((p) => p.name || p.username)
-  .join(", ") || "Unnamed"}
+  .join(", ")}
+
 
 
 
@@ -679,12 +680,13 @@ const sendMessage = async (text = "", file = null) => {
           }}
         >
           Chat:{" "}
-     {activeConversation
+{activeConversation
   ? activeConversation.participants?.data
       ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
       .map((p) => p.name || p.username)
-      .join(", ") || "Unnamed"
-  : "Select a conversation"}
+      .join(", ")
+  : ""}
+
 
         </h3>
 
