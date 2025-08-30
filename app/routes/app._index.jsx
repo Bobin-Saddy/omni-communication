@@ -367,7 +367,7 @@ const sendMessage = async (text = "", file = null) => {
   body: JSON.stringify({
     number: activeConversation.userNumber,
     text,
-    direction: "outgoing", // ✅ important
+    direction: "incoming", // ✅ important
     createdAt: new Date().toISOString(),
   }),
 });
