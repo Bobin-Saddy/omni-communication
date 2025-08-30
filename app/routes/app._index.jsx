@@ -314,225 +314,258 @@ const sendMessage = async (text = "", file = null) => {
   if (!page) return;
 
   const localId = "temp-" + Date.now();
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",                   // <-- always "me" for outgoing
-    text: text || null,
-    fileUrl: file ? URL.createObjectURL(file) : null,
-    fileName: file?.name || null,
-    createdAt: new Date().toISOString(),
-    uploading: !!file,
-  };
 
-  // Add optimistic message
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [
-      ...(prev[activeConversation.id] || []),
-      optimistic,
-    ],
-  }));
+  // ---------- WhatsApp ----------
+  if (page.type === "whatsapp") {
+    const convId = activeConversation.id;
 
-  try {
-if (page.type === "whatsapp") {
-  const convId = activeConversation.id; // use active conversation
-  const localId = "temp-" + Date.now();
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",
-    text,
-    createdAt: new Date().toISOString(),
-    uploading: false,
-  };
+    // Optimistic message (only once!)
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      text: text || null,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
 
-  // Add optimistic message to current conversation only
-  setMessages((prev) => ({
-    ...prev,
-    [convId]: [...(prev[convId] || []), optimistic],
-  }));
+    setMessages((prev) => ({
+      ...prev,
+      [convId]: [...(prev[convId] || []), optimistic],
+    }));
 
-  try {
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: activeConversation.userNumber,
-          text: { body: text },
-        }),
-      }
-    );
-
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      console.error("WhatsApp send failed:", data);
-      setMessages((prev) => {
-        const arr = [...(prev[convId] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) arr[idx].failed = true;
-        return { ...prev, [convId]: arr };
-      });
-      return;
-    }
-
-    // Save to DB
-await fetch(`/whatsapp-messages`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    number: activeConversation.userNumber,
-    text,
-    direction: "outgoing",  // marks it as sent
-    createdAt: new Date().toISOString(),
-  }),
-});
-
-
-    // Remove tempId after DB save
-    setMessages((prev) => {
-      const arr = [...(prev[convId] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) delete arr[idx]._tempId;
-      return { ...prev, [convId]: arr };
-    });
-  } catch (err) {
-    console.error("WhatsApp send/save error:", err);
-  }
-}
-
-
-
-    // ---------- Instagram ----------
-    if (page.type === "instagram") {
-      const recipientId =
-        activeConversation.recipientId ||
-        activeConversation.participants?.data?.find(
-          (p) => p.id && p.id !== page.igId
-        )?.id;
-      if (!recipientId) return console.error("No IG recipient id");
-
+    try {
       const res = await fetch(
-        `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
+        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messaging_type: "RESPONSE",
-            recipient: { id: recipientId },
-            message: { text },
+            messaging_product: "whatsapp",
+            to: activeConversation.userNumber,
+            text: { body: text },
           }),
         }
       );
-      const result = await res.json();
 
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          arr[idx] = {
-            ...arr[idx],
-            text,
-            sender: "me",            // <-- fix blue color
-            uploading: false,
-            createdAt: new Date().toISOString(),
-          };
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
+      const data = await res.json().catch(() => null);
 
-      if (!res.ok) console.error("Instagram send failed:", result);
-      return;
-    }
-
-    // ---------- Facebook ----------
-    if (page.type === "facebook") {
-      const userParticipant = activeConversation.participants?.data?.find(
-        (p) => p.id !== page.id
-      );
-      if (!userParticipant) return;
-
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipient: { id: userParticipant.id },
-            message: { text },
-            messaging_type: "MESSAGE_TAG",
-            tag: "ACCOUNT_UPDATE",
-          }),
-        }
-      );
-      const result = await res.json();
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          arr[idx] = {
-            ...arr[idx],
-            text,
-            sender: "me",             // <-- fix blue color
-            uploading: false,
-            createdAt: new Date().toISOString(),
-          };
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
-
-      if (!res.ok) console.error("Facebook send failed:", result);
-      return;
-    }
-
-    // ---------- ChatWidget ----------
-    if (page.type === "chatwidget") {
-      if (!file) {
-        await fetch(`/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: activeConversation.id,
-            storeDomain: activeConversation.storeDomain || "myshop.com",
-            message: text,
-            sender: "me",
-          }),
-        });
+      if (!res.ok) {
+        console.error("WhatsApp send failed:", data);
         setMessages((prev) => {
-          const arr = [...(prev[activeConversation.id] || [])];
+          const arr = [...(prev[convId] || [])];
           const idx = arr.findIndex((m) => m._tempId === localId);
-          if (idx !== -1) arr[idx].uploading = false;
-          return { ...prev, [activeConversation.id]: arr };
+          if (idx !== -1) arr[idx].failed = true;
+          return { ...prev, [convId]: arr };
         });
         return;
       }
 
-      // file upload
-      const formData = new FormData();
-      formData.append("sessionId", activeConversation.id);
-      formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
-      formData.append("sender", "me");
-      formData.append("file", file);
-      formData.append("localId", localId);
+      // Save to DB
+      await fetch(`/whatsapp-messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: activeConversation.userNumber,
+          text,
+          direction: "outgoing", // marks it as sent
+          createdAt: new Date().toISOString(),
+        }),
+      });
 
-      const res = await fetch(`/api/chat`, { method: "POST", body: formData });
-      const data = await res.json().catch(() => null);
+      // Remove tempId after DB save
+      setMessages((prev) => {
+        const arr = [...(prev[convId] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1) delete arr[idx]._tempId;
+        return { ...prev, [convId]: arr };
+      });
+    } catch (err) {
+      console.error("WhatsApp send/save error:", err);
+    }
+    return; // ✅ stop here so no double optimistic
+  }
 
+  // ---------- Instagram ----------
+  if (page.type === "instagram") {
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      text,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        optimistic,
+      ],
+    }));
+
+    const recipientId =
+      activeConversation.recipientId ||
+      activeConversation.participants?.data?.find(
+        (p) => p.id && p.id !== page.igId
+      )?.id;
+    if (!recipientId) return console.error("No IG recipient id");
+
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messaging_type: "RESPONSE",
+          recipient: { id: recipientId },
+          message: { text },
+        }),
+      }
+    );
+    const result = await res.json();
+
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) {
+        arr[idx] = {
+          ...arr[idx],
+          text,
+          sender: "me", // blue color
+          uploading: false,
+          createdAt: new Date().toISOString(),
+        };
+      }
+      return { ...prev, [activeConversation.id]: arr };
+    });
+
+    if (!res.ok) console.error("Instagram send failed:", result);
+    return;
+  }
+
+  // ---------- Facebook ----------
+  if (page.type === "facebook") {
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      text,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        optimistic,
+      ],
+    }));
+
+    const userParticipant = activeConversation.participants?.data?.find(
+      (p) => p.id !== page.id
+    );
+    if (!userParticipant) return;
+
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: { id: userParticipant.id },
+          message: { text },
+          messaging_type: "MESSAGE_TAG",
+          tag: "ACCOUNT_UPDATE",
+        }),
+      }
+    );
+    const result = await res.json();
+
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) {
+        arr[idx] = {
+          ...arr[idx],
+          text,
+          sender: "me",
+          uploading: false,
+          createdAt: new Date().toISOString(),
+        };
+      }
+      return { ...prev, [activeConversation.id]: arr };
+    });
+
+    if (!res.ok) console.error("Facebook send failed:", result);
+    return;
+  }
+
+  // ---------- ChatWidget ----------
+  if (page.type === "chatwidget") {
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      text: text || null,
+      fileUrl: file ? URL.createObjectURL(file) : null,
+      fileName: file?.name || null,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
+
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        optimistic,
+      ],
+    }));
+
+    if (!file) {
+      await fetch(`/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: activeConversation.id,
+          storeDomain: activeConversation.storeDomain || "myshop.com",
+          message: text,
+          sender: "me",
+        }),
+      });
       setMessages((prev) => {
         const arr = [...(prev[activeConversation.id] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          if (data?.ok && data.message) arr[idx] = data.message;
-          else arr[idx] = { ...arr[idx], uploading: false, failed: true, error: data?.error || "Upload failed" };
-        }
+        if (idx !== -1) arr[idx].uploading = false;
         return { ...prev, [activeConversation.id]: arr };
       });
+      return;
     }
-  } catch (err) {
-    console.error("Error sending message:", err);
+
+    // file upload
+    const formData = new FormData();
+    formData.append("sessionId", activeConversation.id);
+    formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
+    formData.append("sender", "me");
+    formData.append("file", file);
+    formData.append("localId", localId);
+
+    const res = await fetch(`/api/chat`, { method: "POST", body: formData });
+    const data = await res.json().catch(() => null);
+
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) {
+        if (data?.ok && data.message) arr[idx] = data.message;
+        else
+          arr[idx] = {
+            ...arr[idx],
+            uploading: false,
+            failed: true,
+            error: data?.error || "Upload failed",
+          };
+      }
+      return { ...prev, [activeConversation.id]: arr };
+    });
   }
 };
 
