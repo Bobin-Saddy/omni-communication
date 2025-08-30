@@ -2,6 +2,7 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
+// ----------------- FETCH MESSAGES -----------------
 export async function loader({ request }) {
   const url = new URL(request.url);
   const number = url.searchParams.get("number");
@@ -17,12 +18,12 @@ export async function loader({ request }) {
     orderBy: { timestamp: "asc" },
   });
 
+  // Normalize sender for UI
   const normalized = messages.map((m) => ({
     id: m.id,
     text: m.message,
     createdAt: m.timestamp,
     sender: m.direction === "outgoing" ? "me" : "them",
-    waMessageId: m.waMessageId || null,
   }));
 
   return new Response(JSON.stringify(normalized), {
@@ -31,10 +32,11 @@ export async function loader({ request }) {
   });
 }
 
+// ----------------- HANDLE OUTGOING MESSAGES -----------------
 export async function action({ request }) {
   try {
     const data = await request.json();
-    const { number, text, sender, direction, createdAt, waMessageId, localId } = data;
+    const { number, text, sender } = data;
 
     if (!number || !text) {
       return new Response(
@@ -48,9 +50,8 @@ export async function action({ request }) {
         from: sender === "me" ? "me" : number,
         to: sender === "me" ? number : "me",
         message: text,
-        timestamp: createdAt ? new Date(createdAt) : new Date(),
-        direction: direction || (sender === "me" ? "outgoing" : "incoming"),
-        waMessageId: waMessageId || undefined, // optional — requires schema column
+        timestamp: new Date(),
+        direction: sender === "me" ? "outgoing" : "incoming",
       },
     });
 
@@ -62,8 +63,6 @@ export async function action({ request }) {
           text: message.message,
           createdAt: message.timestamp,
           sender: message.direction === "outgoing" ? "me" : "them",
-          waMessageId: message.waMessageId || null,
-          localId: localId || null,
         },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
