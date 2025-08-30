@@ -597,6 +597,17 @@ const sendMessage = async (text = "", file = null) => {
   }
 };
 
+// Add this helper function at the top of your component
+const formatTime = (time) => {
+  if (!time) return "";
+  const date = new Date(time);
+  if (isNaN(date)) return time; // fallback if invalid date
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const hour12 = hours % 12 || 12;
+  return `${hour12}:${minutes} ${ampm}`;
+};
 
 
   /** ----------------- UI ----------------- **/
@@ -783,7 +794,8 @@ const sendMessage = async (text = "", file = null) => {
                         textAlign: "right",
                       }}
                     >
-                      {msg.timestamp || msg.createdAt || msg.created_time || ""}
+{formatTime(msg.timestamp || msg.createdAt || msg.created_time)}
+
                     </div>
                   </div>
                 </div>
