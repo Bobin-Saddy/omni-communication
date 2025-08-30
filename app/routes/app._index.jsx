@@ -288,16 +288,16 @@ if (page.type === "whatsapp") {
   const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
   if (res.ok) {
     const data = await res.json();
-    setMessages((prev) => ({
-      ...prev,
-      [conv.id]: Array.isArray(data)
-        ? data.map((msg) => ({
-            ...msg,
-sender: msg.direction === "outgoing" ? "me" : "them",
+setMessages((prev) => ({
+  ...prev,
+  [conv.id]: Array.isArray(data)
+    ? data.map((msg) => ({
+        ...msg,
+        sender: msg.direction === "outgoing" ? "me" : "them",   // ✅ correct
+    }))
+    : [],
+}));
 
-          }))
-        : [],
-    }));
   }
 }
 
@@ -674,14 +674,15 @@ const sendMessage = async (text = "", file = null) => {
           messages[activeConversation.id] &&
           messages[activeConversation.id].length ? (
             messages[activeConversation.id].map((msg, idx) => {
-              const isMe =
-                msg.from?.id === activeConversation.pageId ||
-                msg.from?.phone_number_id === activeConversation.pageId ||
-                msg.sender === "me" ||
-                msg.from === "me" ||
-                msg._tempId; // optimistic sent messages
+  const isMe =
+  msg.from?.id === activeConversation.pageId ||
+  msg.from?.phone_number_id === activeConversation.pageId ||
+  msg.sender === "me" ||
+  msg.from === "me" ||
+  msg._tempId;
 
-              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
+            const text = msg.text || msg.message || msg.body || "";
+
 
               return (
                 <div
