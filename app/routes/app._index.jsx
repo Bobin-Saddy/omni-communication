@@ -361,16 +361,17 @@ const sendMessage = async (text = "", file = null) => {
       }
 
       // Save to DB
-      await fetch(`/whatsapp-messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          number: activeConversation.userNumber,
-          text,
-          direction: "outgoing", // marks it as sent
-          createdAt: new Date().toISOString(),
-        }),
-      });
+ await fetch(`/whatsapp-messages`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    number: activeConversation.userNumber,
+    text,
+    direction: "outgoing", // ✅ important
+    createdAt: new Date().toISOString(),
+  }),
+});
+
 
       // Remove tempId after DB save
       setMessages((prev) => {

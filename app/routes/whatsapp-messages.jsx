@@ -2,6 +2,7 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
+// ----------------- FETCH MESSAGES -----------------
 export async function loader({ request }) {
   const url = new URL(request.url);
   const number = url.searchParams.get("number");
@@ -17,7 +18,15 @@ export async function loader({ request }) {
     orderBy: { timestamp: "asc" },
   });
 
-  return new Response(JSON.stringify(messages), {
+  // Normalize sender for UI
+  const normalized = messages.map((m) => ({
+    id: m.id,
+    text: m.message,
+    createdAt: m.timestamp,
+    sender: m.direction === "outgoing" ? "me" : "them",
+  }));
+
+  return new Response(JSON.stringify(normalized), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
@@ -42,12 +51,20 @@ export async function action({ request }) {
         to: sender === "me" ? number : "me",
         message: text,
         timestamp: new Date(),
-        direction: sender === "me" ? "outgoing" : "incoming", // <-- add this
+        direction: sender === "me" ? "outgoing" : "incoming",
       },
     });
 
     return new Response(
-      JSON.stringify({ ok: true, message }),
+      JSON.stringify({
+        ok: true,
+        message: {
+          id: message.id,
+          text: message.message,
+          createdAt: message.timestamp,
+          sender: message.direction === "outgoing" ? "me" : "them",
+        },
+      }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
@@ -58,4 +75,3 @@ export async function action({ request }) {
     );
   }
 }
-
