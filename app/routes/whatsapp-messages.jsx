@@ -15,8 +15,8 @@ if (!number) {
 const messages = await prisma.customerWhatsAppMessage.findMany({
   where: {
     OR: [
-      { from: BUSINESS_NUMBER, to: number },
-      { from: number, to: BUSINESS_NUMBER },
+      { from: BUSINESS_NUMBER },
+      { to: BUSINESS_NUMBER },
     ],
   },
   orderBy: { timestamp: "asc" },
