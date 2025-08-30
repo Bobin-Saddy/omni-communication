@@ -335,7 +335,7 @@ const sendMessage = async (text = "", file = null) => {
   try {
 // ---------- WhatsApp ----------
 if (page.type === "whatsapp") {
-  const convId = activeConversation.id; // ensure we always use the correct conversation ID
+  const convId = activeConversation.id; // always use the current conversation
   const localId = "temp-" + Date.now();
   const optimistic = {
     _tempId: localId,
@@ -352,7 +352,7 @@ if (page.type === "whatsapp") {
   }));
 
   try {
-    // 1️⃣ Send via WhatsApp API
+    // Send via WhatsApp API
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
       {
@@ -378,7 +378,7 @@ if (page.type === "whatsapp") {
       return;
     }
 
-    // 2️⃣ Save to DB (with direction)
+    // Save to DB
     await fetch(`/whatsapp-messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -391,7 +391,7 @@ if (page.type === "whatsapp") {
       }),
     });
 
-    // 3️⃣ Remove tempId after DB save
+    // Remove tempId after DB save
     setMessages((prev) => {
       const arr = [...(prev[convId] || [])];
       const idx = arr.findIndex((m) => m._tempId === localId);
