@@ -315,7 +315,7 @@ const sendMessage = async (text = "", file = null) => {
   const localId = "temp-" + Date.now();
   const optimistic = {
     _tempId: localId,
-    sender: "me",                   // <-- always "me" for outgoing
+    sender: "me", // always "me" for outgoing → makes bubble blue
     text: text || null,
     fileUrl: file ? URL.createObjectURL(file) : null,
     fileName: file?.name || null,
@@ -334,61 +334,66 @@ const sendMessage = async (text = "", file = null) => {
 
   try {
     // ---------- WhatsApp ----------
-// ---------- WhatsApp ----------
-if (page.type === "whatsapp") {
-  try {
-    // 1️⃣ Send via WhatsApp API
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: activeConversation.userNumber,
-          text: { body: text },
-        }),
-      }
-    );
-    const data = await res.json().catch(() => null);
+    if (page.type === "whatsapp") {
+      try {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.userNumber,
+              text: { body: text },
+            }),
+          }
+        );
+        const data = await res.json().catch(() => null);
 
-    if (!res.ok) {
-      console.error("WhatsApp send failed:", data);
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) arr[idx].failed = true;
-        return { ...prev, [activeConversation.id]: arr };
-      });
+        if (!res.ok) {
+          console.error("WhatsApp send failed:", data);
+          setMessages((prev) => {
+            const arr = [...(prev[activeConversation.id] || [])];
+            const idx = arr.findIndex((m) => m._tempId === localId);
+            if (idx !== -1) arr[idx].failed = true;
+            return { ...prev, [activeConversation.id]: arr };
+          });
+          return;
+        }
+
+        // Save to DB
+        await fetch(`/whatsapp-messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            number: activeConversation.userNumber, // contact number → not "me"
+            text,
+            sender: "me", // keep "me" for chat bubble blue
+            direction: "outgoing",
+            createdAt: new Date().toISOString(),
+          }),
+        });
+
+        // Update optimistic → bubble stays blue
+        setMessages((prev) => {
+          const arr = [...(prev[activeConversation.id] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) {
+            arr[idx] = {
+              ...arr[idx],
+              sender: "me", // ensure blue bubble
+              uploading: false,
+              createdAt: new Date().toISOString(),
+            };
+            delete arr[idx]._tempId;
+          }
+          return { ...prev, [activeConversation.id]: arr };
+        });
+      } catch (err) {
+        console.error("WhatsApp send/save error:", err);
+      }
       return;
     }
-
-    // 2️⃣ Save to DB
-    await fetch(`/whatsapp-messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        number: activeConversation.userNumber,
-        text,
-        sender: "me",
-        direction: "outgoing",
-        createdAt: new Date().toISOString(),
-      }),
-    });
-
-    // 3️⃣ Remove _tempId after DB save
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) delete arr[idx]._tempId;
-      return { ...prev, [activeConversation.id]: arr };
-    });
-  } catch (err) {
-    console.error("WhatsApp send/save error:", err);
-  }
-  return;
-}
-
 
     // ---------- Instagram ----------
     if (page.type === "instagram") {
@@ -420,7 +425,7 @@ if (page.type === "whatsapp") {
           arr[idx] = {
             ...arr[idx],
             text,
-            sender: "me",            // <-- fix blue color
+            sender: "me",
             uploading: false,
             createdAt: new Date().toISOString(),
           };
@@ -461,7 +466,7 @@ if (page.type === "whatsapp") {
           arr[idx] = {
             ...arr[idx],
             text,
-            sender: "me",             // <-- fix blue color
+            sender: "me",
             uploading: false,
             createdAt: new Date().toISOString(),
           };
@@ -495,7 +500,6 @@ if (page.type === "whatsapp") {
         return;
       }
 
-      // file upload
       const formData = new FormData();
       formData.append("sessionId", activeConversation.id);
       formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
@@ -511,7 +515,13 @@ if (page.type === "whatsapp") {
         const idx = arr.findIndex((m) => m._tempId === localId);
         if (idx !== -1) {
           if (data?.ok && data.message) arr[idx] = data.message;
-          else arr[idx] = { ...arr[idx], uploading: false, failed: true, error: data?.error || "Upload failed" };
+          else
+            arr[idx] = {
+              ...arr[idx],
+              uploading: false,
+              failed: true,
+              error: data?.error || "Upload failed",
+            };
         }
         return { ...prev, [activeConversation.id]: arr };
       });
@@ -520,6 +530,7 @@ if (page.type === "whatsapp") {
     console.error("Error sending message:", err);
   }
 };
+
 
 
   /** ----------------- UI ----------------- **/
