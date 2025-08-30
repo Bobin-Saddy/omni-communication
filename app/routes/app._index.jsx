@@ -219,7 +219,7 @@ useEffect(() => {
           }));
         }
       } else if (page.type === "instagram" || page.type === "facebook") {
-  const res = await fetch(
+ const res = await fetch(
     `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
   );
 
@@ -229,9 +229,9 @@ useEffect(() => {
       ? data.data.sort((a, b) => new Date(a.created_time) - new Date(b.created_time))
       : [];
 
-    // Map to consistent format
+    // Map messages with correct sender
     const formattedMessages = sortedMessages.map((msg) => ({
-      sender: msg.from?.id === page.id ? "me" : "them",
+      sender: msg.from?.id === page.igId ? "me" : "them",
       text: msg.message,
       createdAt: msg.created_time,
       id: msg.id,
