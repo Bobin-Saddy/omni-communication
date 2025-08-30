@@ -628,50 +628,31 @@ const sendMessage = async (text = "", file = null) => {
           <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
         ) : (
           conversations.map((conv) => (
-        <div
-  key={conv.id}
-  style={{
-    padding: "10px 12px",
-    cursor: "pointer",
-    borderRadius: "8px",
-    marginBottom: 8,
-    transition: "0.2s",
-    background:
-      activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-    fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
-    color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
-  }}
-  onClick={() => handleSelectConversation(conv)}
-  onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-  onMouseOut={(e) =>
-    (e.currentTarget.style.background =
-      activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
-  }
->
-  <div style={{ fontWeight: "600" }}>
-    [{conv.pageName}]{" "}
-    {conv.participants?.data?.map((p) => p.name || p.username).join(", ") ||
-      "Unnamed"}
-  </div>
-
-  {/* ✅ show last message preview */}
-  <div
-    style={{
-      fontSize: "0.85em",
-      color: "#555",
-      marginTop: "4px",
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-    }}
-  >
-    {messages[conv.id]?.length
-      ? messages[conv.id][messages[conv.id].length - 1].text ||
-        messages[conv.id][messages[conv.id].length - 1].message
-      : "No messages yet"}
-  </div>
-</div>
-
+            <div
+              key={conv.id}
+              style={{
+                padding: "10px 12px",
+                cursor: "pointer",
+                borderRadius: "8px",
+                marginBottom: 8,
+                transition: "0.2s",
+                background:
+                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
+                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
+                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
+              }}
+              onClick={() => handleSelectConversation(conv)}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+              onMouseOut={(e) =>
+                (e.currentTarget.style.background =
+                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
+              }
+            >
+              <b>[{conv.pageName}]</b>{" "}
+              {conv.participants?.data
+                ?.map((p) => p.name || p.username)
+                .join(", ") || "Unnamed"}
+            </div>
           ))
         )}
       </div>
