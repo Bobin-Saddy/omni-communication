@@ -285,18 +285,12 @@ const handleSelectConversation = async (conv) => {
 
     // ---------- WhatsApp ----------
 if (page.type === "whatsapp") {
-  const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
   if (res.ok) {
     const data = await res.json();
     setMessages((prev) => ({
       ...prev,
-      [conv.id]: Array.isArray(data)
-        ? data.map((msg) => ({
-            ...msg,
-sender: msg.direction === "outgoing" ? "me" : "them",
-
-          }))
-        : [],
+    [conv.id]: Array.isArray(data) ? data : [],
     }));
   }
 }
