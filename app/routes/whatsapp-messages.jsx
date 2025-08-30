@@ -22,13 +22,12 @@ export async function loader({ request }) {
     orderBy: { timestamp: "asc" },
   });
 
-  // Remove BUSINESS_NUMBER and normalize sender
+  // Only include text and sender, no business number
   const normalized = messages.map((m) => ({
     id: m.id,
     text: m.message,
     createdAt: m.timestamp,
-    sender: m.from === BUSINESS_NUMBER ? "me" : "them", // outgoing = me, incoming = them
-    contact: m.from === BUSINESS_NUMBER ? m.to : m.from,  // show only other party
+    sender: m.from === BUSINESS_NUMBER ? "me" : "them",
   }));
 
   return new Response(JSON.stringify(normalized), {
