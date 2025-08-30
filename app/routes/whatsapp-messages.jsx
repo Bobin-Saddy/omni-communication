@@ -6,18 +6,22 @@ const BUSINESS_NUMBER = "106660072463312"; // your business WhatsApp number
 // ----------------- FETCH MESSAGES -----------------
 export async function loader({ request }) {
   const url = new URL(request.url);
-  const number = url.searchParams.get("number");
+const number = url.searchParams.get("number");
 
-  if (!number) {
-    return new Response(JSON.stringify([]), { status: 200 });
-  }
+if (!number) {
+  return new Response(JSON.stringify([]), { status: 200 });
+}
 
-  const messages = await prisma.customerWhatsAppMessage.findMany({
-    where: {
-      OR: [{ from: number }, { to: number }],
-    },
-    orderBy: { timestamp: "asc" },
-  });
+const messages = await prisma.customerWhatsAppMessage.findMany({
+  where: {
+    OR: [
+      { from: BUSINESS_NUMBER, to: number },
+      { from: number, to: BUSINESS_NUMBER },
+    ],
+  },
+  orderBy: { timestamp: "asc" },
+});
+
 
   // ✅ Always set sender based on direction
   const normalized = messages.map((m) => ({
