@@ -21,22 +21,24 @@ const messages = await prisma.customerWhatsAppMessage.findMany({
   },
   orderBy: { timestamp: "asc" },
   select: {
-    id: true,
-    from: true,
-    to: true,
     message: true,
     timestamp: true,
+    from: true,
+    to: true,
   },
 });
 
-// Replace BUSINESS_NUMBER with placeholder
-const sanitizedMessages = messages.map(msg => ({
-  ...msg,
-  from: msg.from === BUSINESS_NUMBER ? "You" : msg.from,
-  to: msg.to === BUSINESS_NUMBER ? "You" : msg.to,
-}));
+// Remove BUSINESS_NUMBER from the result
+const filteredMessages = messages.map(msg => {
+  return {
+    message: msg.message,
+    timestamp: msg.timestamp,
+    from: msg.from === BUSINESS_NUMBER ? undefined : msg.from,
+    to: msg.to === BUSINESS_NUMBER ? undefined : msg.to,
+  };
+});
 
-console.log(sanitizedMessages);
+console.log(filteredMessages);
 
 
   // ✅ Always set sender based on direction
