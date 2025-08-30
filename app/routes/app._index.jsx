@@ -624,39 +624,35 @@ const sendMessage = async (text = "", file = null) => {
         }}
       >
         <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
-        {!conversations.length ? (
-          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
-        ) : (
-          conversations.map((conv) => (
-            <div
-              key={conv.id}
-              style={{
-                padding: "10px 12px",
-                cursor: "pointer",
-                borderRadius: "8px",
-                marginBottom: 8,
-                transition: "0.2s",
-                background:
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
-                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
-              }}
-              onClick={() => handleSelectConversation(conv)}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-              onMouseOut={(e) =>
-                (e.currentTarget.style.background =
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
-              }
-            >
-<b>[WhatsApp]</b>{" "}
-{conv.participants?.data
-  ?.map((p) => p.name || p.username)
-  .join(", ") || "Unnamed"}
+ // Conversation list
+{conversations.map((conv) => {
+  // Remove business number from participants
+  const participants = conv.participants?.data
+    ?.filter(p => p.name !== BUSINESS_NUMBER && p.username !== BUSINESS_NUMBER)
+    .map(p => p.name || p.username)
+    .join(", ") || "Unnamed";
 
+  return (
+    <div
+      key={conv.id}
+      style={{
+        padding: "10px 12px",
+        cursor: "pointer",
+        borderRadius: "8px",
+        marginBottom: 8,
+        transition: "0.2s",
+        background:
+          activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
+        fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
+        color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
+      }}
+      onClick={() => handleSelectConversation(conv)}
+    >
+      <b>[WhatsApp]</b> {participants}
+    </div>
+  );
+})}
 
-            </div>
-          ))
-        )}
       </div>
 
       {/* Chat Box */}
