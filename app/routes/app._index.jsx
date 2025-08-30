@@ -529,22 +529,23 @@ const sendMessage = async (text = "", file = null) => {
   // ---------- ChatWidget ----------
   if (page.type === "chatwidget") {
     // (unchanged)
-const optimistic = {
+ const optimistic = {
   _tempId: localId,
   sender: "me",
-  text: null, // for files
-  fileUrl: null, // initially null until backend responds
+  text: text || null,
+  fileUrl: file ? URL.createObjectURL(file) : null,
   fileName: file?.name || null,
   createdAt: new Date().toISOString(),
-  uploading: true,
-  failed: false,
+  uploading: !!file,
 };
 
-// Add optimistic message
-setMessages((prev) => ({
-  ...prev,
-  [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
-}));
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        optimistic,
+      ],
+    }));
 
     if (!file) {
       await fetch(`/api/chat`, {
@@ -567,26 +568,24 @@ setMessages((prev) => ({
     }
 
     // file upload
-// Send file to backend
-const formData = new FormData();
-formData.append("sessionId", activeConversation.id);
-formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
-formData.append("sender", "me");
-formData.append("file", file);
-formData.append("localId", localId);
+    const formData = new FormData();
+    formData.append("sessionId", activeConversation.id);
+    formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
+    formData.append("sender", "me");
+    formData.append("file", file);
+    formData.append("localId", localId);
 
-const res = await fetch(`/api/chat`, { method: "POST", body: formData });
-const data = await res.json().catch(() => null);
+    const res = await fetch(`/api/chat`, { method: "POST", body: formData });
+    const data = await res.json().catch(() => null);
 
-// Update message with actual image URL from backend
-setMessages((prev) => {
+ setMessages((prev) => {
   const arr = [...(prev[activeConversation.id] || [])];
   const idx = arr.findIndex((m) => m._tempId === localId);
   if (idx !== -1) {
     arr[idx] = {
       ...arr[idx],
       ...data?.message,
-      fileUrl: data?.message?.fileUrl || null, // backend URL
+      fileUrl: data?.message?.fileUrl || arr[idx].fileUrl, // fallback to optimistic
       uploading: false,
       failed: data?.ok ? false : true,
     };
@@ -594,7 +593,6 @@ setMessages((prev) => {
   }
   return { ...prev, [activeConversation.id]: arr };
 });
-
 
   }
 };
@@ -743,27 +741,39 @@ setMessages((prev) => {
                     {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
 
                     {/* file */}
-        {msg.fileUrl && (
-  <div style={{ marginTop: text ? 8 : 0 }}>
-    <img
-      src={msg.fileUrl} // backend-provided URL
-      alt={msg.fileName || "image"}
-      style={{
-        maxWidth: "220px",
-        borderRadius: 10,
-        objectFit: "cover",
-      }}
-    />
+                    {msg.fileUrl && (
+                      <div style={{ marginTop: text ? 8 : 0 }}>
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                          <img
+                            src={msg.fileUrl}
+                            alt={msg.fileName || "image"}
+                            style={{ maxWidth: "220px", borderRadius: 10 }}
+                          />
+                        ) : (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                          >
+                            📎 {msg.fileName || "Download file"}
+                          </a>
+                        )}
+                {msg.uploading && <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>}
 
-    {msg.uploading && (
-      <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>
-    )}
-
-    {msg.failed && (
-      <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 6 }}>Upload failed</div>
-    )}
-  </div>
-)}
+                        {msg.failed && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#ff6b6b",
+                              marginTop: 6,
+                            }}
+                          >
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div
                       style={{
