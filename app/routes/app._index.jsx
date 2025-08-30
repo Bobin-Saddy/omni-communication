@@ -219,18 +219,30 @@ useEffect(() => {
           }));
         }
       } else if (page.type === "instagram" || page.type === "facebook") {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
-        );
+  const res = await fetch(
+    `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+  );
 
-        if (res.ok) {
-          const data = await res.json();
-          setMessages((prev) => ({
-            ...prev,
-            [conv.id]: Array.isArray(data?.data) ? data.data : [],
-          }));
-        }
-      } else if (page.type === "whatsapp") {
+  if (res.ok) {
+    const data = await res.json();
+    const sortedMessages = Array.isArray(data?.data)
+      ? data.data.sort((a, b) => new Date(a.created_time) - new Date(b.created_time))
+      : [];
+
+    // Map to consistent format
+    const formattedMessages = sortedMessages.map((msg) => ({
+      sender: msg.from?.id === page.id ? "me" : "them",
+      text: msg.message,
+      createdAt: msg.created_time,
+      id: msg.id,
+    }));
+
+    setMessages((prev) => ({
+      ...prev,
+      [conv.id]: formattedMessages,
+    }));
+  }
+} else if (page.type === "whatsapp") {
         const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
         const data = await res.json();
         setMessages((prev) => ({ ...prev, [conv.id]: data }));
@@ -508,111 +520,111 @@ const sendMessage = async (text = "", file = null) => {
             : "Select a conversation"}
         </h3>
 
-<div
-  style={{
-    flex: 1,
-    overflowY: "auto",
-    border: "1px solid #ccc",
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: "8px",
-    background: "#fafafa",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  }}
->
-  {activeConversation &&
-  messages[activeConversation.id] &&
-  messages[activeConversation.id].length ? (
-    messages[activeConversation.id].map((msg, idx) => {
-      const page = connectedPages.find(p => p.id === activeConversation.pageId);
-
-      // Determine if the message is sent by "me"
-      const isMe =
-        msg.sender === "me" ||  // optimistic / text messages you sent
-        msg._tempId ||            // temp file uploads
-        (page?.type === "whatsapp" && msg.from === "me") ||
-        (page?.type === "facebook" && msg.from?.id === page.id) ||
-        (page?.type === "instagram" && msg.from?.id === page.igId) ||
-        (page?.type === "chatwidget" && msg.sender === "me");
-
-      const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
-
-      return (
         <div
-          key={idx}
           style={{
+            flex: 1,
+            overflowY: "auto",
+            border: "1px solid #ccc",
+            marginBottom: 12,
+            padding: 12,
+            borderRadius: "8px",
+            background: "#fafafa",
             display: "flex",
-            justifyContent: isMe ? "flex-end" : "flex-start",
+            flexDirection: "column",
+            gap: "10px",
           }}
         >
-          <div
-            style={{
-              padding: "10px 14px",
-              borderRadius: "18px",
-              background: isMe ? "#1a73e8" : "#e5e5ea",
-              color: isMe ? "#fff" : "#000",
-              maxWidth: "70%",
-              wordWrap: "break-word",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            }}
-          >
-            {/* Text */}
-            {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
+          {activeConversation &&
+          messages[activeConversation.id] &&
+          messages[activeConversation.id].length ? (
+            messages[activeConversation.id].map((msg, idx) => {
+              const isMe =
+                msg.from?.id === activeConversation.pageId ||
+                msg.from?.phone_number_id === activeConversation.pageId ||
+                msg.sender === "me" ||
+                msg.from === "me" ||
+                msg._tempId; // optimistic sent messages
 
-            {/* File */}
-            {msg.fileUrl && (
-              <div style={{ marginTop: text ? 8 : 0 }}>
-                {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-                  <img
-                    src={msg.fileUrl}
-                    alt={msg.fileName || "image"}
-                    style={{ maxWidth: "220px", borderRadius: 10 }}
-                  />
-                ) : (
-                  <a
-                    href={msg.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    justifyContent: isMe ? "flex-end" : "flex-start",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "18px",
+                      background: isMe ? "#1a73e8" : "#e5e5ea",
+                      color: isMe ? "#fff" : "#000",
+                      maxWidth: "70%",
+                      wordWrap: "break-word",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                    }}
                   >
-                    📎 {msg.fileName || "Download file"}
-                  </a>
-                )}
-                {msg.uploading && (
-                  <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-                    Uploading...
-                  </div>
-                )}
-                {msg.failed && (
-                  <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 6 }}>
-                    Upload failed
-                  </div>
-                )}
-              </div>
-            )}
+                    {/* text */}
+                    {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
 
-            {/* Timestamp */}
-            <div
-              style={{
-                fontSize: "0.7em",
-                marginTop: "5px",
-                color: isMe ? "#dce6f9" : "#555",
-                textAlign: "right",
-              }}
-            >
-              {msg.timestamp || msg.createdAt || msg.created_time || ""}
-            </div>
-          </div>
+                    {/* file */}
+                    {msg.fileUrl && (
+                      <div style={{ marginTop: text ? 8 : 0 }}>
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                          <img
+                            src={msg.fileUrl}
+                            alt={msg.fileName || "image"}
+                            style={{ maxWidth: "220px", borderRadius: 10 }}
+                          />
+                        ) : (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                          >
+                            📎 {msg.fileName || "Download file"}
+                          </a>
+                        )}
+                        {msg.uploading && (
+                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+                            Uploading...
+                          </div>
+                        )}
+                        {msg.failed && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#ff6b6b",
+                              marginTop: 6,
+                            }}
+                          >
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        fontSize: "0.7em",
+                        marginTop: "5px",
+                        color: isMe ? "#dce6f9" : "#555",
+                        textAlign: "right",
+                      }}
+                    >
+                      {msg.timestamp || msg.createdAt || msg.created_time || ""}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
+          )}
         </div>
-      );
-    })
-  ) : (
-    <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
-  )}
-</div>
-
 
         {activeConversation && (
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
