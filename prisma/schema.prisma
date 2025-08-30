@@ -114,14 +114,17 @@ model ChatMessage {
 }
 
 
-model customerWhatsAppMessage {
-  id        Int      @id @default(autoincrement())
-  to        String
-  from      String     // Ye field aapke error ke hisaab se required hai
-  message   String
-  timestamp DateTime @default(now())
-  direction String   // "incoming" or "outgoing"
+model CustomerWhatsAppMessage {
+  id                String   @id @default(cuid())
+  from              String
+  to                String
+  message           String
+  timestamp         DateTime
+  direction         String
+  platformMessageId String?  @unique
+  localId           String?  @unique
 }
+
 
 model StoreChatMessage {
   id           Int      @id @default(autoincrement())

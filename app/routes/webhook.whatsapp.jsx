@@ -25,35 +25,38 @@ export async function action({ request }) {
 
   if (messages && messages.length > 0) {
     const msg = messages[0];
+
+    // ✅ Only handle text/user messages
+    if (msg.type !== "text" || !msg.text?.body) {
+      return new Response("EVENT_RECEIVED", { status: 200 });
+    }
+
     const from = normalize(msg.from);
-    const text = msg?.text?.body || "";
+    const text = msg.text.body;
     const name = msg?.profile?.name || "";
 
-    // Save INCOMING message
+    // Save INCOMING user message
     await prisma.customerWhatsAppMessage.create({
       data: {
         to: BUSINESS_NUMBER,
-        from: from,
+        from,
         message: text,
         direction: "incoming",
         timestamp: new Date(),
+        platformMessageId: msg.id, // dedupe key
       },
     });
 
     await prisma.chatSession.upsert({
       where: { phone: from },
       update: {
-        messages: {
-          create: { content: text, sender: "user" },
-        },
+        messages: { create: { content: text, sender: "user" } },
       },
       create: {
         userId: from,
         userName: name,
         phone: from,
-        messages: {
-          create: { content: text, sender: "user" },
-        },
+        messages: { create: { content: text, sender: "user" } },
       },
     });
 
