@@ -293,7 +293,8 @@ if (page.type === "whatsapp") {
       [conv.id]: Array.isArray(data)
         ? data.map((msg) => ({
             ...msg,
-            sender: msg.fromMe ? "me" : "them",
+sender: msg.direction === "outgoing" ? "me" : "them",
+
           }))
         : [],
     }));
@@ -378,17 +379,17 @@ if (page.type === "whatsapp") {
     }
 
     // Save to DB
-    await fetch(`/whatsapp-messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        number: activeConversation.userNumber,
-        text,
-        sender: "me",
-        direction: "outgoing",
-        createdAt: new Date().toISOString(),
-      }),
-    });
+await fetch(`/whatsapp-messages`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    number: activeConversation.userNumber,
+    text,
+    direction: "outgoing",  // marks it as sent
+    createdAt: new Date().toISOString(),
+  }),
+});
+
 
     // Remove tempId after DB save
     setMessages((prev) => {
