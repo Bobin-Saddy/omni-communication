@@ -22,3 +22,38 @@ export async function loader({ request }) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+// ----------------- HANDLE OUTGOING MESSAGES -----------------
+export async function action({ request }) {
+  try {
+    const data = await request.json();
+    const { number, text, sender } = data;
+
+    if (!number || !text) {
+      return new Response(JSON.stringify({ ok: false, error: "Missing number or text" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const message = await prisma.customerWhatsAppMessage.create({
+      data: {
+        from: sender === "me" ? "me" : number,
+        to: sender === "me" ? number : "me",
+        text,
+        timestamp: new Date(),
+      },
+    });
+
+    return new Response(JSON.stringify({ ok: true, message }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("Error saving outgoing WhatsApp message:", err);
+    return new Response(JSON.stringify({ ok: false, error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
