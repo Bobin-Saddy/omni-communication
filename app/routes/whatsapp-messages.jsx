@@ -99,31 +99,31 @@ export async function action({ request }) {
     }
 
     // 🔹 Save message (use direction instead of sender)
-    const message = await prisma.customerWhatsAppMessage.create({
-      data: {
-        from: direction === "outgoing" ? "me" : number,
-        to: direction === "outgoing" ? number : "me",
-        message: text,
-        timestamp: createdAt ? new Date(createdAt) : new Date(),
-        direction,
-        platformMessageId,
-        localId,
-      },
-    });
+const message = await prisma.customerWhatsAppMessage.create({
+  data: {
+    from: direction === "outgoing" ? BUSINESS_NUMBER : number,
+    to: direction === "outgoing" ? number : BUSINESS_NUMBER,
+    message: text,  // ✅ only actual message text goes here
+    timestamp: createdAt ? new Date(createdAt) : new Date(),
+    direction,
+    platformMessageId,
+    localId,
+  },
+});
 
-    // ✅ Normalize sender for frontend
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        message: {
-          id: message.id,
-          text: message.message,
-          createdAt: message.timestamp,
-          sender: message.direction === "outgoing" ? "me" : "them",
-        },
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+   return new Response(
+  JSON.stringify({
+    ok: true,
+    message: {
+      id: message.id,
+      text: message.message, // ✅ stays real text, not "me"
+      createdAt: message.timestamp,
+      sender: message.direction === "outgoing" ? "me" : "them",
+    },
+  }),
+  { status: 200, headers: { "Content-Type": "application/json" } }
+);
+
   } catch (err) {
     console.error("Error saving WhatsApp message:", err);
     return new Response(
