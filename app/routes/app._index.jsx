@@ -529,15 +529,15 @@ const sendMessage = async (text = "", file = null) => {
   // ---------- ChatWidget ----------
   if (page.type === "chatwidget") {
     // (unchanged)
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text: text || null,
-      fileUrl: file ? URL.createObjectURL(file) : null,
-      fileName: file?.name || null,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
+ const optimistic = {
+  _tempId: localId,
+  sender: "me",
+  text: text || null,
+  fileUrl: file ? URL.createObjectURL(file) : null,
+  fileName: file?.name || null,
+  createdAt: new Date().toISOString(),
+  uploading: !!file,
+};
 
     setMessages((prev) => ({
       ...prev,
@@ -578,21 +578,22 @@ const sendMessage = async (text = "", file = null) => {
     const res = await fetch(`/api/chat`, { method: "POST", body: formData });
     const data = await res.json().catch(() => null);
 
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-        if (data?.ok && data.message) arr[idx] = data.message;
-        else
-          arr[idx] = {
-            ...arr[idx],
-            uploading: false,
-            failed: true,
-            error: data?.error || "Upload failed",
-          };
-      }
-      return { ...prev, [activeConversation.id]: arr };
-    });
+ setMessages((prev) => {
+  const arr = [...(prev[activeConversation.id] || [])];
+  const idx = arr.findIndex((m) => m._tempId === localId);
+  if (idx !== -1) {
+    arr[idx] = {
+      ...arr[idx],
+      ...data?.message,
+      fileUrl: data?.message?.fileUrl || arr[idx].fileUrl, // fallback to optimistic
+      uploading: false,
+      failed: data?.ok ? false : true,
+    };
+    delete arr[idx]._tempId;
+  }
+  return { ...prev, [activeConversation.id]: arr };
+});
+
   }
 };
 
@@ -758,11 +759,8 @@ const sendMessage = async (text = "", file = null) => {
                             📎 {msg.fileName || "Download file"}
                           </a>
                         )}
-                        {msg.uploading && (
-                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-                            Uploading...
-                          </div>
-                        )}
+                {msg.uploading && <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>}
+
                         {msg.failed && (
                           <div
                             style={{
