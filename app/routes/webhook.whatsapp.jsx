@@ -18,24 +18,24 @@ export async function loader({ request }) {
   return new Response("Verification failed", { status: 403 });
 }
 
+// webhook.whatsapp.jsx
 export async function action({ request }) {
   const body = await request.json();
-  const entry = body?.entry?.[0]?.changes?.[0]?.value;
+  const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
 
-  // ✅ Handle INCOMING messages
-  const messages = entry?.messages;
   if (messages && messages.length > 0) {
     const msg = messages[0];
     const from = normalize(msg.from);
     const text = msg?.text?.body || "";
     const name = msg?.profile?.name || "";
 
+    // Save INCOMING message
     await prisma.customerWhatsAppMessage.create({
       data: {
-        from,
         to: BUSINESS_NUMBER,
+        from: from,
         message: text,
-        direction: "incoming", // ✅ incoming
+        direction: "incoming",
         timestamp: new Date(),
       },
     });
@@ -57,26 +57,7 @@ export async function action({ request }) {
       },
     });
 
-    console.log("📩 Stored incoming WhatsApp message:", from, text);
-  }
-
-  // ✅ Handle OUTGOING message statuses (your sent messages)
-  const statuses = entry?.statuses;
-  if (statuses && statuses.length > 0) {
-    const status = statuses[0];
-    const to = normalize(status.recipient_id);
-
-    await prisma.customerWhatsAppMessage.create({
-      data: {
-        from: BUSINESS_NUMBER,
-        to,
-        message: status?.status || "Message sent",
-        direction: "outgoing", // ✅ outgoing
-        timestamp: new Date(),
-      },
-    });
-
-    console.log("📤 Stored outgoing WhatsApp status:", to, status.status);
+    console.log("Stored incoming WhatsApp message from", from, text);
   }
 
   return new Response("EVENT_RECEIVED", { status: 200 });
