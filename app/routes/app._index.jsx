@@ -13,7 +13,6 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const [uploading, setUploading] = useState(false);
-
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -28,48 +27,47 @@ export default function SocialChatDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedPages]);
 
-  /** ----------------- SSE for chatwidget (real-time) ----------------- **/
-useEffect(() => {
-  if (activeConversation?.pageType !== "chatwidget") return;
+  /** ----------------- SSE for chatwidget ----------------- **/
+  useEffect(() => {
+    if (activeConversation?.pageType !== "chatwidget") return;
 
-  const es = new EventSource(
-    `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
-      activeConversation.storeDomain || ""
-    )}`
-  );
+    const es = new EventSource(
+      `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
+        activeConversation.storeDomain || ""
+      )}`
+    );
 
-  es.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      setMessages((prev) => ({
-        ...prev,
-        [activeConversation.id]: [
-          ...(prev[activeConversation.id] || []),
-          {
-            text: data.text || "",
-            fileUrl: data.fileUrl || null,
-            sender: data.sender || "them",
-            createdAt: data.createdAt || new Date().toISOString(),
-          },
-        ],
-      }));
-    } catch (e) {
-      console.warn("SSE parse error", e);
-    }
-  };
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            {
+              text: data.text || "",
+              fileUrl: data.fileUrl || null,
+              sender: data.sender || "them",
+              createdAt: data.createdAt || new Date().toISOString(),
+            },
+          ],
+        }));
+      } catch (e) {
+        console.warn("SSE parse error", e);
+      }
+    };
 
-  es.onerror = (err) => {
-    console.warn("SSE error", err);
-    es.close();
-  };
+    es.onerror = (err) => {
+      console.warn("SSE error", err);
+      es.close();
+    };
 
-  return () => es.close();
-}, [activeConversation]);
+    return () => es.close();
+  }, [activeConversation]);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
     try {
-      // WhatsApp
       if (page.type === "whatsapp") {
         const res = await fetch("/whatsapp-users");
         const users = await res.json();
@@ -88,7 +86,6 @@ useEffect(() => {
         return;
       }
 
-      // Instagram
       if (page.type === "instagram") {
         const res = await fetch(
           `https://graph.facebook.com/v18.0/${page.pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${page.access_token}`
@@ -120,7 +117,6 @@ useEffect(() => {
         return;
       }
 
-      // Facebook
       if (page.type === "facebook") {
         const url = `https://graph.facebook.com/v18.0/${page.id}/conversations?fields=participants&access_token=${page.access_token}`;
         const res = await fetch(url);
@@ -147,11 +143,9 @@ useEffect(() => {
         return;
       }
 
-      // Chat Widget (fetch sessions)
       if (page.type === "chatwidget") {
         const res = await fetch(`/api/chat?widget=true`);
         const data = await res.json();
-
         if (Array.isArray(data?.sessions)) {
           const convs = data.sessions.map((s) => ({
             id: s.sessionId,
@@ -168,7 +162,6 @@ useEffect(() => {
             ...convs,
           ]);
 
-          // Auto-select first conversation and load messages
           if (convs.length > 0) {
             const firstConv = convs[0];
             setActiveConversation(firstConv);
@@ -189,7 +182,6 @@ useEffect(() => {
             }
           }
         }
-        return;
       }
     } catch (err) {
       console.error("Error fetching conversations:", err);
@@ -197,349 +189,211 @@ useEffect(() => {
   };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
-const handleSelectConversation = async (conv) => {
-  setActiveConversation(conv);
+  const handleSelectConversation = async (conv) => {
+    setActiveConversation(conv);
+    const page = connectedPages.find((p) => p.id === conv.pageId);
+    if (!page) return;
 
-  const page = connectedPages.find((p) => p.id === conv.pageId);
-  if (!page) return;
-
-  try {
-    // ---------- ChatWidget ----------
-    if (page.type === "chatwidget") {
-      const res = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(
-          conv.storeDomain || "myshop.com"
-        )}&sessionId=${encodeURIComponent(conv.id)}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [conv.id]: Array.isArray(data?.messages)
-            ? data.messages.map((m) => ({
-                ...m,
-                sender: m.sender === "me" ? "me" : "them",
-              }))
-            : [],
-        }));
-      }
-      return;
-    }
-
-    // ---------- Instagram ----------
-    if (page.type === "instagram") {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const formatted = data.data
-            .map((msg) => {
-              const sender =
-                msg.from?.id === page.igId ? "me" : "them";
-              return {
-                id: msg.id,
-                sender,
-                text: msg.message,
-                createdAt: msg.created_time,
-              };
-            })
-            // Sort by timestamp ascending
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+    try {
+      if (page.type === "chatwidget") {
+        const res = await fetch(
+          `/api/chat?storeDomain=${encodeURIComponent(
+            conv.storeDomain || "myshop.com"
+          )}&sessionId=${encodeURIComponent(conv.id)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setMessages((prev) => ({
+            ...prev,
+            [conv.id]: Array.isArray(data?.messages)
+              ? data.messages.map((m) => ({
+                  ...m,
+                  sender: m.sender === "me" ? "me" : "them",
+                }))
+              : [],
+          }));
         }
-      }
-      return;
-    }
-
-    // ---------- Facebook ----------
-    if (page.type === "facebook") {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const formatted = data.data
-            .map((msg) => {
-              const sender = msg.from?.id === page.id ? "me" : "them";
-              return {
-                id: msg.id,
-                sender,
-                text: msg.message,
-                createdAt: msg.created_time,
-              };
-            })
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
-        }
-      }
-      return;
-    }
-
-    // ---------- WhatsApp ----------
-if (page.type === "whatsapp") {
-  const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
-  if (res.ok) {
-    const data = await res.json();
-    setMessages((prev) => ({
-      ...prev,
-      [conv.id]: Array.isArray(data)
-        ? data.map((msg) => ({
-            ...msg,
-            sender: msg.fromMe ? "me" : "them",
-          }))
-        : [],
-    }));
-  }
-}
-
-  } catch (error) {
-    console.error("Error loading messages:", error);
-  }
-};
-
-
-  /** ----------------- SEND MESSAGE (supports file for chatwidget) ----------------- **/
-const sendMessage = async (text = "", file = null) => {
-  if (!activeConversation) return;
-  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
-  if (!page) return;
-
-  const localId = "temp-" + Date.now();
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",                   // <-- always "me" for outgoing
-    text: text || null,
-    fileUrl: file ? URL.createObjectURL(file) : null,
-    fileName: file?.name || null,
-    createdAt: new Date().toISOString(),
-    uploading: !!file,
-  };
-
-  // Add optimistic message
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [
-      ...(prev[activeConversation.id] || []),
-      optimistic,
-    ],
-  }));
-
-  try {
-    // ---------- WhatsApp ----------
-if (page.type === "whatsapp") {
-  const localId = "temp-" + Date.now();
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",
-    text,
-    createdAt: new Date().toISOString(),
-    uploading: false,
-  };
-
-  // Show message immediately
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [
-      ...(prev[activeConversation.id] || []),
-      optimistic,
-    ],
-  }));
-
-  try {
-    // 1️⃣ Send via WhatsApp API
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: activeConversation.userNumber,
-          text: { body: text },
-        }),
-      }
-    );
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      console.error("WhatsApp send failed:", data);
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) arr[idx].failed = true;
-        return { ...prev, [activeConversation.id]: arr };
-      });
-      return;
-    }
-
-    // 2️⃣ Save to DB (with direction)
-    await fetch(`/whatsapp-messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        number: activeConversation.userNumber,
-        text,
-        sender: "me",
-        direction: "outgoing",  // ✅ added
-        createdAt: new Date().toISOString(),
-      }),
-    });
-
-    // 3️⃣ Remove tempId after DB save
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) delete arr[idx]._tempId;
-      return { ...prev, [activeConversation.id]: arr };
-    });
-  } catch (err) {
-    console.error("WhatsApp send/save error:", err);
-  }
-  return;
-}
-
-
-    // ---------- Instagram ----------
-    if (page.type === "instagram") {
-      const recipientId =
-        activeConversation.recipientId ||
-        activeConversation.participants?.data?.find(
-          (p) => p.id && p.id !== page.igId
-        )?.id;
-      if (!recipientId) return console.error("No IG recipient id");
-
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messaging_type: "RESPONSE",
-            recipient: { id: recipientId },
-            message: { text },
-          }),
-        }
-      );
-      const result = await res.json();
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          arr[idx] = {
-            ...arr[idx],
-            text,
-            sender: "me",            // <-- fix blue color
-            uploading: false,
-            createdAt: new Date().toISOString(),
-          };
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
-
-      if (!res.ok) console.error("Instagram send failed:", result);
-      return;
-    }
-
-    // ---------- Facebook ----------
-    if (page.type === "facebook") {
-      const userParticipant = activeConversation.participants?.data?.find(
-        (p) => p.id !== page.id
-      );
-      if (!userParticipant) return;
-
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipient: { id: userParticipant.id },
-            message: { text },
-            messaging_type: "MESSAGE_TAG",
-            tag: "ACCOUNT_UPDATE",
-          }),
-        }
-      );
-      const result = await res.json();
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          arr[idx] = {
-            ...arr[idx],
-            text,
-            sender: "me",             // <-- fix blue color
-            uploading: false,
-            createdAt: new Date().toISOString(),
-          };
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
-
-      if (!res.ok) console.error("Facebook send failed:", result);
-      return;
-    }
-
-    // ---------- ChatWidget ----------
-    if (page.type === "chatwidget") {
-      if (!file) {
-        await fetch(`/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: activeConversation.id,
-            storeDomain: activeConversation.storeDomain || "myshop.com",
-            message: text,
-            sender: "me",
-          }),
-        });
-        setMessages((prev) => {
-          const arr = [...(prev[activeConversation.id] || [])];
-          const idx = arr.findIndex((m) => m._tempId === localId);
-          if (idx !== -1) arr[idx].uploading = false;
-          return { ...prev, [activeConversation.id]: arr };
-        });
         return;
       }
 
-      // file upload
-      const formData = new FormData();
-      formData.append("sessionId", activeConversation.id);
-      formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
-      formData.append("sender", "me");
-      formData.append("file", file);
-      formData.append("localId", localId);
+      if (page.type === "instagram") {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.data)) {
+            const formatted = data.data
+              .map((msg) => ({
+                id: msg.id,
+                sender: msg.from?.id === page.igId ? "me" : "them",
+                text: msg.message,
+                createdAt: msg.created_time,
+              }))
+              .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-      const res = await fetch(`/api/chat`, { method: "POST", body: formData });
-      const data = await res.json().catch(() => null);
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          if (data?.ok && data.message) arr[idx] = data.message;
-          else arr[idx] = { ...arr[idx], uploading: false, failed: true, error: data?.error || "Upload failed" };
+            setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+          }
         }
-        return { ...prev, [activeConversation.id]: arr };
-      });
+        return;
+      }
+
+      if (page.type === "facebook") {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.data)) {
+            const formatted = data.data
+              .map((msg) => ({
+                id: msg.id,
+                sender: msg.from?.id === page.id ? "me" : "them",
+                text: msg.message,
+                createdAt: msg.created_time,
+              }))
+              .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+            setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+          }
+        }
+        return;
+      }
+
+      if (page.type === "whatsapp") {
+        const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setMessages((prev) => ({
+            ...prev,
+            [conv.id]: Array.isArray(data)
+              ? data.map((msg) => ({
+                  ...msg,
+                  sender: msg.direction === "outgoing" ? "me" : "them",
+                }))
+              : [],
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
     }
-  } catch (err) {
-    console.error("Error sending message:", err);
-  }
-};
+  };
 
+  /** ----------------- SEND MESSAGE ----------------- **/
+  const sendMessage = async (text = "", file = null) => {
+    if (!activeConversation) return;
+    const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+    if (!page) return;
 
-  /** ----------------- UI ----------------- **/
+    const localId = "temp-" + Date.now();
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      text: text || null,
+      fileUrl: file ? URL.createObjectURL(file) : null,
+      fileName: file?.name || null,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
+
+    // Add optimistic message
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        optimistic,
+      ],
+    }));
+
+    try {
+      // ---------- WhatsApp ----------
+      if (page.type === "whatsapp") {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.id,
+              type: file ? "document" : "text",
+              ...(file
+                ? { document: { link: "https://example.com/file.pdf", filename: file.name } }
+                : { text: { body: text } }),
+            }),
+          }
+        );
+        const data = await res.json();
+
+        // Replace optimistic with actual DB version
+        setMessages((prev) => {
+          const arr = [...(prev[activeConversation.id] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) {
+            arr[idx] = {
+              ...arr[idx],
+              _tempId: undefined,
+              id: data?.messages?.[0]?.id || undefined,
+              text: text || null,
+              uploading: false,
+              createdAt: new Date().toISOString(),
+            };
+          }
+          return { ...prev, [activeConversation.id]: arr };
+        });
+      }
+
+      // ---------- ChatWidget ----------
+      if (page.type === "chatwidget") {
+        const formData = new FormData();
+        formData.append("storeDomain", activeConversation.storeDomain || "");
+        formData.append("sessionId", activeConversation.id);
+        if (text) formData.append("text", text);
+        if (file) formData.append("file", file);
+
+        const res = await fetch("/api/chat/send", { method: "POST", body: formData });
+        const data = await res.json();
+
+        setMessages((prev) => {
+          const arr = [...(prev[activeConversation.id] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) {
+            arr[idx] = {
+              ...arr[idx],
+              _tempId: undefined,
+              id: data?.id || undefined,
+              uploading: false,
+              createdAt: new Date().toISOString(),
+            };
+          }
+          return { ...prev, [activeConversation.id]: arr };
+        });
+      }
+
+      // TODO: Instagram & Facebook API send here if needed
+    } catch (error) {
+      console.error("Send message error", error);
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: (prev[activeConversation.id] || []).filter(
+          (m) => m._tempId !== localId
+        ),
+      }));
+    }
+  };
+
+  /** ----------------- HANDLE ENTER ----------------- **/
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      const text = textInputRef.current.value.trim();
+      if (!text) return;
+      textInputRef.current.value = "";
+      sendMessage(text);
+    }
+  };
+
   return (
     <div
       style={{
@@ -555,264 +409,123 @@ if (page.type === "whatsapp") {
       {/* Conversations List */}
       <div
         style={{
-          width: "28%",
+          width: "30%",
           borderRight: "1px solid #ddd",
-          padding: 15,
-          background: "#f9fafb",
-          display: "flex",
-          flexDirection: "column",
+          padding: 10,
           overflowY: "auto",
         }}
       >
-        <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
+        <h3>Conversations</h3>
         {!conversations.length ? (
-          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
+          <p>No conversations</p>
         ) : (
           conversations.map((conv) => (
             <div
               key={conv.id}
-              style={{
-                padding: "10px 12px",
-                cursor: "pointer",
-                borderRadius: "8px",
-                marginBottom: 8,
-                transition: "0.2s",
-                background:
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
-                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
-              }}
               onClick={() => handleSelectConversation(conv)}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-              onMouseOut={(e) =>
-                (e.currentTarget.style.background =
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
-              }
+              style={{
+                padding: "8px 12px",
+                marginBottom: 6,
+                borderRadius: 6,
+                backgroundColor:
+                  activeConversation?.id === conv.id ? "#e0f0ff" : "#fff",
+                cursor: "pointer",
+                border: "1px solid #eee",
+              }}
             >
-              <b>[{conv.pageName}]</b>{" "}
-              {conv.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"}
+              {conv.participants?.data?.[0]?.name || conv.id}
             </div>
           ))
         )}
       </div>
 
-      {/* Chat Box */}
-      <div
-        style={{
-          flex: 1,
-          padding: 15,
-          display: "flex",
-          flexDirection: "column",
-          background: "#fff",
-        }}
-      >
-        <h3
-          style={{
-            margin: "0 0 15px 0",
-            paddingBottom: "10px",
-            borderBottom: "1px solid #eee",
-            color: "#1a73e8",
-          }}
-        >
-          Chat:{" "}
-          {activeConversation
-            ? activeConversation.participants?.data
-                ?.map((p) => p.name || p.username)
-                .join(", ") || "Unnamed"
-            : "Select a conversation"}
-        </h3>
-
+      {/* Chat Area */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <div
           style={{
             flex: 1,
+            padding: 10,
             overflowY: "auto",
-            border: "1px solid #ccc",
-            marginBottom: 12,
-            padding: 12,
-            borderRadius: "8px",
-            background: "#fafafa",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
+            backgroundColor: "#fafafa",
           }}
         >
-          {activeConversation &&
-          messages[activeConversation.id] &&
-          messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => {
-              const isMe =
-                msg.from?.id === activeConversation.pageId ||
-                msg.from?.phone_number_id === activeConversation.pageId ||
-                msg.sender === "me" ||
-                msg.from === "me" ||
-                msg._tempId; // optimistic sent messages
-
-              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
-
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: isMe ? "flex-end" : "flex-start",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "18px",
-                      background: isMe ? "#1a73e8" : "#e5e5ea",
-                      color: isMe ? "#fff" : "#000",
-                      maxWidth: "70%",
-                      wordWrap: "break-word",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                    }}
+          {(messages[activeConversation?.id] || []).map((msg, idx) => (
+            <div
+              key={msg._tempId || msg.id || idx}
+              style={{
+                marginBottom: 8,
+                textAlign: msg.sender === "me" ? "right" : "left",
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: "6px 12px",
+                  borderRadius: 12,
+                  backgroundColor:
+                    msg.sender === "me" ? "#cce5ff" : "#e2e2e2",
+                  maxWidth: "70%",
+                  wordBreak: "break-word",
+                  opacity: msg.uploading ? 0.6 : 1,
+                }}
+              >
+                {msg.fileUrl ? (
+                  <a
+                    href={msg.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    {/* text */}
-                    {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
-
-                    {/* file */}
-                    {msg.fileUrl && (
-                      <div style={{ marginTop: text ? 8 : 0 }}>
-                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-                          <img
-                            src={msg.fileUrl}
-                            alt={msg.fileName || "image"}
-                            style={{ maxWidth: "220px", borderRadius: 10 }}
-                          />
-                        ) : (
-                          <a
-                            href={msg.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-                          >
-                            📎 {msg.fileName || "Download file"}
-                          </a>
-                        )}
-                        {msg.uploading && (
-                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-                            Uploading...
-                          </div>
-                        )}
-                        {msg.failed && (
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#ff6b6b",
-                              marginTop: 6,
-                            }}
-                          >
-                            Upload failed
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div
-                      style={{
-                        fontSize: "0.7em",
-                        marginTop: "5px",
-                        color: isMe ? "#dce6f9" : "#555",
-                        textAlign: "right",
-                      }}
-                    >
-                      {msg.timestamp || msg.createdAt || msg.created_time || ""}
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
-          )}
+                    {msg.fileName || "File"}
+                  </a>
+                ) : (
+                  msg.text
+                )}
+              </div>
+            </div>
+          ))}
         </div>
 
-        {activeConversation && (
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              id="dashboard-file-input"
-              type="file"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  // send file (no text)
-                  sendMessage("", f);
-                  e.target.value = "";
-                }
-              }}
-            />
-            <label
-              htmlFor="dashboard-file-input"
-              style={{
-                padding: "10px 12px",
-                borderRadius: "8px",
-                background: "#eef2ff",
-                color: "#1a73e8",
-                cursor: "pointer",
-                fontWeight: "600",
-              }}
-            >
-              📎
-            </label>
-
-            {/* Text input */}
-            <input
-              ref={textInputRef}
-              type="text"
-              placeholder="Type a message..."
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid #ccc",
-                outline: "none",
-                transition: "0.2s",
-              }}
-              onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
-              onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const v = e.target.value.trim();
-                  if (v) {
-                    sendMessage(v, null);
-                    e.target.value = "";
-                  }
-                }
-              }}
-            />
-
-            {/* Send button */}
-            <button
-              style={{
-                padding: "10px 18px",
-                border: "none",
-                borderRadius: "8px",
-                background: "#1a73e8",
-                color: "#fff",
-                cursor: "pointer",
-                transition: "0.3s",
-                fontWeight: "bold",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
-              onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
-              onClick={() => {
-                const input = textInputRef.current;
-                if (input && input.value.trim()) {
-                  sendMessage(input.value.trim(), null);
-                  input.value = "";
-                }
-              }}
-            >
-              {uploading ? "Uploading..." : "Send"}
-            </button>
-          </div>
-        )}
+        {/* Input */}
+        <div style={{ padding: 10, borderTop: "1px solid #ddd" }}>
+          <textarea
+            ref={textInputRef}
+            placeholder="Type a message..."
+            rows={2}
+            style={{ width: "80%", borderRadius: 6, padding: 6 }}
+            onKeyDown={handleKeyPress}
+          />
+          <button
+            style={{
+              padding: "6px 12px",
+              marginLeft: 6,
+              borderRadius: 6,
+              cursor: "pointer",
+            }}
+            onClick={() => {
+              const text = textInputRef.current.value.trim();
+              if (!text) return;
+              textInputRef.current.value = "";
+              sendMessage(text);
+            }}
+          >
+            Send
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) sendMessage("", file);
+            }}
+          />
+          <button
+            style={{ marginLeft: 6 }}
+            onClick={() => fileInputRef.current.click()}
+          >
+            Attach
+          </button>
+        </div>
       </div>
     </div>
   );
