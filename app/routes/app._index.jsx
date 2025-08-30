@@ -29,37 +29,42 @@ export default function SocialChatDashboard() {
   }, [connectedPages]);
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
-  useEffect(() => {
-    if (activeConversation?.pageType === "chatwidget") {
-      const es = new EventSource(
-        `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
-          activeConversation.storeDomain || ""
-        )}`
-      );
+useEffect(() => {
+  if (activeConversation?.pageType !== "chatwidget") return;
 
-      es.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          setMessages((prev) => ({
-            ...prev,
-            [activeConversation.id]: [
-              ...(prev[activeConversation.id] || []),
-              data,
-            ],
-          }));
-        } catch (e) {
-          console.warn("SSE parse error", e);
-        }
-      };
+  const es = new EventSource(
+    `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
+      activeConversation.storeDomain || ""
+    )}`
+  );
 
-      es.onerror = (err) => {
-        // optionally reconnect logic
-        console.warn("SSE error", err);
-      };
-
-      return () => es.close();
+  es.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [
+          ...(prev[activeConversation.id] || []),
+          {
+            text: data.text || "",
+            fileUrl: data.fileUrl || null,
+            sender: data.sender || "them",
+            createdAt: data.createdAt || new Date().toISOString(),
+          },
+        ],
+      }));
+    } catch (e) {
+      console.warn("SSE parse error", e);
     }
-  }, [activeConversation, setMessages]);
+  };
+
+  es.onerror = (err) => {
+    console.warn("SSE error", err);
+    es.close();
+  };
+
+  return () => es.close();
+}, [activeConversation]);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
@@ -236,238 +241,201 @@ export default function SocialChatDashboard() {
   };
 
   /** ----------------- SEND MESSAGE (supports file for chatwidget) ----------------- **/
-  const sendMessage = async (text = "", file = null) => {
-    if (!activeConversation) return;
-    const page = connectedPages.find((p) => p.id === activeConversation.pageId);
-    if (!page) return;
+const sendMessage = async (text = "", file = null) => {
+  if (!activeConversation) return;
+  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+  if (!page) return;
 
-    try {
-      // ---------- WhatsApp ----------
-      if (page.type === "whatsapp") {
-        await fetch(
-          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: activeConversation.userNumber,
-              text: { body: text },
-            }),
-          }
-        );
-
-        await fetch("/save-whatsapp-messages", {
+  try {
+    // ---------- WhatsApp ----------
+    if (page.type === "whatsapp") {
+      // send via WhatsApp API
+      await fetch(
+        `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            messaging_product: "whatsapp",
             to: activeConversation.userNumber,
-            from: WHATSAPP_PHONE_NUMBER_ID,
-            message: text,
-            direction: "outgoing",
+            text: { body: text },
           }),
-        });
+        }
+      );
 
+      // save locally
+      await fetch("/save-whatsapp-messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: activeConversation.userNumber,
+          from: WHATSAPP_PHONE_NUMBER_ID,
+          message: text,
+          direction: "outgoing",
+        }),
+      });
+
+      // update UI
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [
+          ...(prev[activeConversation.id] || []),
+          { from: "You", message: text, timestamp: new Date().toISOString() },
+        ],
+      }));
+      return;
+    }
+
+    // ---------- Instagram ----------
+    if (page.type === "instagram") {
+      const recipientId =
+        activeConversation.recipientId ||
+        activeConversation.participants?.data?.find(
+          (p) => p.id && p.id !== page.igId
+        )?.id;
+      if (!recipientId) return console.error("No IG recipient id");
+
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messaging_type: "RESPONSE",
+            recipient: { id: recipientId },
+            message: { text },
+          }),
+        }
+      );
+      const result = await res.json();
+      if (res.ok && result.id) {
         setMessages((prev) => ({
           ...prev,
           [activeConversation.id]: [
             ...(prev[activeConversation.id] || []),
             {
-              from: "You",
+              from: { name: "You" },
               message: text,
-              timestamp: new Date().toISOString(),
+              createdAt: new Date().toISOString(),
             },
           ],
         }));
-        return;
-      }
-
-      // ---------- Instagram ----------
-      if (page.type === "instagram") {
-        const recipientId =
-          activeConversation.recipientId ||
-          activeConversation.participants?.data?.find(
-            (p) => p.id && p.id !== page.igId
-          )?.id;
-        if (!recipientId) return console.error("No IG recipient id");
-
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messaging_type: "RESPONSE",
-              recipient: { id: recipientId },
-              message: { text },
-            }),
-          }
-        );
-        const result = await res.json();
-        if (res.ok && result.id) {
-          setMessages((prev) => ({
-            ...prev,
-            [activeConversation.id]: [
-              ...(prev[activeConversation.id] || []),
-              {
-                from: { name: "You" },
-                message: text,
-                created_time: new Date().toISOString(),
-              },
-            ],
-          }));
-        } else {
-          console.error("Instagram send failed:", result);
-        }
-        return;
-      }
-
-      // ---------- Facebook ----------
-      if (page.type === "facebook") {
-        const userParticipant = activeConversation.participants?.data?.find(
-          (p) => p.id !== page.id
-        );
-        if (!userParticipant) return;
-
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipient: { id: userParticipant.id },
-              message: { text },
-              messaging_type: "MESSAGE_TAG",
-              tag: "ACCOUNT_UPDATE",
-            }),
-          }
-        );
-
-        const result = await res.json();
-        if (res.ok && result.message_id) {
-          setMessages((prev) => ({
-            ...prev,
-            [activeConversation.id]: [
-              ...(prev[activeConversation.id] || []),
-              {
-                from: { name: "You" },
-                message: text,
-                created_time: new Date().toISOString(),
-              },
-            ],
-          }));
-        }
-        return;
-      }
-
-      // ---------- ChatWidget (text or file) ----------
-      if (page.type === "chatwidget") {
-        if (file) {
-          // send file via FormData
-          try {
-            const localId = "temp-" + Date.now();
-            // Optimistic UI: add temp message
-            const optimistic = {
-              _tempId: localId,
-              sender: "me",
-              text: text || null,
-              fileUrl: URL.createObjectURL(file),
-              fileName: file.name,
-              createdAt: new Date().toISOString(),
-              uploading: true,
-            };
-            setMessages((prev) => ({
-              ...prev,
-              [activeConversation.id]: [
-                ...(prev[activeConversation.id] || []),
-                optimistic,
-              ],
-            }));
-
-            setUploading(true);
-
-            const formData = new FormData();
-            formData.append("sessionId", activeConversation.id);
-            formData.append(
-              "storeDomain",
-              activeConversation.storeDomain || "myshop.com"
-            );
-            formData.append("sender", "customer"); // or "me" based on your mapping
-            formData.append("file", file);
-            // include localId so you can track it server-side if desired (server may ignore)
-            formData.append("localId", localId);
-
-            const res = await fetch(`/api/chat`, {
-              method: "POST",
-              body: formData,
-            });
-            const data = await res.json().catch(() => null);
-
-            setUploading(false);
-
-            if (data && data.ok && data.message) {
-              // replace optimistic message by finding _tempId
-              setMessages((prev) => {
-                const arr = [...(prev[activeConversation.id] || [])];
-                const idx = arr.findIndex((m) => m._tempId === localId);
-                if (idx !== -1) {
-                  arr[idx] = data.message;
-                } else {
-                  arr.push(data.message);
-                }
-                return { ...prev, [activeConversation.id]: arr };
-              });
-            } else {
-              // on failure: mark optimistic as failed
-              setMessages((prev) => {
-                const arr = [...(prev[activeConversation.id] || [])];
-                const idx = arr.findIndex((m) => m._tempId === localId);
-                if (idx !== -1) {
-                  arr[idx] = {
-                    ...arr[idx],
-                    uploading: false,
-                    failed: true,
-                    error: data?.error || "Upload failed",
-                  };
-                }
-                return { ...prev, [activeConversation.id]: arr };
-              });
-            }
-          } catch (err) {
-            console.error("File upload failed", err);
-            setUploading(false);
-          }
-          return;
-        } else {
-          // text message (JSON)
-          await fetch(`/api/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              sessionId: activeConversation.id,
-              storeDomain: activeConversation.storeDomain || "myshop.com",
-              message: text,
-              sender: "me",
-            }),
-          });
-          setMessages((prev) => ({
-            ...prev,
-            [activeConversation.id]: [
-              ...(prev[activeConversation.id] || []),
-              {
-                from: { name: "You" },
-                text,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-          }));
-        }
-      }
-    } catch (err) {
-      console.error("Error sending message:", err);
-      setUploading(false);
+      } else console.error("Instagram send failed:", result);
+      return;
     }
-  };
+
+    // ---------- Facebook ----------
+    if (page.type === "facebook") {
+      const userParticipant = activeConversation.participants?.data?.find(
+        (p) => p.id !== page.id
+      );
+      if (!userParticipant) return;
+
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: { id: userParticipant.id },
+            message: { text },
+            messaging_type: "MESSAGE_TAG",
+            tag: "ACCOUNT_UPDATE",
+          }),
+        }
+      );
+      const result = await res.json();
+      if (res.ok && result.message_id) {
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            {
+              from: { name: "You" },
+              message: text,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        }));
+      }
+      return;
+    }
+
+    // ---------- ChatWidget (text or file) ----------
+    if (page.type === "chatwidget") {
+      const localId = "temp-" + Date.now();
+      const optimistic = {
+        _tempId: localId,
+        sender: "me",
+        text: text || null,
+        fileUrl: file ? URL.createObjectURL(file) : null,
+        fileName: file?.name || null,
+        createdAt: new Date().toISOString(),
+        uploading: !!file,
+      };
+
+      // add optimistic message
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [
+          ...(prev[activeConversation.id] || []),
+          optimistic,
+        ],
+      }));
+
+      if (!file) {
+        // text-only
+        await fetch(`/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: activeConversation.id,
+            storeDomain: activeConversation.storeDomain || "myshop.com",
+            message: text,
+            sender: "me",
+          }),
+        });
+        setMessages((prev) => {
+          const arr = [...(prev[activeConversation.id] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) arr[idx].uploading = false;
+          return { ...prev, [activeConversation.id]: arr };
+        });
+        return;
+      }
+
+      // file upload
+      try {
+        const formData = new FormData();
+        formData.append("sessionId", activeConversation.id);
+        formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
+        formData.append("sender", "me");
+        formData.append("file", file);
+        formData.append("localId", localId);
+
+        const res = await fetch(`/api/chat`, { method: "POST", body: formData });
+        const data = await res.json().catch(() => null);
+
+        setMessages((prev) => {
+          const arr = [...(prev[activeConversation.id] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) {
+            if (data?.ok && data.message) arr[idx] = data.message;
+            else arr[idx] = { ...arr[idx], uploading: false, failed: true, error: data?.error || "Upload failed" };
+          }
+          return { ...prev, [activeConversation.id]: arr };
+        });
+
+        if (file) URL.revokeObjectURL(optimistic.fileUrl);
+      } catch (err) {
+        console.error("File upload failed", err);
+      }
+    }
+  } catch (err) {
+    console.error("Error sending message:", err);
+  }
+};
+
 
   /** ----------------- UI ----------------- **/
   return (
@@ -576,7 +544,7 @@ export default function SocialChatDashboard() {
                 msg.from?.id === activeConversation.pageId ||
                 msg.from?.phone_number_id === activeConversation.pageId ||
                 msg.sender === "me" ||
-                msg.from === "customer" ||
+                msg.from === "me" ||
                 msg._tempId; // optimistic sent messages
 
               const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
