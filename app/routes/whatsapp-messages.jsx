@@ -15,12 +15,28 @@ if (!number) {
 const messages = await prisma.customerWhatsAppMessage.findMany({
   where: {
     OR: [
-      { from: BUSINESS_NUMBER },
-      { to: BUSINESS_NUMBER },
+      { from: BUSINESS_NUMBER, to: number },
+      { from: number, to: BUSINESS_NUMBER },
     ],
   },
   orderBy: { timestamp: "asc" },
+  select: {
+    id: true,
+    from: true,
+    to: true,
+    message: true,
+    timestamp: true,
+  },
 });
+
+// Replace BUSINESS_NUMBER with placeholder
+const sanitizedMessages = messages.map(msg => ({
+  ...msg,
+  from: msg.from === BUSINESS_NUMBER ? "You" : msg.from,
+  to: msg.to === BUSINESS_NUMBER ? "You" : msg.to,
+}));
+
+console.log(sanitizedMessages);
 
 
   // ✅ Always set sender based on direction
