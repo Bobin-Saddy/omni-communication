@@ -197,60 +197,113 @@ useEffect(() => {
   };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
-  const handleSelectConversation = async (conv) => {
-    setActiveConversation(conv);
+const handleSelectConversation = async (conv) => {
+  setActiveConversation(conv);
 
-    const page = connectedPages.find((p) => p.id === conv.pageId);
-    if (!page) return;
+  const page = connectedPages.find((p) => p.id === conv.pageId);
+  if (!page) return;
 
-    try {
-      if (page.type === "chatwidget") {
-        const res = await fetch(
-          `/api/chat?storeDomain=${encodeURIComponent(
-            conv.storeDomain || "myshop.com"
-          )}&sessionId=${encodeURIComponent(conv.id)}`
-        );
+  try {
+    // ---------- ChatWidget ----------
+    if (page.type === "chatwidget") {
+      const res = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(
+          conv.storeDomain || "myshop.com"
+        )}&sessionId=${encodeURIComponent(conv.id)}`
+      );
 
-        if (res.ok) {
-          const data = await res.json();
-          setMessages((prev) => ({
-            ...prev,
-            [conv.id]: Array.isArray(data?.messages) ? data.messages : [],
-          }));
-        }
-      } else if (page.type === "instagram" || page.type === "facebook") {
- const res = await fetch(
-    `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
-  );
-
-  if (res.ok) {
-    const data = await res.json();
-    const sortedMessages = Array.isArray(data?.data)
-      ? data.data.sort((a, b) => new Date(a.created_time) - new Date(b.created_time))
-      : [];
-
-    // Map messages with correct sender
-    const formattedMessages = sortedMessages.map((msg) => ({
-      sender: msg.from?.id === page.igId ? "me" : "them",
-      text: msg.message,
-      createdAt: msg.created_time,
-      id: msg.id,
-    }));
-
-    setMessages((prev) => ({
-      ...prev,
-      [conv.id]: formattedMessages,
-    }));
-  }
-} else if (page.type === "whatsapp") {
-        const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+      if (res.ok) {
         const data = await res.json();
-        setMessages((prev) => ({ ...prev, [conv.id]: data }));
+        setMessages((prev) => ({
+          ...prev,
+          [conv.id]: Array.isArray(data?.messages)
+            ? data.messages.map((m) => ({
+                ...m,
+                sender: m.sender === "me" ? "me" : "them",
+              }))
+            : [],
+        }));
       }
-    } catch (error) {
-      console.error("Error loading messages:", error);
+      return;
     }
-  };
+
+    // ---------- Instagram ----------
+    if (page.type === "instagram") {
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.data)) {
+          const formatted = data.data
+            .map((msg) => {
+              const sender =
+                msg.from?.id === page.igId ? "me" : "them";
+              return {
+                id: msg.id,
+                sender,
+                text: msg.message,
+                createdAt: msg.created_time,
+              };
+            })
+            // Sort by timestamp ascending
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+        }
+      }
+      return;
+    }
+
+    // ---------- Facebook ----------
+    if (page.type === "facebook") {
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.data)) {
+          const formatted = data.data
+            .map((msg) => {
+              const sender = msg.from?.id === page.id ? "me" : "them";
+              return {
+                id: msg.id,
+                sender,
+                text: msg.message,
+                createdAt: msg.created_time,
+              };
+            })
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+        }
+      }
+      return;
+    }
+
+    // ---------- WhatsApp ----------
+    if (page.type === "whatsapp") {
+      const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) => ({
+          ...prev,
+          [conv.id]: Array.isArray(data)
+            ? data.map((msg) => ({
+                ...msg,
+                sender: msg.fromMe ? "me" : "them",
+              }))
+            : [],
+        }));
+      }
+    }
+  } catch (error) {
+    console.error("Error loading messages:", error);
+  }
+};
+
 
   /** ----------------- SEND MESSAGE (supports file for chatwidget) ----------------- **/
 const sendMessage = async (text = "", file = null) => {
