@@ -319,7 +319,7 @@ const sendMessage = async (text = "", file = null) => {
   if (page.type === "whatsapp") {
     const convId = activeConversation.id;
 
-    // Optimistic message (only once!)
+    // Optimistic message (only once)
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -328,13 +328,15 @@ const sendMessage = async (text = "", file = null) => {
       uploading: !!file,
     };
 
+    // add optimistic message
     setMessages((prev) => ({
       ...prev,
       [convId]: [...(prev[convId] || []), optimistic],
     }));
 
     try {
-      const res = await fetch(
+      // 1) Send via WhatsApp Graph API
+      const graphRes = await fetch(
         `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
         {
           method: "POST",
@@ -347,47 +349,90 @@ const sendMessage = async (text = "", file = null) => {
         }
       );
 
-      const data = await res.json().catch(() => null);
+      const graphData = await graphRes.json().catch(() => null);
 
-      if (!res.ok) {
-        console.error("WhatsApp send failed:", data);
+      if (!graphRes.ok) {
+        console.error("WhatsApp send failed:", graphData);
+        // mark optimistic as failed
         setMessages((prev) => {
           const arr = [...(prev[convId] || [])];
           const idx = arr.findIndex((m) => m._tempId === localId);
-          if (idx !== -1) arr[idx].failed = true;
+          if (idx !== -1) arr[idx] = { ...arr[idx], failed: true, uploading: false };
           return { ...prev, [convId]: arr };
         });
         return;
       }
 
-      // Save to DB
- await fetch(`/whatsapp-messages`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    number: activeConversation.userNumber,
-    text,
-    direction: "outgoing", // ✅ important
-    createdAt: new Date().toISOString(),
-  }),
-});
+      // Try to read the wa message id returned by Graph (if present)
+      const waMessageId = graphData?.messages?.[0]?.id || graphData?.id || null;
 
+      // 2) Save to your DB (send localId + waMessageId so server can respond and we can replace optimistic)
+      const saveRes = await fetch(`/whatsapp-messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: activeConversation.userNumber,
+          text,
+          direction: "outgoing",
+          createdAt: new Date().toISOString(),
+          waMessageId,     // optional: recommended to store in DB
+          localId,         // so server response can be matched to optimistic
+        }),
+      });
 
-      // Remove tempId after DB save
+      const saveData = await saveRes.json().catch(() => null);
+
+      if (!saveRes.ok || !saveData?.ok) {
+        // mark optimistic as failed if DB save failed
+        console.error("Save outgoing message failed:", saveData);
+        setMessages((prev) => {
+          const arr = [...(prev[convId] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) arr[idx] = { ...arr[idx], failed: true, uploading: false };
+          return { ...prev, [convId]: arr };
+        });
+        return;
+      }
+
+      // 3) Replace optimistic with DB-saved normalized message returned from server (if provided)
+      const savedMsg = saveData.message;
+      if (savedMsg) {
+        setMessages((prev) => {
+          const arr = [...(prev[convId] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) {
+            arr[idx] = { ...savedMsg }; // normalized shape from server
+          } else {
+            // fallback: just append if somehow optimistic was removed
+            arr.push(savedMsg);
+          }
+          return { ...prev, [convId]: arr };
+        });
+      } else {
+        // if server didn't return message object, remove _tempId marker so it becomes persistent non-temp
+        setMessages((prev) => {
+          const arr = [...(prev[convId] || [])];
+          const idx = arr.findIndex((m) => m._tempId === localId);
+          if (idx !== -1) delete arr[idx]._tempId;
+          return { ...prev, [convId]: arr };
+        });
+      }
+
+    } catch (err) {
+      console.error("WhatsApp send/save error:", err);
       setMessages((prev) => {
         const arr = [...(prev[convId] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) delete arr[idx]._tempId;
+        if (idx !== -1) arr[idx] = { ...arr[idx], failed: true, uploading: false };
         return { ...prev, [convId]: arr };
       });
-    } catch (err) {
-      console.error("WhatsApp send/save error:", err);
     }
-    return; // ✅ stop here so no double optimistic
+    return; // stop here (do not run other platform code)
   }
 
   // ---------- Instagram ----------
   if (page.type === "instagram") {
+    // keep existing IG logic (optimistic then API call)
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -432,7 +477,7 @@ const sendMessage = async (text = "", file = null) => {
         arr[idx] = {
           ...arr[idx],
           text,
-          sender: "me", // blue color
+          sender: "me", // blue
           uploading: false,
           createdAt: new Date().toISOString(),
         };
@@ -569,6 +614,7 @@ const sendMessage = async (text = "", file = null) => {
     });
   }
 };
+
 
 
   /** ----------------- UI ----------------- **/
