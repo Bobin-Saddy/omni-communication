@@ -20,45 +20,69 @@ export async function loader({ request }) {
 
 // webhook.whatsapp.jsx
 export async function action({ request }) {
-  const body = await request.json();
-  const messages = body?.entry?.[0]?.changes?.[0]?.value?.messages;
+  try {
+    const data = await request.json();
+    const { number, text, sender } = data;
 
-  if (messages && messages.length > 0) {
-    const msg = messages[0];
-    const from = normalize(msg.from);
-    const text = msg?.text?.body || "";
-    const name = msg?.profile?.name || "";
+    if (!number || !text) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Missing number or text" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
-    // Save INCOMING message
-    await prisma.customerWhatsAppMessage.create({
+    // 1. Send message to WhatsApp Cloud API
+    const resp = await fetch(
+      `https://graph.facebook.com/v21.0/${BUSINESS_NUMBER}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: number,
+          text: { body: text },
+        }),
+      }
+    );
+
+    const apiResp = await resp.json();
+    if (!resp.ok) {
+      console.error("WhatsApp API error:", apiResp);
+      throw new Error(apiResp.error?.message || "Failed to send message");
+    }
+
+    // 2. Save locally as outgoing
+    const message = await prisma.customerWhatsAppMessage.create({
       data: {
-        to: BUSINESS_NUMBER,
-        from: from,
+        from: "me",
+        to: number,
         message: text,
-        direction: "incoming",
         timestamp: new Date(),
+        direction: "outgoing",
       },
     });
 
-    await prisma.chatSession.upsert({
-      where: { phone: from },
-      update: {
-        messages: {
-          create: { content: text, sender: "user" },
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        message: {
+          id: message.id,
+          text: message.message,
+          createdAt: message.timestamp,
+          sender: "me",
         },
-      },
-      create: {
-        userId: from,
-        userName: name,
-        phone: from,
-        messages: {
-          create: { content: text, sender: "user" },
-        },
-      },
-    });
-
-    console.log("Stored incoming WhatsApp message from", from, text);
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (err) {
+    console.error("Error sending outgoing WhatsApp message:", err);
+    return new Response(
+      JSON.stringify({ ok: false, error: err.message }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
   }
-
-  return new Response("EVENT_RECEIVED", { status: 200 });
 }
+
