@@ -333,9 +333,24 @@ const sendMessage = async (text = "", file = null) => {
   }));
 
   try {
-    // ---------- WhatsApp ----------
 // ---------- WhatsApp ----------
 if (page.type === "whatsapp") {
+  const convId = activeConversation.id; // ensure we always use the correct conversation ID
+  const localId = "temp-" + Date.now();
+  const optimistic = {
+    _tempId: localId,
+    sender: "me",
+    text,
+    createdAt: new Date().toISOString(),
+    uploading: false,
+  };
+
+  // Add optimistic message
+  setMessages((prev) => ({
+    ...prev,
+    [convId]: [...(prev[convId] || []), optimistic],
+  }));
+
   try {
     // 1️⃣ Send via WhatsApp API
     const res = await fetch(
@@ -355,15 +370,15 @@ if (page.type === "whatsapp") {
     if (!res.ok) {
       console.error("WhatsApp send failed:", data);
       setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
+        const arr = [...(prev[convId] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
         if (idx !== -1) arr[idx].failed = true;
-        return { ...prev, [activeConversation.id]: arr };
+        return { ...prev, [convId]: arr };
       });
       return;
     }
 
-    // 2️⃣ Save to DB
+    // 2️⃣ Save to DB (with direction)
     await fetch(`/whatsapp-messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -376,18 +391,19 @@ if (page.type === "whatsapp") {
       }),
     });
 
-    // 3️⃣ Remove _tempId after DB save
+    // 3️⃣ Remove tempId after DB save
     setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
+      const arr = [...(prev[convId] || [])];
       const idx = arr.findIndex((m) => m._tempId === localId);
       if (idx !== -1) delete arr[idx]._tempId;
-      return { ...prev, [activeConversation.id]: arr };
+      return { ...prev, [convId]: arr };
     });
   } catch (err) {
     console.error("WhatsApp send/save error:", err);
   }
   return;
 }
+
 
 
     // ---------- Instagram ----------
