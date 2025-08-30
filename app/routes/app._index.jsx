@@ -344,6 +344,7 @@ if (page.type === "whatsapp") {
     uploading: false,
   };
 
+  // Show message immediately
   setMessages((prev) => ({
     ...prev,
     [activeConversation.id]: [
@@ -352,31 +353,59 @@ if (page.type === "whatsapp") {
     ],
   }));
 
-  // Send via API
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-    {
+  try {
+    // 1️⃣ Send via WhatsApp API
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: activeConversation.userNumber,
+          text: { body: text },
+        }),
+      }
+    );
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      console.error("WhatsApp send failed:", data);
+      // mark message as failed
+      setMessages((prev) => {
+        const arr = [...(prev[activeConversation.id] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1) arr[idx].failed = true;
+        return { ...prev, [activeConversation.id]: arr };
+      });
+      return;
+    }
+
+    // 2️⃣ Save message in your database
+    await fetch(`/whatsapp-messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: activeConversation.userNumber,
-        text: { body: text },
+        number: activeConversation.userNumber,
+        text,
+        sender: "me",
+        createdAt: new Date().toISOString(),
       }),
-    }
-  );
+    });
 
-  const data = await res.json().catch(() => null);
+    // 3️⃣ Remove tempId after DB save
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) delete arr[idx]._tempId;
+      return { ...prev, [activeConversation.id]: arr };
+    });
 
-  // Mark optimistic message as sent
-  setMessages((prev) => {
-    const arr = [...(prev[activeConversation.id] || [])];
-    const idx = arr.findIndex((m) => m._tempId === localId);
-    if (idx !== -1) arr[idx] = { ...arr[idx], _tempId: undefined };
-    return { ...prev, [activeConversation.id]: arr };
-  });
+  } catch (err) {
+    console.error("WhatsApp send/save error:", err);
+  }
 
-  if (!res.ok) console.error("WhatsApp send failed:", data);
   return;
 }
 
