@@ -33,10 +33,18 @@ export async function loader({ request }) {
 }
 
 // ----------------- HANDLE OUTGOING MESSAGES -----------------
+// ----------------- HANDLE OUTGOING / SAVE MESSAGES -----------------
 export async function action({ request }) {
   try {
     const data = await request.json();
-    const { number, text, sender } = data;
+    const {
+      number,
+      text,
+      direction = "incoming", // default fallback
+      platformMessageId,
+      localId,
+      createdAt,
+    } = data;
 
     if (!number || !text) {
       return new Response(
@@ -45,13 +53,58 @@ export async function action({ request }) {
       );
     }
 
+    // 🔹 Dedupe by platformMessageId
+    if (platformMessageId) {
+      const existing = await prisma.customerWhatsAppMessage.findUnique({
+        where: { platformMessageId },
+      });
+      if (existing) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            message: {
+              id: existing.id,
+              text: existing.message,
+              createdAt: existing.timestamp,
+              sender: existing.direction === "outgoing" ? "me" : "them",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // 🔹 Optionally dedupe by localId
+    if (localId) {
+      const existingLocal = await prisma.customerWhatsAppMessage.findFirst({
+        where: { localId },
+      });
+      if (existingLocal) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            message: {
+              id: existingLocal.id,
+              text: existingLocal.message,
+              createdAt: existingLocal.timestamp,
+              sender: existingLocal.direction === "outgoing" ? "me" : "them",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // 🔹 Save message (trust explicit direction instead of inferring)
     const message = await prisma.customerWhatsAppMessage.create({
       data: {
-        from: sender === "me" ? "me" : number,
-        to: sender === "me" ? number : "me",
+        from: direction === "outgoing" ? "me" : number,
+        to: direction === "outgoing" ? number : "me",
         message: text,
-        timestamp: new Date(),
-        direction: sender === "me" ? "outgoing" : "incoming",
+        timestamp: createdAt ? new Date(createdAt) : new Date(),
+        direction, // <-- trust client here
+        platformMessageId: platformMessageId || null,
+        localId: localId || null,
       },
     });
 
@@ -68,10 +121,11 @@ export async function action({ request }) {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Error saving outgoing WhatsApp message:", err);
+    console.error("Error saving WhatsApp message:", err);
     return new Response(
       JSON.stringify({ ok: false, error: err.message }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
+

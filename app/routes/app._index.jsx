@@ -319,7 +319,7 @@ const sendMessage = async (text = "", file = null) => {
   if (page.type === "whatsapp") {
     const convId = activeConversation.id;
 
-    // Optimistic message
+    // Optimistic message (only once!)
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -351,6 +351,7 @@ const sendMessage = async (text = "", file = null) => {
 
       if (!res.ok) {
         console.error("WhatsApp send failed:", data);
+        // mark optimistic message as failed
         setMessages((prev) => {
           const arr = [...(prev[convId] || [])];
           const idx = arr.findIndex((m) => m._tempId === localId);
@@ -360,33 +361,63 @@ const sendMessage = async (text = "", file = null) => {
         return;
       }
 
-      // ✅ Save to DB as outgoing
-      await fetch(`/whatsapp-messages`, {
+      // Get platform message id if available (helps dedupe later)
+      const platformMessageId = data?.messages?.[0]?.id || null;
+
+      // ✅ Save to DB as outgoing and pass identifying fields for dedupe
+      const savePayload = {
+        number: activeConversation.userNumber,
+        text,
+        direction: "outgoing",            // explicit
+        platform: "whatsapp",
+        platformMessageId,               // may be null
+        localId,                         // our temp id so backend can correlate
+        createdAt: new Date().toISOString(),
+      };
+
+      const dbRes = await fetch(`/whatsapp-messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          number: activeConversation.userNumber,
-          text,
-          direction: "outgoing", // FIXED ✅
-          createdAt: new Date().toISOString(),
-        }),
+        body: JSON.stringify(savePayload),
       });
+      const dbData = await dbRes.json().catch(() => null);
 
-      // Remove tempId after DB save
+      // Update optimistic message in UI: attach platform id and remove _tempId
       setMessages((prev) => {
         const arr = [...(prev[convId] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) delete arr[idx]._tempId;
+        if (idx !== -1) {
+          arr[idx] = {
+            ...arr[idx],
+            // backend may return the final saved message (dbData.message) — prefer that if present
+            ...(dbData?.message ? dbData.message : {}),
+            platformMessageId: platformMessageId || undefined,
+            uploading: false,
+          };
+          // remove temp id marker (so it won't be found as temp later)
+          delete arr[idx]._tempId;
+        }
         return { ...prev, [convId]: arr };
       });
     } catch (err) {
       console.error("WhatsApp send/save error:", err);
+      setMessages((prev) => {
+        const arr = [...(prev[convId] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1) {
+          arr[idx].failed = true;
+          arr[idx].uploading = false;
+        }
+        return { ...prev, [convId]: arr };
+      });
     }
-    return; // stop here so no double optimistic
+
+    return; // ✅ stop here so no double optimistic for other providers
   }
 
   // ---------- Instagram ----------
   if (page.type === "instagram") {
+    // (unchanged from your prior code)
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -431,7 +462,7 @@ const sendMessage = async (text = "", file = null) => {
         arr[idx] = {
           ...arr[idx],
           text,
-          sender: "me",
+          sender: "me", // blue color
           uploading: false,
           createdAt: new Date().toISOString(),
         };
@@ -445,6 +476,7 @@ const sendMessage = async (text = "", file = null) => {
 
   // ---------- Facebook ----------
   if (page.type === "facebook") {
+    // (unchanged)
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -502,6 +534,7 @@ const sendMessage = async (text = "", file = null) => {
 
   // ---------- ChatWidget ----------
   if (page.type === "chatwidget") {
+    // (unchanged)
     const optimistic = {
       _tempId: localId,
       sender: "me",
