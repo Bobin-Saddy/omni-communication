@@ -334,25 +334,8 @@ const sendMessage = async (text = "", file = null) => {
 
   try {
     // ---------- WhatsApp ----------
+// ---------- WhatsApp ----------
 if (page.type === "whatsapp") {
-  const localId = "temp-" + Date.now();
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",
-    text,
-    createdAt: new Date().toISOString(),
-    uploading: false,
-  };
-
-  // Show message immediately
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [
-      ...(prev[activeConversation.id] || []),
-      optimistic,
-    ],
-  }));
-
   try {
     // 1️⃣ Send via WhatsApp API
     const res = await fetch(
@@ -380,7 +363,7 @@ if (page.type === "whatsapp") {
       return;
     }
 
-    // 2️⃣ Save to DB (with direction)
+    // 2️⃣ Save to DB
     await fetch(`/whatsapp-messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -388,12 +371,12 @@ if (page.type === "whatsapp") {
         number: activeConversation.userNumber,
         text,
         sender: "me",
-        direction: "outgoing",  // ✅ added
+        direction: "outgoing",
         createdAt: new Date().toISOString(),
       }),
     });
 
-    // 3️⃣ Remove tempId after DB save
+    // 3️⃣ Remove _tempId after DB save
     setMessages((prev) => {
       const arr = [...(prev[activeConversation.id] || [])];
       const idx = arr.findIndex((m) => m._tempId === localId);
