@@ -40,8 +40,9 @@ export async function action({ request }) {
       data: {
         from: sender === "me" ? "me" : number,
         to: sender === "me" ? number : "me",
-        message: text,  // <-- use 'message' instead of 'text'
+        message: text,
         timestamp: new Date(),
+        direction: sender === "me" ? "outgoing" : "incoming", // <-- add this
       },
     });
 
