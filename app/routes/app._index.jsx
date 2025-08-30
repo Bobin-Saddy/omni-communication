@@ -319,7 +319,7 @@ const sendMessage = async (text = "", file = null) => {
   if (page.type === "whatsapp") {
     const convId = activeConversation.id;
 
-    // Optimistic message (only once!)
+    // Optimistic UI update
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -360,20 +360,19 @@ const sendMessage = async (text = "", file = null) => {
         return;
       }
 
-      // Save to DB
- await fetch(`/whatsapp-messages`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    number: activeConversation.userNumber,
-    text,
-    direction: "incoming", // ✅ important
-    createdAt: new Date().toISOString(),
-  }),
-});
+      // ✅ Save outgoing only once (not in webhook)
+      await fetch(`/whatsapp-messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          number: activeConversation.userNumber,
+          text,
+          direction: "outgoing", // important!
+          createdAt: new Date().toISOString(),
+        }),
+      });
 
-
-      // Remove tempId after DB save
+      // Remove tempId
       setMessages((prev) => {
         const arr = [...(prev[convId] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
@@ -383,7 +382,7 @@ const sendMessage = async (text = "", file = null) => {
     } catch (err) {
       console.error("WhatsApp send/save error:", err);
     }
-    return; // ✅ stop here so no double optimistic
+    return; // ✅ prevents double handling
   }
 
   // ---------- Instagram ----------
@@ -432,7 +431,7 @@ const sendMessage = async (text = "", file = null) => {
         arr[idx] = {
           ...arr[idx],
           text,
-          sender: "me", // blue color
+          sender: "me",
           uploading: false,
           createdAt: new Date().toISOString(),
         };
@@ -569,6 +568,7 @@ const sendMessage = async (text = "", file = null) => {
     });
   }
 };
+
 
 
   /** ----------------- UI ----------------- **/
