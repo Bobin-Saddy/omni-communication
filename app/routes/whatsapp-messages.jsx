@@ -1,7 +1,7 @@
 // routes/whatsapp-messages.jsx
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
-
+const BUSINESS_NUMBER = "106660072463312"; // your business WhatsApp number
 // ----------------- FETCH MESSAGES -----------------
 // ----------------- FETCH MESSAGES -----------------
 export async function loader({ request }) {
