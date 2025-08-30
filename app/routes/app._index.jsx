@@ -333,9 +333,8 @@ const sendMessage = async (text = "", file = null) => {
   }));
 
   try {
-// ---------- WhatsApp ----------
 if (page.type === "whatsapp") {
-  const convId = activeConversation.id; // always use the current conversation
+  const convId = activeConversation.id; // use active conversation
   const localId = "temp-" + Date.now();
   const optimistic = {
     _tempId: localId,
@@ -345,14 +344,13 @@ if (page.type === "whatsapp") {
     uploading: false,
   };
 
-  // Add optimistic message
+  // Add optimistic message to current conversation only
   setMessages((prev) => ({
     ...prev,
     [convId]: [...(prev[convId] || []), optimistic],
   }));
 
   try {
-    // Send via WhatsApp API
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
       {
@@ -365,6 +363,7 @@ if (page.type === "whatsapp") {
         }),
       }
     );
+
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
@@ -401,7 +400,6 @@ if (page.type === "whatsapp") {
   } catch (err) {
     console.error("WhatsApp send/save error:", err);
   }
-  return;
 }
 
 
