@@ -25,45 +25,46 @@ export default function SocialChatDashboard() {
   useEffect(() => {
     if (!connectedPages.length) return;
     connectedPages.forEach((page) => fetchConversations(page));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectedPages]);
 
-  /** ----------------- SSE for chatwidget ----------------- **/
-  useEffect(() => {
-    if (activeConversation?.pageType !== "chatwidget") return;
+  /** ----------------- SSE for chatwidget (real-time) ----------------- **/
+useEffect(() => {
+  if (activeConversation?.pageType !== "chatwidget") return;
 
-    const es = new EventSource(
-      `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
-        activeConversation.storeDomain || ""
-      )}`
-    );
+  const es = new EventSource(
+    `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
+      activeConversation.storeDomain || ""
+    )}`
+  );
 
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        setMessages((prev) => ({
-          ...prev,
-          [activeConversation.id]: [
-            ...(prev[activeConversation.id] || []),
-            {
-              text: data.text || "",
-              fileUrl: data.fileUrl || null,
-              sender: data.sender || "them",
-              createdAt: data.createdAt || new Date().toISOString(),
-            },
-          ],
-        }));
-      } catch (e) {
-        console.warn("SSE parse error", e);
-      }
-    };
+  es.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [
+          ...(prev[activeConversation.id] || []),
+          {
+            text: data.text || "",
+            fileUrl: data.fileUrl || null,
+            sender: data.sender || "them",
+            createdAt: data.createdAt || new Date().toISOString(),
+          },
+        ],
+      }));
+    } catch (e) {
+      console.warn("SSE parse error", e);
+    }
+  };
 
-    es.onerror = (err) => {
-      console.warn("SSE error", err);
-      es.close();
-    };
+  es.onerror = (err) => {
+    console.warn("SSE error", err);
+    es.close();
+  };
 
-    return () => es.close();
-  }, [activeConversation]);
+  return () => es.close();
+}, [activeConversation]);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
@@ -146,7 +147,7 @@ export default function SocialChatDashboard() {
         return;
       }
 
-      // Chat Widget
+      // Chat Widget (fetch sessions)
       if (page.type === "chatwidget") {
         const res = await fetch(`/api/chat?widget=true`);
         const data = await res.json();
@@ -167,6 +168,7 @@ export default function SocialChatDashboard() {
             ...convs,
           ]);
 
+          // Auto-select first conversation and load messages
           if (convs.length > 0) {
             const firstConv = convs[0];
             setActiveConversation(firstConv);
@@ -195,118 +197,119 @@ export default function SocialChatDashboard() {
   };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
-  const handleSelectConversation = async (conv) => {
-    setActiveConversation(conv);
+const handleSelectConversation = async (conv) => {
+  setActiveConversation(conv);
 
-    const page = connectedPages.find((p) => p.id === conv.pageId);
-    if (!page) return;
+  const page = connectedPages.find((p) => p.id === conv.pageId);
+  if (!page) return;
 
-    try {
-      if (page.type === "chatwidget") {
-        const res = await fetch(
-          `/api/chat?storeDomain=${encodeURIComponent(
-            conv.storeDomain || "myshop.com"
-          )}&sessionId=${encodeURIComponent(conv.id)}`
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-          setMessages((prev) => ({
-            ...prev,
-            [conv.id]: Array.isArray(data?.messages)
-              ? data.messages.map((m) => ({
-                  ...m,
-                  sender: m.sender === "me" ? "me" : "them",
-                }))
-              : [],
-          }));
-        }
-        return;
-      }
-
-      // WhatsApp / Instagram / Facebook fetching unchanged
-    } catch (error) {
-      console.error("Error loading messages:", error);
-    }
-  };
-
-  /** ----------------- SEND MESSAGE ----------------- **/
-  const sendMessage = async (text = "", file = null) => {
-    if (!activeConversation) return;
-    const page = connectedPages.find((p) => p.id === activeConversation.pageId);
-    if (!page) return;
-
-    const localId = "temp-" + Date.now();
-
+  try {
     // ---------- ChatWidget ----------
     if (page.type === "chatwidget") {
-      const optimistic = {
-        _tempId: localId,
-        sender: "me",
-        text: text || null,
-        fileUrl: file ? URL.createObjectURL(file) : null, // show image immediately
-        fileName: file?.name || null,
-        createdAt: new Date().toISOString(),
-        uploading: !!file,
-      };
+      const res = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(
+          conv.storeDomain || "myshop.com"
+        )}&sessionId=${encodeURIComponent(conv.id)}`
+      );
 
-      setMessages((prev) => ({
-        ...prev,
-        [activeConversation.id]: [
-          ...(prev[activeConversation.id] || []),
-          optimistic,
-        ],
-      }));
-
-      // if no file, just send text
-      if (!file) {
-        await fetch(`/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: activeConversation.id,
-            storeDomain: activeConversation.storeDomain || "myshop.com",
-            message: text,
-            sender: "me",
-          }),
-        });
-        setMessages((prev) => {
-          const arr = [...(prev[activeConversation.id] || [])];
-          const idx = arr.findIndex((m) => m._tempId === localId);
-          if (idx !== -1) arr[idx].uploading = false;
-          return { ...prev, [activeConversation.id]: arr };
-        });
-        return;
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) => ({
+          ...prev,
+          [conv.id]: Array.isArray(data?.messages)
+            ? data.messages.map((m) => ({
+                ...m,
+                sender: m.sender === "me" ? "me" : "them",
+              }))
+            : [],
+        }));
       }
-
-      // file upload
-      const formData = new FormData();
-      formData.append("sessionId", activeConversation.id);
-      formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
-      formData.append("sender", "me");
-      formData.append("file", file);
-      formData.append("localId", localId);
-
-      const res = await fetch(`/api/chat`, { method: "POST", body: formData });
-      const data = await res.json().catch(() => null);
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          arr[idx] = {
-            ...arr[idx],
-            ...data?.message,
-            fileUrl: data?.message?.fileUrl || arr[idx].fileUrl, // fallback to optimistic blob URL
-            uploading: false,
-            failed: data?.ok ? false : true,
-          };
-          delete arr[idx]._tempId;
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
       return;
     }
+
+    // ---------- Instagram ----------
+    if (page.type === "instagram") {
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.data)) {
+          const formatted = data.data
+            .map((msg) => {
+              const sender =
+                msg.from?.id === page.igId ? "me" : "them";
+              return {
+                id: msg.id,
+                sender,
+                text: msg.message,
+                createdAt: msg.created_time,
+              };
+            })
+            // Sort by timestamp ascending
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+        }
+      }
+      return;
+    }
+
+    // ---------- Facebook ----------
+    if (page.type === "facebook") {
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.data)) {
+          const formatted = data.data
+            .map((msg) => {
+              const sender = msg.from?.id === page.id ? "me" : "them";
+              return {
+                id: msg.id,
+                sender,
+                text: msg.message,
+                createdAt: msg.created_time,
+              };
+            })
+            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+        }
+      }
+      return;
+    }
+
+    // ---------- WhatsApp ----------
+if (page.type === "whatsapp") {
+const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
+  if (res.ok) {
+    const data = await res.json();
+    setMessages((prev) => ({
+      ...prev,
+    [conv.id]: Array.isArray(data) ? data : [],
+    }));
+  }
+}
+
+  } catch (error) {
+    console.error("Error loading messages:", error);
+  }
+};
+
+
+  /** ----------------- SEND MESSAGE (supports file for chatwidget) ----------------- **/
+const sendMessage = async (text = "", file = null) => {
+  if (!activeConversation) return;
+  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+  if (!page) return;
+
+  const localId = "temp-" + Date.now();
+
+  // ---------- WhatsApp ----------
   if (page.type === "whatsapp") {
     const convId = activeConversation.id;
 
@@ -523,8 +526,78 @@ export default function SocialChatDashboard() {
     return;
   }
 
-    // ---------- WhatsApp / Instagram / Facebook ---------- unchanged
-  };
+  // ---------- ChatWidget ----------
+  if (page.type === "chatwidget") {
+    // (unchanged)
+ const optimistic = {
+  _tempId: localId,
+  sender: "me",
+  text: text || null,
+  fileUrl: file ? URL.createObjectURL(file) : null,
+  fileName: file?.name || null,
+  createdAt: new Date().toISOString(),
+  uploading: !!file,
+};
+
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        optimistic,
+      ],
+    }));
+
+    if (!file) {
+      await fetch(`/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: activeConversation.id,
+          storeDomain: activeConversation.storeDomain || "myshop.com",
+          message: text,
+          sender: "me",
+        }),
+      });
+      setMessages((prev) => {
+        const arr = [...(prev[activeConversation.id] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1) arr[idx].uploading = false;
+        return { ...prev, [activeConversation.id]: arr };
+      });
+      return;
+    }
+
+    // file upload
+    const formData = new FormData();
+    formData.append("sessionId", activeConversation.id);
+    formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
+    formData.append("sender", "me");
+    formData.append("file", file);
+    formData.append("localId", localId);
+
+    const res = await fetch(`/api/chat`, { method: "POST", body: formData });
+    const data = await res.json().catch(() => null);
+
+ setMessages((prev) => {
+  const arr = [...(prev[activeConversation.id] || [])];
+  const idx = arr.findIndex((m) => m._tempId === localId);
+  if (idx !== -1) {
+    arr[idx] = {
+      ...arr[idx],
+      ...data?.message,
+      fileUrl: data?.message?.fileUrl || arr[idx].fileUrl, // fallback to optimistic
+      uploading: false,
+      failed: data?.ok ? false : true,
+    };
+    delete arr[idx]._tempId;
+  }
+  return { ...prev, [activeConversation.id]: arr };
+});
+
+  }
+};
+
+
 
   /** ----------------- UI ----------------- **/
   return (
@@ -566,93 +639,244 @@ export default function SocialChatDashboard() {
                 transition: "0.2s",
                 background:
                   activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-                fontWeight:
-                  activeConversation?.id === conv.id ? "600" : "400",
+                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
+                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
               }}
               onClick={() => handleSelectConversation(conv)}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+              onMouseOut={(e) =>
+                (e.currentTarget.style.background =
+                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
+              }
             >
-              {conv.participants?.data[0]?.name || "User"}
+{conv.participants?.data
+  ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
+  .map((p) => p.name || p.username)
+  .join(", ")}
+
+
+
+
             </div>
           ))
         )}
       </div>
 
-      {/* Messages Panel */}
+      {/* Chat Box */}
       <div
         style={{
           flex: 1,
+          padding: 15,
           display: "flex",
           flexDirection: "column",
-          padding: 15,
           background: "#fff",
         }}
       >
+        <h3
+          style={{
+            margin: "0 0 15px 0",
+            paddingBottom: "10px",
+            borderBottom: "1px solid #eee",
+            color: "#1a73e8",
+          }}
+        >
+          Chat:{" "}
+{activeConversation
+  ? activeConversation.participants?.data
+      ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
+      .map((p) => p.name || p.username)
+      .join(", ")
+  : ""}
+
+
+        </h3>
+
         <div
           style={{
             flex: 1,
             overflowY: "auto",
-            paddingBottom: 10,
+            border: "1px solid #ccc",
+            marginBottom: 12,
+            padding: 12,
+            borderRadius: "8px",
+            background: "#fafafa",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
           }}
         >
-          {(messages[activeConversation?.id] || []).map((msg, idx) => (
-            <div
-              key={idx}
-              style={{
-                marginBottom: 10,
-                display: "flex",
-                justifyContent: msg.sender === "me" ? "flex-end" : "flex-start",
-              }}
-            >
-              <div
-                style={{
-                  background: msg.sender === "me" ? "#007bff" : "#f1f1f1",
-                  color: msg.sender === "me" ? "#fff" : "#333",
-                  padding: "8px 12px",
-                  borderRadius: "12px",
-                  maxWidth: "70%",
-                  wordBreak: "break-word",
-                }}
-              >
-                {msg.text && <div>{msg.text}</div>}
-                {msg.fileUrl && (
-                  <img
-                    src={msg.fileUrl}
-                    alt={msg.fileName || "file"}
-                    style={{ maxWidth: "200px", marginTop: 5, borderRadius: 8 }}
-                  />
-                )}
-                {msg.uploading && <div style={{ fontSize: 12 }}>Uploading...</div>}
-                {msg.failed && <div style={{ fontSize: 12, color: "red" }}>Failed</div>}
-              </div>
-            </div>
-          ))}
+          {activeConversation &&
+          messages[activeConversation.id] &&
+          messages[activeConversation.id].length ? (
+            messages[activeConversation.id].map((msg, idx) => {
+              const isMe =
+                msg.from?.id === activeConversation.pageId ||
+                msg.from?.phone_number_id === activeConversation.pageId ||
+                msg.sender === "me" ||
+                msg.from === "me" ||
+                msg._tempId; // optimistic sent messages
+
+              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    justifyContent: isMe ? "flex-end" : "flex-start",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "18px",
+                      background: isMe ? "#1a73e8" : "#e5e5ea",
+                      color: isMe ? "#fff" : "#000",
+                      maxWidth: "70%",
+                      wordWrap: "break-word",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    {/* text */}
+                    {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
+
+                    {/* file */}
+                    {msg.fileUrl && (
+                      <div style={{ marginTop: text ? 8 : 0 }}>
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                          <img
+                            src={msg.fileUrl}
+                            alt={msg.fileName || "image"}
+                            style={{ maxWidth: "220px", borderRadius: 10 }}
+                          />
+                        ) : (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                          >
+                            📎 {msg.fileName || "Download file"}
+                          </a>
+                        )}
+                {msg.uploading && <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>}
+
+                        {msg.failed && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#ff6b6b",
+                              marginTop: 6,
+                            }}
+                          >
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        fontSize: "0.7em",
+                        marginTop: "5px",
+                        color: isMe ? "#dce6f9" : "#555",
+                        textAlign: "right",
+                      }}
+                    >
+                      {msg.timestamp || msg.createdAt || msg.created_time || ""}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
+          )}
         </div>
 
-        {/* Input */}
-        <div style={{ display: "flex", gap: 10 }}>
-          <input
-            type="text"
-            ref={textInputRef}
-            placeholder="Type message..."
-            style={{ flex: 1, padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
-          />
-          <input type="file" ref={fileInputRef} />
-          <button
-            onClick={() =>
-              sendMessage(textInputRef.current.value, fileInputRef.current.files[0])
-            }
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: "none",
-              background: "#007bff",
-              color: "#fff",
-              cursor: "pointer",
-            }}
-          >
-            Send
-          </button>
-        </div>
+        {activeConversation && (
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              id="dashboard-file-input"
+              type="file"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  // send file (no text)
+                  sendMessage("", f);
+                  e.target.value = "";
+                }
+              }}
+            />
+            <label
+              htmlFor="dashboard-file-input"
+              style={{
+                padding: "10px 12px",
+                borderRadius: "8px",
+                background: "#eef2ff",
+                color: "#1a73e8",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              📎
+            </label>
+
+            {/* Text input */}
+            <input
+              ref={textInputRef}
+              type="text"
+              placeholder="Type a message..."
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                outline: "none",
+                transition: "0.2s",
+              }}
+              onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
+              onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const v = e.target.value.trim();
+                  if (v) {
+                    sendMessage(v, null);
+                    e.target.value = "";
+                  }
+                }
+              }}
+            />
+
+            {/* Send button */}
+            <button
+              style={{
+                padding: "10px 18px",
+                border: "none",
+                borderRadius: "8px",
+                background: "#1a73e8",
+                color: "#fff",
+                cursor: "pointer",
+                transition: "0.3s",
+                fontWeight: "bold",
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
+              onClick={() => {
+                const input = textInputRef.current;
+                if (input && input.value.trim()) {
+                  sendMessage(input.value.trim(), null);
+                  input.value = "";
+                }
+              }}
+            >
+              {uploading ? "Uploading..." : "Send"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
