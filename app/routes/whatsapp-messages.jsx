@@ -36,13 +36,14 @@ export async function loader({ request }) {
 
 // ----------------- HANDLE OUTGOING MESSAGES -----------------
 // ----------------- HANDLE OUTGOING / SAVE MESSAGES -----------------
+// ----------------- HANDLE OUTGOING / SAVE MESSAGES -----------------
 export async function action({ request }) {
   try {
     const data = await request.json();
     const {
       number,
       text,
-      direction = "incoming", // default fallback
+      direction = "incoming", // "outgoing" if from you
       platformMessageId,
       localId,
       createdAt,
@@ -76,7 +77,7 @@ export async function action({ request }) {
       }
     }
 
-    // 🔹 Optionally dedupe by localId
+    // 🔹 Dedupe by localId
     if (localId) {
       const existingLocal = await prisma.customerWhatsAppMessage.findFirst({
         where: { localId },
@@ -97,31 +98,32 @@ export async function action({ request }) {
       }
     }
 
-    // 🔹 Save message (trust explicit direction instead of inferring)
-  const message = await prisma.customerWhatsAppMessage.create({
-  data: {
-    from: sender === "me" ? "me" : number,
-    to: sender === "me" ? number : "me",
-    message: text,
-    timestamp: new Date(),
-    direction: sender === "me" ? "outgoing" : "incoming",
-  },
-});
+    // 🔹 Save message (use direction instead of sender)
+    const message = await prisma.customerWhatsAppMessage.create({
+      data: {
+        from: direction === "outgoing" ? "me" : number,
+        to: direction === "outgoing" ? number : "me",
+        message: text,
+        timestamp: createdAt ? new Date(createdAt) : new Date(),
+        direction,
+        platformMessageId,
+        localId,
+      },
+    });
 
-// ✅ return sender = "me" if outgoing
-return new Response(
-  JSON.stringify({
-    ok: true,
-    message: {
-      id: message.id,
-      text: message.message,
-      createdAt: message.timestamp,
-      sender: message.direction === "outgoing" ? "me" : "them",
-    },
-  }),
-  { status: 200, headers: { "Content-Type": "application/json" } }
-);
-
+    // ✅ Normalize sender for frontend
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        message: {
+          id: message.id,
+          text: message.message,
+          createdAt: message.timestamp,
+          sender: message.direction === "outgoing" ? "me" : "them",
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
   } catch (err) {
     console.error("Error saving WhatsApp message:", err);
     return new Response(
@@ -130,4 +132,5 @@ return new Response(
     );
   }
 }
+
 
