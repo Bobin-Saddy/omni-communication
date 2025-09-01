@@ -581,6 +581,7 @@ const sendMessage = async (text = "", file = null) => {
           sessionId: activeConversation.id,
           storeDomain: activeConversation.storeDomain || "myshop.com",
           sender: "me",
+            message: text,
           text,
         };
       }
