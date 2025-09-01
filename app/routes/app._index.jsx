@@ -578,21 +578,30 @@ const sendMessage = async (text = "", file = null) => {
     const res = await fetch(`/api/chat`, { method: "POST", body: formData });
     const data = await res.json().catch(() => null);
 
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-        if (data?.ok && data.message) arr[idx] = data.message;
-        else
-          arr[idx] = {
-            ...arr[idx],
-            uploading: false,
-            failed: true,
-            error: data?.error || "Upload failed",
-          };
-      }
-      return { ...prev, [activeConversation.id]: arr };
-    });
+setMessages((prev) => {
+  const arr = [...(prev[activeConversation.id] || [])];
+  const idx = arr.findIndex((m) => m._tempId === localId);
+  if (idx !== -1) {
+    if (data?.ok && data.message) {
+      arr[idx] = {
+        ...arr[idx],         // keep optimistic fileUrl/fileName
+        ...data.message,     // merge backend message
+        uploading: false,
+        failed: false,
+      };
+    } else {
+      arr[idx] = {
+        ...arr[idx],
+        uploading: false,
+        failed: true,
+        error: data?.error || "Upload failed",
+      };
+    }
+    delete arr[idx]._tempId; // cleanup temp id
+  }
+  return { ...prev, [activeConversation.id]: arr };
+});
+
   }
 };
 
