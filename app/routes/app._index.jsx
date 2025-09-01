@@ -538,89 +538,74 @@ const sendMessage = async (text = "", file = null) => {
   }
 
   /** ========== ChatWidget ========== **/
-  if (page.type === "chatwidget") {
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text: text || null,
-      fileUrl: file ? URL.createObjectURL(file) : null,
-      fileName: file?.name || null,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        optimistic,
-      ],
-    }));
+/** ========== ChatWidget ========== **/
+if (page.type === "chatwidget") {
+  const optimistic = {
+    _tempId: localId,
+    sender: "me",
+    text: text || null,
+    fileUrl: file ? URL.createObjectURL(file) : null,
+    fileName: file?.name || null,
+    createdAt: new Date().toISOString(),
+    uploading: !!file,
+  };
+  setMessages((prev) => ({
+    ...prev,
+    [activeConversation.id]: [
+      ...(prev[activeConversation.id] || []),
+      optimistic,
+    ],
+  }));
 
-    try {
-      let payload;
-      if (file) {
-        // Upload file
-        const fd = new FormData();
-        fd.append("file", file);
-        const uploadRes = await fetch("/upload-image", {
-          method: "POST",
-          body: fd,
-        });
-        const uploadData = await uploadRes.json();
-        if (!uploadData.success) throw new Error("Upload failed");
+  try {
+    const fd = new FormData();
+    fd.append("sessionId", activeConversation.id);
+    fd.append("storeDomain", activeConversation.storeDomain || "myshop.com");
+    fd.append("sender", "me");
 
-        payload = {
-          sessionId: activeConversation.id,
-          storeDomain: activeConversation.storeDomain || "myshop.com",
-          sender: "me",
-          fileUrl: uploadData.url,
-          fileName: file.name,
-        };
-      } else {
-        payload = {
-          sessionId: activeConversation.id,
-          storeDomain: activeConversation.storeDomain || "myshop.com",
-          sender: "me",
-          text,
-        };
-      }
-
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => null);
-
-      // Update optimistic message
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          if (data?.ok && data.message) {
-            arr[idx] = {
-              ...arr[idx],
-              ...data.message,
-              uploading: false,
-              failed: false,
-            };
-          } else {
-            arr[idx] = {
-              ...arr[idx],
-              uploading: false,
-              failed: true,
-              error: data?.error || "Upload failed",
-            };
-          }
-          delete arr[idx]._tempId;
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
-    } catch (err) {
-      console.error("ChatWidget send error:", err);
+    if (file) {
+      fd.append("file", file);
+    } else {
+      fd.append("text", text);
     }
-    return;
+
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      body: fd, // ✅ no headers, FormData sets it automatically
+    });
+
+    const data = await res.json().catch(() => null);
+
+    // Update optimistic message
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) {
+        if (data?.ok && data.message) {
+          arr[idx] = {
+            ...arr[idx],
+            ...data.message,
+            uploading: false,
+            failed: false,
+          };
+        } else {
+          arr[idx] = {
+            ...arr[idx],
+            uploading: false,
+            failed: true,
+            error: data?.error || "Upload failed",
+          };
+        }
+        delete arr[idx]._tempId;
+      }
+      return { ...prev, [activeConversation.id]: arr };
+    });
+  } catch (err) {
+    console.error("ChatWidget send error:", err);
   }
+  return;
+}
+
 };
 
 
