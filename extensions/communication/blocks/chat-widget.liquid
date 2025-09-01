@@ -6,156 +6,33 @@
 
   <style>
     /* ---------- Chat Button ---------- */
-    .oc-chat-toggle {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      background: #2563eb;
-      color: #ffffff;
-      border: none;
-      border-radius: 50%;
-      width: 40px;
-      padding: 7px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      cursor: pointer;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-      transition: transform 0.3s ease;
-      z-index: 99999;
-    }
+    .oc-chat-toggle { position: fixed; right: 20px; bottom: 20px; background: #2563eb; color: #fff; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.25); transition: transform 0.3s ease; z-index: 99999; }
     .oc-chat-toggle:hover { transform: scale(1.1); }
 
-    /* ---------- Chat Container ---------- */
-    .oc-chat-container {
-      position: fixed;
-      right: -10%;
-      bottom: 90px;
-      width: 340px;
-      max-height: 70vh;
-      display: flex;
-      flex-direction: column;
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.2);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
-      overflow: hidden;
-      transform: translateY(120%);
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.35s ease;
-      z-index: 99999;
-    }
-    .oc-chat-container.open {
-      transform: translateY(0);
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .oc-chat-container { position: fixed; right: -10%; bottom: 90px; width: 340px; max-height: 70vh; display: flex; flex-direction: column; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.2); font-family: system-ui; overflow: hidden; transform: translateY(120%); opacity: 0; pointer-events: none; transition: all 0.35s ease; z-index: 99999; }
+    .oc-chat-container.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
 
-    /* ---------- Header ---------- */
-    .oc-chat-header {
-      padding: 8px 14px;
-      font-weight: 600;
-      font-size: 15px;
-      background: #111827;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .oc-chat-header span {
-      display: flex; align-items: center; gap: 6px;
-    }
+    .oc-chat-header { padding: 8px 14px; font-weight: 600; font-size: 15px; background: {{ block.settings.header_bg | default: "#111827" }}; color: {{ block.settings.header_fg | default: "#ffffff" }}; display: flex; align-items: center; justify-content: space-between; }
+    .oc-chat-header span { display: flex; align-items: center; gap: 6px; }
     .oc-chat-header span::before { content: "💬"; font-size: 18px; }
-    .oc-close-btn {
-      background: transparent; border: none; color: #fff;
-      font-size: 30px; cursor: pointer; line-height: 1;
-    }
+    .oc-close-btn { background: transparent; border: none; color: #fff; font-size: 30px; cursor: pointer; line-height: 1; }
 
-    /* ---------- Messages ---------- */
-    .oc-chat-messages {
-      padding: 12px;
-      overflow-y: auto;
-      flex: 1;
-      background: #f9fafb;
-    }
-    .oc-bubble {
-      max-width: max-content;
-      padding: 10px 14px;
-      border-radius: 16px;
-      margin: 8px 0;
-      font-size: 14px;
-      line-height: 1.4;
-      word-break: break-word;
-      animation: fadeInUp 0.25s ease;
-    }
-    .oc-me   { background: #2563eb; color: #fff;  margin-left: auto;  border-bottom-right-radius: 4px; }
+    .oc-chat-messages { padding: 12px; overflow-y: auto; flex: 1; background: #f9fafb; }
+    .oc-bubble { max-width: max-content; padding: 10px 14px; border-radius: 16px; margin: 8px 0; font-size: 14px; line-height: 1.4; word-break: break-word; animation: fadeInUp 0.25s ease; }
+    .oc-me   { background: #2563eb; color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
     .oc-them { background: #e5e7eb; color: #111; margin-right: auto; border-bottom-left-radius: 4px; }
+    .oc-file-bubble img { max-width: 200px; border-radius: 8px; display: block; }
 
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ---------- Input ---------- */
-    .oc-chat-input {
-      display: flex; gap: 6px; border-top: 1px solid #eee; padding: 10px; background: #fff; align-items: center;
-    }
-    .oc-chat-input input[type="text"] {
-      flex: 1; border: 1px solid #ddd; border-radius: 12px; padding: 10px; outline: none; font-size: 14px;
-    }
-    .oc-chat-input button {
-      border: none; border-radius: 12px; padding: 10px 14px; cursor: pointer;
-      background: {{ block.settings.btn_bg | default: "#2563eb" }};
-      color: {{ block.settings.btn_fg | default: "#ffffff" }}; font-weight: 600; transition: background 0.3s ease;
-    }
+    .oc-chat-input { display: flex; gap: 6px; border-top: 1px solid #eee; padding: 10px; background: #fff; align-items: center; }
+    .oc-chat-input input[type="text"] { flex: 1; border: 1px solid #ddd; border-radius: 12px; padding: 10px; outline: none; font-size: 14px; }
+    .oc-chat-input button { border: none; border-radius: 12px; padding: 10px 14px; cursor: pointer; background: {{ block.settings.btn_bg | default: "#2563eb" }}; color: {{ block.settings.btn_fg | default: "#ffffff" }}; font-weight: 600; transition: background 0.3s ease; }
     .oc-chat-input button:hover { background: #1d4ed8; }
-
-    /* ---------- Upload Button ---------- */
-    .oc-upload-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 18px;
-      padding: 0 4px;
-    }
-    .oc-file-bubble img {
-      max-width: 200px;
-      border-radius: 8px;
-      display: block;
-    }
-    .oc-file-bubble a {
-      color: #2563eb;
-      text-decoration: underline;
-      font-size: 14px;
-    }
-
-    /* ---------- New Messages Pill ---------- */
-    .oc-new-pill {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 60px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid #e5e7eb;
-      background: black;
-      box-shadow: 0 6px 20px rgba(0,0,0,.12);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: none;
-      color: white;
-    }
   </style>
 
-  <!-- Floating Button -->
   <button class="oc-chat-toggle" aria-label="Open chat">💬</button>
 
-  <!-- Chat Window -->
   <div class="oc-chat-container">
     <div class="oc-chat-header">
       <span>{{ block.settings.header_title | default: "Need help? Chat with us!" }}</span>
@@ -163,7 +40,6 @@
     </div>
 
     <div class="oc-chat-messages"></div>
-    <button type="button" class="oc-new-pill">New messages ↓</button>
 
     <div class="oc-chat-input">
       <label class="oc-upload-btn" title="Attach file">
@@ -177,147 +53,130 @@
 
 <script>
 (function(){
-  const root     = document.currentScript.closest('#oc-chat');
-  const store    = root.dataset.store;
+  const root = document.currentScript.closest('#oc-chat');
+  const store = root.dataset.store;
   const endpoint = root.dataset.endpoint;
 
   const btnToggle = root.querySelector('.oc-chat-toggle');
-  const panel     = root.querySelector('.oc-chat-container');
-  const closeBtn  = root.querySelector('.oc-close-btn');
-  const list      = root.querySelector('.oc-chat-messages');
-  const input     = root.querySelector('.oc-chat-input input[type="text"]');
-  const sendBtn   = root.querySelector('.oc-chat-input button');
-  const newPill   = root.querySelector('.oc-new-pill');
+  const panel = root.querySelector('.oc-chat-container');
+  const closeBtn = root.querySelector('.oc-close-btn');
+  const list = root.querySelector('.oc-chat-messages');
+  const input = root.querySelector('.oc-chat-input input[type="text"]');
+  const sendBtn = root.querySelector('.oc-chat-input button');
   const fileInput = root.querySelector('#oc-file-input');
 
-  /* -------- Session -------- */
   const sidKey = 'oc_chat_sid';
-  function uuid() {
-    return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
-      return v.toString(16);
-    });
-  }
+  function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
   let SID = localStorage.getItem(sidKey);
   if (!SID) { SID = uuid(); localStorage.setItem(sidKey, SID); }
 
-  /* -------- Open / Close -------- */
-  btnToggle.addEventListener('click', ()=> {
-    panel.classList.add('open');
-    requestAnimationFrame(()=> scrollToBottom(true));
-    hideNewPill();
-  });
+  btnToggle.addEventListener('click', ()=> { panel.classList.add('open'); list.scrollTop=list.scrollHeight; });
   closeBtn.addEventListener('click', ()=> panel.classList.remove('open'));
 
-  /* -------- Autoscroll helpers -------- */
-  function distanceFromBottom() {
-    return list.scrollHeight - (list.scrollTop + list.clientHeight);
-  }
-  function isNearBottom() {
-    return distanceFromBottom() <= 48;
-  }
-  function scrollToBottom(force = false) {
-    if (force || isNearBottom()) {
-      list.scrollTop = list.scrollHeight;
-    }
-  }
-  function showNewPill(){ newPill.style.display = 'inline-flex'; }
-  function hideNewPill(){ newPill.style.display = 'none'; }
-
-  newPill.addEventListener('click', () => {
-    hideNewPill();
-    scrollToBottom(true);
-  });
-
-  list.addEventListener('scroll', () => {
-    if (isNearBottom()) hideNewPill();
-  });
-
-  /* -------- Rendering -------- */
   const renderedIds = new Set();
+  let lastISO = null;
 
-  function appendBubble(text, sender, id, forceScroll = false){
-    if (id && renderedIds.has(id)) return;
-    if (id) renderedIds.add(id);
+  function appendBubble(text, sender, id, forceScroll=false){
+    if(id && renderedIds.has(id)) return;
+    if(id) renderedIds.add(id);
     const b = document.createElement('div');
-    b.className = sender === 'customer' ? 'oc-bubble oc-me' : 'oc-bubble oc-them';
+    b.className = sender==='customer'?'oc-bubble oc-me':'oc-bubble oc-them';
     b.textContent = text;
     list.appendChild(b);
-    if (forceScroll || isNearBottom()) scrollToBottom(true);
+    if(forceScroll) list.scrollTop=list.scrollHeight;
   }
 
-  function appendFileBubble(imgUrl, fileName, sender, id, forceScroll = false) {
-    if (id && renderedIds.has(id)) return;
-    if (id) renderedIds.add(id);
-    const b = document.createElement('div');
-    b.className = sender === 'customer' ? 'oc-bubble oc-me oc-file-bubble' : 'oc-bubble oc-them oc-file-bubble';
-    if (imgUrl) {
-      const img = document.createElement('img');
-      img.src = imgUrl;
-      b.appendChild(img);
-    } else if (fileName) {
-      const link = document.createElement('a');
-      link.href = "#";
-      link.textContent = fileName;
-      b.appendChild(link);
-    }
-    list.appendChild(b);
-    if (forceScroll || isNearBottom()) scrollToBottom(true);
+function appendFileBubble(imgUrl, fileName, sender, id, forceScroll = false) {
+  if (id && renderedIds.has(id)) return;
+  if (id) renderedIds.add(id);
+  const b = document.createElement('div');
+  b.className = sender === 'customer' ? 'oc-bubble oc-me oc-file-bubble' : 'oc-bubble oc-them oc-file-bubble';
+
+  if (imgUrl) {
+    const img = document.createElement('img');
+    img.src = imgUrl;
+    b.appendChild(img);
+  } else if (fileName) {
+    const link = document.createElement('a');
+    link.href = "#";
+    link.textContent = fileName;
+    b.appendChild(link);
   }
 
-  /* -------- Send Text -------- */
+  b.dataset.id = id; // optional, for updating later
+  list.appendChild(b);
+  if (forceScroll || isNearBottom()) scrollToBottom(true);
+}
+
+
   async function sendMessage(){
-    const msg = (input.value || '').trim();
+    const msg = (input.value||'').trim();
     if(!msg) return;
-    const localId = 'local-' + Date.now();
-    appendBubble(msg, 'customer', localId, true);
-    input.value = '';
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ storeDomain: store, sessionId: SID, sender: 'customer', message: msg })
-      });
+    const localId='local-'+Date.now();
+    appendBubble(msg,'customer',localId,true);
+    input.value='';
+    try{
+      const res = await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeDomain:store,sessionId:SID,sender:'customer',message:msg})});
       const data = await res.json().catch(()=>null);
-      if (data && data.ok && data.message) {
-        if (data.message.id) renderedIds.add(data.message.id);
-        if (data.message.createdAt) lastISO = data.message.createdAt;
-      }
-    } catch(e){ console.warn('send error', e); }
+      if(data && data.ok && data.message){ if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt; }
+    }catch(e){ console.warn('send error', e); }
   }
   sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+  input.addEventListener('keydown', e=>{if(e.key==='Enter')sendMessage();});
 
-  /* -------- Send File -------- */
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    let localId = 'file-' + Date.now();
-    if (file.type.startsWith("image/")) {
-      appendFileBubble(URL.createObjectURL(file), null, 'customer', localId, true);
-    } else {
-      appendFileBubble(null, file.name, 'customer', localId, true);
-    }
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('storeDomain', store);
-      formData.append('sessionId', SID);
-      formData.append('sender', 'customer');
-      const res = await fetch(endpoint + '/upload', { method: 'POST', body: formData });
-      const data = await res.json().catch(()=>null);
-      if (data && data.ok && data.message) {
-        if (data.message.id) renderedIds.add(data.message.id);
-        if (data.message.createdAt) lastISO = data.message.createdAt;
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  let localId = 'file-' + Date.now();
+
+  // Show temporary preview
+  if (file.type.startsWith("image/")) {
+    appendFileBubble(URL.createObjectURL(file), null, 'customer', localId, true);
+  } else {
+    appendFileBubble(null, file.name, 'customer', localId, true);
+  }
+
+  try {
+const formData = new FormData();
+formData.append('file', file);
+formData.append('storeDomain', store);
+formData.append('sessionId', SID);
+formData.append('sender', 'customer');
+
+const res = await fetch(endpoint, { method: 'POST', body: formData });
+
+    const data = await res.json().catch(() => null);
+
+    if (data && data.ok && data.message) {
+      // Replace temporary preview with real uploaded image
+      const bubble = document.querySelector(`.oc-bubble[data-id="${localId}"]`);
+      if (bubble) {
+        bubble.innerHTML = '';
+        if (data.message.fileUrl) {
+          const img = document.createElement('img');
+          img.src = data.message.fileUrl;
+          bubble.appendChild(img);
+        } else if (data.message.fileName) {
+          const link = document.createElement('a');
+          link.href = "#";
+          link.textContent = data.message.fileName;
+          bubble.appendChild(link);
+        }
       }
-    } catch(e){ console.warn('upload error', e); }
-    fileInput.value = '';
-  });
 
-  /* -------- Polling -------- */
-  let lastISO = null;
+      if (data.message.id) renderedIds.add(data.message.id);
+      if (data.message.createdAt) lastISO = data.message.createdAt;
+    }
+  } catch (e) {
+    console.warn('upload error', e);
+  }
+
+  fileInput.value = '';
+});
+
   async function poll(){
-    try {
+    try{
       const url = new URL(endpoint);
       url.searchParams.set('storeDomain', store);
       url.searchParams.set('sessionId', SID);
@@ -325,56 +184,38 @@
       const r = await fetch(url.toString());
       const data = await r.json();
       if(data && data.ok && Array.isArray(data.messages) && data.messages.length){
-        const userWasNearBottom = isNearBottom();
-        let appended = 0;
-        data.messages.forEach(m => {
-          const mid = m.id ?? m.createdAt;
-          if (m.fileUrl) {
-            if (m.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-              appendFileBubble(m.fileUrl, null, m.sender === 'customer' ? 'customer' : 'me', mid, false);
-            } else {
-              appendFileBubble(null, m.fileName || 'Download file', m.sender === 'customer' ? 'customer' : 'me', mid, false);
-            }
-          } else {
-            appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
-          }
-          lastISO = m.createdAt;
-          appended++;
+        const userNearBottom=list.scrollTop+list.clientHeight >= list.scrollHeight-48;
+        data.messages.forEach(m=>{
+          const mid=m.id??m.createdAt;
+          if(m.fileUrl) appendFileBubble(m.fileUrl,null,m.sender==='customer'?'customer':'me',mid,false);
+          else appendBubble(m.text,m.sender==='customer'?'customer':'me',mid,false);
+          lastISO=m.createdAt;
         });
-        if (appended && !userWasNearBottom) showNewPill();
+        if(!userNearBottom) console.log('New messages');
       }
-    } catch(e){ console.warn(e); }
+    }catch(e){console.warn(e);}
   }
 
-  /* -------- Init -------- */
   (async function init(){
-    const url = new URL(endpoint);
-    url.searchParams.set('storeDomain', store);
-    url.searchParams.set('sessionId', SID);
-    const r = await fetch(url.toString());
-    const data = await r.json();
+    const url=new URL(endpoint); url.searchParams.set('storeDomain', store); url.searchParams.set('sessionId', SID);
+    const r=await fetch(url.toString()); const data=await r.json();
     if(data && data.ok && Array.isArray(data.messages)){
-      data.messages.forEach(m => {
-        const mid = m.id ?? m.createdAt;
-        if (m.fileUrl) {
-          if (m.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-            appendFileBubble(m.fileUrl, null, m.sender === 'customer' ? 'customer' : 'me', mid, false);
-          } else {
-            appendFileBubble(null, m.fileName || 'Download file', m.sender === 'customer' ? 'customer' : 'me', mid, false);
-          }
-        } else {
-          appendBubble(m.text, m.sender === 'customer' ? 'customer' : 'me', mid, false);
-        }
+      data.messages.forEach(m=>{
+        const mid=m.id??m.createdAt;
+        if(m.fileUrl) appendFileBubble(m.fileUrl,null,m.sender==='customer'?'customer':'me',mid,false);
+        else appendBubble(m.text,m.sender==='customer'?'customer':'me',mid,false);
       });
-      if(data.messages.length) lastISO = data.messages[data.messages.length-1].createdAt;
-      scrollToBottom(true);
+      if(data.messages.length) lastISO=data.messages[data.messages.length-1].createdAt;
+      list.scrollTop=list.scrollHeight;
     }
-    setInterval(poll, 3000);
+    setInterval(poll,3000);
   })();
+
 })();
 </script>
 
 </div>
+
 
 {% schema %}
 {
