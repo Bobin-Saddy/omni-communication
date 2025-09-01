@@ -529,15 +529,16 @@ const sendMessage = async (text = "", file = null) => {
   // ---------- ChatWidget ----------
   if (page.type === "chatwidget") {
     // (unchanged)
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text: text || null,
-      fileUrl: file ? URL.createObjectURL(file) : null,
-      fileName: file?.name || null,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
+const optimistic = {
+  _tempId: localId,
+  sender: "me",
+  text: text || null,
+  fileUrl: file ? URL.createObjectURL(file) : null,
+  fileName: file?.name || null,
+  fileType: file?.type || null,   // 👈 yeh add karo
+  createdAt: new Date().toISOString(),
+  uploading: !!file,
+};
 
     setMessages((prev) => ({
       ...prev,
@@ -568,31 +569,41 @@ const sendMessage = async (text = "", file = null) => {
     }
 
     // file upload
-    const formData = new FormData();
-    formData.append("sessionId", activeConversation.id);
-    formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
-    formData.append("sender", "me");
-    formData.append("file", file);
-    formData.append("localId", localId);
+const formData = new FormData();
+formData.append("sessionId", activeConversation.id);
+formData.append("storeDomain", activeConversation.storeDomain || "myshop.com");
+formData.append("sender", "me");
+formData.append("file", file);
+formData.append("localId", localId);
+formData.append("fileType", file.type); // ✅ add this
+
 
     const res = await fetch(`/api/chat`, { method: "POST", body: formData });
     const data = await res.json().catch(() => null);
 
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-        if (data?.ok && data.message) arr[idx] = data.message;
-        else
-          arr[idx] = {
-            ...arr[idx],
-            uploading: false,
-            failed: true,
-            error: data?.error || "Upload failed",
-          };
-      }
-      return { ...prev, [activeConversation.id]: arr };
-    });
+setMessages((prev) => {
+  const arr = [...(prev[activeConversation.id] || [])];
+  const idx = arr.findIndex((m) => m._tempId === localId);
+  if (idx !== -1) {
+    if (data?.ok && data.message) {
+      arr[idx] = {
+        ...arr[idx],
+        ...data.message,
+        fileType: arr[idx].fileType || data.message.fileType || null, // 👈 preserve
+        uploading: false,
+      };
+    } else {
+      arr[idx] = {
+        ...arr[idx],
+        uploading: false,
+        failed: true,
+        error: data?.error || "Upload failed",
+      };
+    }
+  }
+  return { ...prev, [activeConversation.id]: arr };
+});
+
   }
 };
 
@@ -755,7 +766,7 @@ const formatTime = (time) => {
   <div style={{ marginTop: text ? 8 : 0 }}>
     {/* Try to detect image from fileName or from a flag */}
     {msg.fileType?.startsWith("image/") ||
-    /\.(jpe?g|png|gif|webp|bmp)$/i.test(msg.fileName || msg.fileUrl) ? (
+/\.(jpe?g|png|gif|webp|bmp)$/i.test(msg.fileName || msg.fileUrl) ? (
       <img
         src={msg.fileUrl}
         alt={msg.fileName || "image"}
