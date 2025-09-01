@@ -156,42 +156,42 @@ if (page.type === "chatwidget") {
 
   if (Array.isArray(data?.sessions)) {
     // Use the 'name' field from your DB instead of sessionId
-    const convs = data.sessions.map((s) => ({
-      id: s.sessionId,          // keep sessionId as unique key
-      pageId: page.id,
-      pageName: page.name,
-      pageType: "chatwidget",
-      participants: { data: [{ name: s.name || `User-${s.name}` }] }, // <-- use 'name'
-      sessionId: s.sessionId,
-      storeDomain: s.storeDomain,
-      name: s.name,
+const convs = data.sessions.map((s) => ({
+  id: s.sessionId,          // keep sessionId as unique key
+  pageId: page.id,
+  pageName: page.name,
+  pageType: "chatwidget",
+  participants: { 
+    data: [{ name: s.name || `User-${s.sessionId}` }] // fallback to sessionId
+  },
+  sessionId: s.sessionId,
+  storeDomain: s.storeDomain,
+  name: s.name,             // include the actual name
+}));
+
+setConversations((prev) => [
+  ...prev.filter((c) => c.pageId !== page.id),
+  ...convs,
+]);
+
+// Auto-select first conversation and load messages
+if (convs.length > 0) {
+  const firstConv = convs[0];
+  setActiveConversation(firstConv);
+
+  const msgRes = await fetch(
+    `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain || "myshop.com")}&sessionId=${encodeURIComponent(firstConv.id)}`
+  );
+
+  if (msgRes.ok) {
+    const msgData = await msgRes.json();
+    setMessages((prev) => ({
+      ...prev,
+      [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
     }));
+  }
+}
 
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      ...convs,
-    ]);
-
-    // Auto-select first conversation and load messages
-    if (convs.length > 0) {
-      const firstConv = convs[0];
-      setActiveConversation(firstConv);
-
-      const msgRes = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(
-          firstConv.storeDomain || "myshop.com"
-        )}&sessionId=${encodeURIComponent(firstConv.id)}`
-      );
-      if (msgRes.ok) {
-        const msgData = await msgRes.json();
-        setMessages((prev) => ({
-          ...prev,
-          [firstConv.id]: Array.isArray(msgData?.messages)
-            ? msgData.messages
-            : [],
-        }));
-      }
-    }
   }
   return;
 }
