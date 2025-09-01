@@ -115,7 +115,7 @@ export async function action({ request }) {
     sender = body.sender || "me";
     name = body.name || null;
 
-    if (!sessionId || !storeDomain || !name || (!message && !body.fileUrl)) {
+    if (!storeDomain || !name || (!message && !body.fileUrl)) {
       return json(
         { ok: false, error: "Missing fields" },
         { status: 400, headers: corsHeaders }
@@ -136,7 +136,7 @@ export async function action({ request }) {
   await prisma.storeChatSession.upsert({
     where: { sessionId },
     update: {},
-    create: { sessionId, storeDomain },
+      create: { sessionId: crypto.randomUUID(), storeDomain, name },
   });
 
   // ✅ Save message (text or file) with name

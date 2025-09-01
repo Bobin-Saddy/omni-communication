@@ -590,11 +590,17 @@ const sendMessage = async (text = "", file = null) => {
         };
       }
 
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+await fetch("/api/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    sessionId: activeConversation.sessionId, // still needed
+    storeDomain: activeConversation.storeDomain,
+    name: activeConversation.name,           // for display
+    message: "Hello world",
+  }),
+});
+
       const data = await res.json().catch(() => null);
 
       // Update optimistic message
