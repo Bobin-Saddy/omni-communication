@@ -543,15 +543,17 @@ const sendMessage = async (text = "", file = null) => {
 
   /** ========== ChatWidget ========== **/
   if (page.type === "chatwidget") {
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text: text || null,
-      fileUrl: file ? URL.createObjectURL(file) : null,
-      fileName: file?.name || null,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
+const optimistic = {
+  _tempId: localId,
+  sender: "me",
+  name: userName,   // <-- add here
+  text: text || null,
+  fileUrl: file ? URL.createObjectURL(file) : null,
+  fileName: file?.name || null,
+  createdAt: new Date().toISOString(),
+  uploading: !!file,
+};
+
     setMessages((prev) => ({
       ...prev,
       [activeConversation.id]: [
@@ -561,34 +563,34 @@ const sendMessage = async (text = "", file = null) => {
     }));
 
     try {
-      let payload;
-      if (file) {
-        // Upload file
-        const fd = new FormData();
-        fd.append("file", file);
-        const uploadRes = await fetch("/upload-image", {
-          method: "POST",
-          body: fd,
-        });
-        const uploadData = await uploadRes.json();
-        if (!uploadData.success) throw new Error("Upload failed");
+   let payload;
+if (file) {
+  // Upload file
+  const fd = new FormData();
+  fd.append("file", file);
+  const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
+  const uploadData = await uploadRes.json();
+  if (!uploadData.success) throw new Error("Upload failed");
 
-        payload = {
-          sessionId: activeConversation.id,
-          storeDomain: activeConversation.storeDomain || "myshop.com",
-          sender: "me",
-          fileUrl: uploadData.url,
-          fileName: file.name,
-        };
-      } else {
-        payload = {
-          sessionId: activeConversation.id,
-          storeDomain: activeConversation.storeDomain || "myshop.com",
-          sender: "me",
-            message: text,
-          text,
-        };
-      }
+  payload = {
+    sessionId: activeConversation.id,
+    storeDomain: activeConversation.storeDomain || "myshop.com",
+    sender: "me",
+    name: userName,         // <-- include the user name here
+    fileUrl: uploadData.url,
+    fileName: file.name,
+  };
+} else {
+  payload = {
+    sessionId: activeConversation.id,
+    storeDomain: activeConversation.storeDomain || "myshop.com",
+    sender: "me",
+    name: userName,         // <-- include the user name here
+    message: text,
+    text,
+  };
+}
+
 
     const res = await fetch("/api/chat", {
         method: "POST",
