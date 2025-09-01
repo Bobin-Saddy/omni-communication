@@ -101,26 +101,28 @@ export async function action({ request }) {
     message = null;
   } 
   // ----------------- Text message -----------------
-  else {
-    const body = await request.json();
-    sessionId = body.sessionId || body.session_id;
-    storeDomain = body.storeDomain || body.store_domain;
-    message = body.message || null;
-    sender = body.sender || "me";
-    name = body.name || null;
+// ----------------- Text message -----------------
+else {
+  const body = await request.json();
+  sessionId = body.sessionId || body.session_id;
+  storeDomain = body.storeDomain || body.store_domain;
+  message = body.message || null;
+  sender = body.sender || "me";
+  name = body.name || `User-${sessionId}`; // <-- default if missing
 
-    if (!storeDomain || !name || (!message && !body.fileUrl)) {
-      return json(
-        { ok: false, error: "Missing fields" },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    if (body.fileUrl) {
-      fileUrl = body.fileUrl;
-      fileName = body.fileName || "file";
-    }
+  if (!storeDomain || (!message && !body.fileUrl)) {
+    return json(
+      { ok: false, error: "Missing fields" },
+      { status: 400, headers: corsHeaders }
+    );
   }
+
+  if (body.fileUrl) {
+    fileUrl = body.fileUrl;
+    fileName = body.fileName || "file";
+  }
+}
+
 
   // Normalize sender
   sender = sender === "customer" ? "customer" : "me";
