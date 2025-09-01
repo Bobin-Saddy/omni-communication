@@ -758,30 +758,32 @@ const formatTime = (time) => {
       {/* Show image or file */}
       {msg.fileUrl && (
         <div style={{ marginTop: msg.text ? 8 : 0 }}>
-          {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-     <img
-  src={
-    msg.fileUrl?.startsWith("blob:")
-      ? msg.fileUrl
-      : `/uploads/${msg.fileName || ""}`
-  }
-  alt={msg.fileName || "image"}
-  style={{ maxWidth: "220px", borderRadius: 10 }}
-  onError={(e) => {
-    e.target.style.display = "none";
-  }}
-/>
+  {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl || msg.fileName || "") ? (
+  <img
+    src={
+      msg.fileUrl?.startsWith("blob:")
+        ? msg.fileUrl
+        : msg.fileUrl
+        ? msg.fileUrl
+        : `/uploads/${msg.fileName || ""}`
+    }
+    alt={msg.fileName || "image"}
+    style={{ maxWidth: "220px", borderRadius: 10 }}
+    onError={(e) => {
+      e.target.style.display = "none";
+    }}
+  />
+) : (
+  <a
+    href={msg.fileUrl || `/uploads/${msg.fileName || ""}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+  >
+    📎 {msg.fileName || "Download file"}
+  </a>
+)}
 
-          ) : (
-            <a
-              href={msg.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-            >
-              📎 {msg.fileName || "Download file"}
-            </a>
-          )}
 
           {/* Uploading indicator */}
           {msg.uploading && (
