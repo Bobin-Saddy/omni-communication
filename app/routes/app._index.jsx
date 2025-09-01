@@ -529,16 +529,15 @@ const sendMessage = async (text = "", file = null) => {
   // ---------- ChatWidget ----------
   if (page.type === "chatwidget") {
     // (unchanged)
-const optimistic = {
-  _tempId: localId,
-  sender: "me",
-  text: text || null,
-  fileUrl: file ? URL.createObjectURL(file) : null,
-  fileName: file?.name || null,
-  createdAt: new Date().toISOString(),
-  uploading: !!file,
-};
-
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      text: text || null,
+      fileUrl: file ? URL.createObjectURL(file) : null,
+      fileName: file?.name || null,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
 
     setMessages((prev) => ({
       ...prev,
@@ -579,25 +578,21 @@ const optimistic = {
     const res = await fetch(`/api/chat`, { method: "POST", body: formData });
     const data = await res.json().catch(() => null);
 
-setMessages((prev) => {
-  const arr = [...(prev[activeConversation.id] || [])];
-  const idx = arr.findIndex((m) => m._tempId === localId);
-  if (idx !== -1) {
-    if (data?.ok && data.message) {
-      arr[idx] = {
-        ...arr[idx],
-        ...data.message,
-        fileUrl:
-          data.message.fileUrl ||
-          `/uploads/${data.message.fileName || arr[idx].fileName}`,
-      };
-    } else {
-      arr[idx] = { ...arr[idx], uploading: false, failed: true };
-    }
-  }
-  return { ...prev, [activeConversation.id]: arr };
-});
-
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) {
+        if (data?.ok && data.message) arr[idx] = data.message;
+        else
+          arr[idx] = {
+            ...arr[idx],
+            uploading: false,
+            failed: true,
+            error: data?.error || "Upload failed",
+          };
+      }
+      return { ...prev, [activeConversation.id]: arr };
+    });
   }
 };
 
@@ -733,83 +728,80 @@ const formatTime = (time) => {
 
               const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
 
-          return (
-  <div
-    key={msg.id}
-    style={{
-      display: "flex",
-      justifyContent: isMe ? "flex-end" : "flex-start",
-      marginBottom: 12,
-    }}
-  >
-    <div
-      style={{
-        maxWidth: "70%",
-        padding: 10,
-        borderRadius: 12,
-        background: isMe ? "#1a73e8" : "#f1f0f0",
-        color: isMe ? "white" : "black",
-        wordBreak: "break-word",
-      }}
-    >
-      {/* Show text */}
-      {msg.text && <div>{msg.text}</div>}
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    justifyContent: isMe ? "flex-end" : "flex-start",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "18px",
+                      background: isMe ? "#1a73e8" : "#e5e5ea",
+                      color: isMe ? "#fff" : "#000",
+                      maxWidth: "70%",
+                      wordWrap: "break-word",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    {/* text */}
+                    {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
 
-      {/* Show image or file */}
-      {msg.fileUrl && (
-        <div style={{ marginTop: msg.text ? 8 : 0 }}>
-  {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl || msg.fileName || "") ? (
-  <img
-    src={
-      msg.fileUrl?.startsWith("blob:")
-        ? msg.fileUrl
-        : msg.fileUrl
-        ? msg.fileUrl
-        : `/uploads/${msg.fileName || ""}`
-    }
-    alt={msg.fileName || "image"}
-    style={{ maxWidth: "220px", borderRadius: 10 }}
-    onError={(e) => {
-      e.target.style.display = "none";
-    }}
-  />
-) : (
-  <a
-    href={msg.fileUrl || `/uploads/${msg.fileName || ""}`}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-  >
-    📎 {msg.fileName || "Download file"}
-  </a>
-)}
+                    {/* file */}
+                    {msg.fileUrl && (
+                      <div style={{ marginTop: text ? 8 : 0 }}>
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                          <img
+                            src={msg.fileUrl}
+                            alt={msg.fileName || "image"}
+                            style={{ maxWidth: "220px", borderRadius: 10 }}
+                          />
+                        ) : (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                          >
+                            📎 {msg.fileName || "Download file"}
+                          </a>
+                        )}
+                        {msg.uploading && (
+                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+                            Uploading...
+                          </div>
+                        )}
+                        {msg.failed && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#ff6b6b",
+                              marginTop: 6,
+                            }}
+                          >
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
+                    )}
 
+                    <div
+                      style={{
+                        fontSize: "0.7em",
+                        marginTop: "5px",
+                        color: isMe ? "#dce6f9" : "#555",
+                        textAlign: "right",
+                      }}
+                    >
+                      {formatTime(msg.timestamp || msg.createdAt || msg.created_time)}
 
-          {/* Uploading indicator */}
-          {msg.uploading && (
-            <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-              Uploading...
-            </div>
-          )}
-
-          {/* Failed indicator */}
-          {msg.failed && (
-            <div
-              style={{
-                fontSize: 12,
-                color: "#ff6b6b",
-                marginTop: 6,
-              }}
-            >
-              Upload failed
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  </div>
-);
-
+                    </div>
+                  </div>
+                </div>
+              );
             })
           ) : (
             <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
