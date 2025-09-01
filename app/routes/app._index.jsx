@@ -312,12 +312,11 @@ const sendMessage = async (text = "", file = null) => {
   if (!page) return;
 
   const localId = "temp-" + Date.now();
+  const userName = activeConversation?.userName || null; // dynamic name
 
   /** ========== WhatsApp ========== **/
   if (page.type === "whatsapp") {
     const convId = activeConversation.id;
-
-    // Optimistic message
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -335,21 +334,14 @@ const sendMessage = async (text = "", file = null) => {
       let platformMessageId = null;
       let fileUrl = null;
 
-      // 🔹 If file, upload first
       if (file) {
         const fd = new FormData();
         fd.append("file", file);
-
-        const uploadRes = await fetch("/upload-image", {
-          method: "POST",
-          body: fd,
-        });
+        const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
         const uploadData = await uploadRes.json();
-
         if (!uploadData.success) throw new Error("File upload failed");
         fileUrl = uploadData.url;
 
-        // Send image to WhatsApp
         const res = await fetch(
           `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
           {
@@ -367,7 +359,6 @@ const sendMessage = async (text = "", file = null) => {
         if (!res.ok) throw new Error(JSON.stringify(data));
         platformMessageId = data?.messages?.[0]?.id || null;
       } else {
-        // Send text-only message
         const res = await fetch(
           `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
           {
@@ -385,7 +376,6 @@ const sendMessage = async (text = "", file = null) => {
         platformMessageId = data?.messages?.[0]?.id || null;
       }
 
-      // ✅ Save to DB
       const savePayload = {
         number: activeConversation.userNumber,
         text,
@@ -396,25 +386,17 @@ const sendMessage = async (text = "", file = null) => {
         localId,
         createdAt: new Date().toISOString(),
       };
-      const dbRes = await fetch(`/whatsapp-messages`, {
+      await fetch(`/whatsapp-messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(savePayload),
       });
-      const dbData = await dbRes.json().catch(() => null);
 
-      // Update optimistic message
       setMessages((prev) => {
         const arr = [...(prev[convId] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
         if (idx !== -1) {
-          arr[idx] = {
-            ...arr[idx],
-            ...(dbData?.message ? dbData.message : {}),
-            fileUrl,
-            platformMessageId: platformMessageId || undefined,
-            uploading: false,
-          };
+          arr[idx] = { ...arr[idx], fileUrl, platformMessageId, uploading: false };
           delete arr[idx]._tempId;
         }
         return { ...prev, [convId]: arr };
@@ -424,10 +406,7 @@ const sendMessage = async (text = "", file = null) => {
       setMessages((prev) => {
         const arr = [...(prev[convId] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          arr[idx].failed = true;
-          arr[idx].uploading = false;
-        }
+        if (idx !== -1) arr[idx] = { ...arr[idx], failed: true, uploading: false };
         return { ...prev, [convId]: arr };
       });
     }
@@ -436,7 +415,6 @@ const sendMessage = async (text = "", file = null) => {
 
   /** ========== Instagram ========== **/
   if (page.type === "instagram") {
-    // (unchanged from your prior code)
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -446,42 +424,27 @@ const sendMessage = async (text = "", file = null) => {
     };
     setMessages((prev) => ({
       ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        optimistic,
-      ],
+      [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
     }));
+
     const recipientId =
       activeConversation.recipientId ||
-      activeConversation.participants?.data?.find(
-        (p) => p.id && p.id !== page.igId
-      )?.id;
+      activeConversation.participants?.data?.find((p) => p.id && p.id !== page.igId)?.id;
     if (!recipientId) return console.error("No IG recipient id");
+
     const res = await fetch(
       `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messaging_type: "RESPONSE",
-          recipient: { id: recipientId },
-          message: { text },
-        }),
+        body: JSON.stringify({ messaging_type: "RESPONSE", recipient: { id: recipientId }, message: { text } }),
       }
     );
     const result = await res.json();
     setMessages((prev) => {
       const arr = [...(prev[activeConversation.id] || [])];
       const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-        arr[idx] = {
-          ...arr[idx],
-          text,
-          sender: "me",
-          uploading: false,
-          createdAt: new Date().toISOString(),
-        };
-      }
+      if (idx !== -1) arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
       return { ...prev, [activeConversation.id]: arr };
     });
     if (!res.ok) console.error("Instagram send failed:", result);
@@ -490,7 +453,6 @@ const sendMessage = async (text = "", file = null) => {
 
   /** ========== Facebook ========== **/
   if (page.type === "facebook") {
-    // (unchanged)
     const optimistic = {
       _tempId: localId,
       sender: "me",
@@ -500,15 +462,12 @@ const sendMessage = async (text = "", file = null) => {
     };
     setMessages((prev) => ({
       ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        optimistic,
-      ],
+      [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
     }));
-    const userParticipant = activeConversation.participants?.data?.find(
-      (p) => p.id !== page.id
-    );
+
+    const userParticipant = activeConversation.participants?.data?.find((p) => p.id !== page.id);
     if (!userParticipant) return;
+
     const res = await fetch(
       `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
       {
@@ -526,15 +485,7 @@ const sendMessage = async (text = "", file = null) => {
     setMessages((prev) => {
       const arr = [...(prev[activeConversation.id] || [])];
       const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-        arr[idx] = {
-          ...arr[idx],
-          text,
-          sender: "me",
-          uploading: false,
-          createdAt: new Date().toISOString(),
-        };
-      }
+      if (idx !== -1) arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
       return { ...prev, [activeConversation.id]: arr };
     });
     if (!res.ok) console.error("Facebook send failed:", result);
@@ -543,81 +494,65 @@ const sendMessage = async (text = "", file = null) => {
 
   /** ========== ChatWidget ========== **/
   if (page.type === "chatwidget") {
-const optimistic = {
-  _tempId: localId,
-  sender: "me",
-  name: userName,   // <-- add here
-  text: text || null,
-  fileUrl: file ? URL.createObjectURL(file) : null,
-  fileName: file?.name || null,
-  createdAt: new Date().toISOString(),
-  uploading: !!file,
-};
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      name: userName, // dynamic name
+      text: text || null,
+      fileUrl: file ? URL.createObjectURL(file) : null,
+      fileName: file?.name || null,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
 
     setMessages((prev) => ({
       ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        optimistic,
-      ],
+      [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
     }));
 
     try {
-   let payload;
-if (file) {
-  // Upload file
-  const fd = new FormData();
-  fd.append("file", file);
-  const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
-  const uploadData = await uploadRes.json();
-  if (!uploadData.success) throw new Error("Upload failed");
+      let payload;
+      if (file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
+        const uploadData = await uploadRes.json();
+        if (!uploadData.success) throw new Error("Upload failed");
 
-  payload = {
-    sessionId: activeConversation.id,
-    storeDomain: activeConversation.storeDomain || "myshop.com",
-    sender: "me",
-    name: userName,         // <-- include the user name here
-    fileUrl: uploadData.url,
-    fileName: file.name,
-  };
-} else {
-  payload = {
-    sessionId: activeConversation.id,
-    storeDomain: activeConversation.storeDomain || "myshop.com",
-    sender: "me",
-    name: userName,         // <-- include the user name here
-    message: text,
-    text,
-  };
-}
+        payload = {
+          sessionId: activeConversation.id,
+          storeDomain: activeConversation.storeDomain || "myshop.com",
+          sender: "me",
+          name: userName,
+          fileUrl: uploadData.url,
+          fileName: file.name,
+        };
+      } else {
+        payload = {
+          sessionId: activeConversation.id,
+          storeDomain: activeConversation.storeDomain || "myshop.com",
+          sender: "me",
+          name: userName,
+          message: text,
+          text,
+        };
+      }
 
-
-    const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => null);
 
-      // Update optimistic message
       setMessages((prev) => {
         const arr = [...(prev[activeConversation.id] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
         if (idx !== -1) {
           if (data?.ok && data.message) {
-            arr[idx] = {
-              ...arr[idx],
-              ...data.message,
-              uploading: false,
-              failed: false,
-            };
+            arr[idx] = { ...arr[idx], ...data.message, uploading: false, failed: false };
           } else {
-            arr[idx] = {
-              ...arr[idx],
-              uploading: false,
-              failed: true,
-              error: data?.error || "Upload failed",
-            };
+            arr[idx] = { ...arr[idx], uploading: false, failed: true, error: data?.error || "Upload failed" };
           }
           delete arr[idx]._tempId;
         }
@@ -629,6 +564,7 @@ if (file) {
     return;
   }
 };
+
 
 
 // Add this helper function at the top of your component
