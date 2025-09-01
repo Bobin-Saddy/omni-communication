@@ -162,7 +162,7 @@ const convs = data.sessions.map((s) => ({
   pageName: page.name,
   pageType: "chatwidget",
   participants: { 
-    data: [{ name: s.name || `User-${s.sessionId}` }] // fallback to sessionId
+    data: [{ name: s.name || "Unknown User" }] // just show name, fallback if missing
   },
   sessionId: s.sessionId,
   storeDomain: s.storeDomain,
@@ -180,7 +180,7 @@ if (convs.length > 0) {
   setActiveConversation(firstConv);
 
   const msgRes = await fetch(
-    `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain || "myshop.com")}&sessionId=${encodeURIComponent(firstConv.id)}`
+    `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
   );
 
   if (msgRes.ok) {
