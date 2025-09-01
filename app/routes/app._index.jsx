@@ -557,23 +557,47 @@ if (page.type === "chatwidget") {
   }));
 
   try {
-    const fd = new FormData();
-    fd.append("sessionId", activeConversation.id);
-    fd.append("storeDomain", activeConversation.storeDomain || "myshop.com");
-    fd.append("sender", "me");
+    let res, data;
 
     if (file) {
+      // ✅ File flow (no change)
+      const fd = new FormData();
       fd.append("file", file);
+      const uploadRes = await fetch("/upload-image", {
+        method: "POST",
+        body: fd,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) throw new Error("Upload failed");
+
+      const payload = {
+        sessionId: activeConversation.id,
+        storeDomain: activeConversation.storeDomain || "myshop.com",
+        sender: "me",
+        fileUrl: uploadData.url,
+        fileName: file.name,
+      };
+
+      res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      data = await res.json().catch(() => null);
     } else {
+      // ✅ Text-only flow (use FormData instead of JSON)
+      const fd = new FormData();
+      fd.append("sessionId", activeConversation.id);
+      fd.append("storeDomain", activeConversation.storeDomain || "myshop.com");
+      fd.append("sender", "me");
       fd.append("text", text);
+
+      res = await fetch("/api/chat", {
+        method: "POST",
+        body: fd, // 👈 no headers, FormData sets its own
+      });
+      data = await res.json().catch(() => null);
     }
-
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      body: fd, // ✅ JSON ki jagah FormData
-    });
-
-    const data = await res.json().catch(() => null);
 
     // Update optimistic message
     setMessages((prev) => {
