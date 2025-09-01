@@ -579,28 +579,25 @@ const optimistic = {
     const res = await fetch(`/api/chat`, { method: "POST", body: formData });
     const data = await res.json().catch(() => null);
 
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-if (data?.ok && data.message) {
-  arr[idx] = {
-    ...arr[idx],
-    ...data.message,
-    fileUrl: data.message.fileUrl || arr[idx].fileUrl, // 🔒 safe merge
-  };
-}
+setMessages((prev) => {
+  const arr = [...(prev[activeConversation.id] || [])];
+  const idx = arr.findIndex((m) => m._tempId === localId);
+  if (idx !== -1) {
+    if (data?.ok && data.message) {
+      arr[idx] = {
+        ...arr[idx],
+        ...data.message,
+        fileUrl:
+          data.message.fileUrl ||
+          `/uploads/${data.message.fileName || arr[idx].fileName}`,
+      };
+    } else {
+      arr[idx] = { ...arr[idx], uploading: false, failed: true };
+    }
+  }
+  return { ...prev, [activeConversation.id]: arr };
+});
 
-        else
-          arr[idx] = {
-            ...arr[idx],
-            uploading: false,
-            failed: true,
-            error: data?.error || "Upload failed",
-          };
-      }
-      return { ...prev, [activeConversation.id]: arr };
-    });
   }
 };
 
@@ -762,11 +759,19 @@ const formatTime = (time) => {
       {msg.fileUrl && (
         <div style={{ marginTop: msg.text ? 8 : 0 }}>
           {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-            <img
-              src={msg.fileUrl}
-              alt={msg.fileName || "image"}
-              style={{ maxWidth: "220px", borderRadius: 10 }}
-            />
+     <img
+  src={
+    msg.fileUrl?.startsWith("blob:")
+      ? msg.fileUrl
+      : `/uploads/${msg.fileName || ""}`
+  }
+  alt={msg.fileName || "image"}
+  style={{ maxWidth: "220px", borderRadius: 10 }}
+  onError={(e) => {
+    e.target.style.display = "none";
+  }}
+/>
+
           ) : (
             <a
               href={msg.fileUrl}
