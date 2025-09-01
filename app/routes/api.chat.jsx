@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// ----------------- CORS -----------------
 function getCorsHeaders(request) {
   const origin = request.headers.get("Origin") || "";
   if (origin.endsWith(".myshopify.com")) {
@@ -15,7 +16,7 @@ function getCorsHeaders(request) {
   return { "Access-Control-Allow-Origin": "null" };
 }
 
-// GET messages or sessions
+// ----------------- GET messages or sessions -----------------
 export async function loader({ request }) {
   const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS")
@@ -23,19 +24,14 @@ export async function loader({ request }) {
 
   const url = new URL(request.url);
 
-  // Fetch all widget sessions
+  // ----------------- Widget sessions -----------------
   if (url.searchParams.get("widget") === "true") {
-    // 1️⃣ Get all unique sessions
     const sessions = await prisma.storeChatMessage.findMany({
-      distinct: ["sessionId", "storeDomain"], // unique sessionId per store
+      distinct: ["sessionId", "storeDomain"],
       orderBy: { createdAt: "desc" },
-      select: {
-        sessionId: true,
-        storeDomain: true,
-      },
+      select: { sessionId: true, storeDomain: true },
     });
 
-    // 2️⃣ Get the latest message for each session to get the name
     const sessionsWithName = await Promise.all(
       sessions.map(async (s) => {
         const lastMessage = await prisma.storeChatMessage.findFirst({
@@ -46,7 +42,7 @@ export async function loader({ request }) {
         return {
           sessionId: s.sessionId,
           storeDomain: s.storeDomain,
-          name: lastMessage?.name || "Unknown User",
+          name: lastMessage?.name || `User-${s.sessionId}`,
         };
       })
     );
@@ -54,7 +50,7 @@ export async function loader({ request }) {
     return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
   }
 
-  // Otherwise, fetch messages for a specific session
+  // ----------------- Fetch messages for a session -----------------
   const storeDomain =
     url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
   const sessionId =
@@ -75,8 +71,7 @@ export async function loader({ request }) {
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
 
-
-// POST message (text or file)
+// ----------------- POST message (text or file) -----------------
 export async function action({ request }) {
   const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS")
@@ -84,7 +79,7 @@ export async function action({ request }) {
 
   let sessionId, storeDomain, sender, message, name = null, fileUrl = null, fileName = null;
 
-  // 🔹 Case 1: File Upload (multipart/form-data)
+  // ----------------- File upload -----------------
   if (request.headers.get("content-type")?.includes("multipart/form-data")) {
     const formData = await request.formData();
 
@@ -101,12 +96,11 @@ export async function action({ request }) {
       );
     }
 
-    // ⚡️ fileUrl बनाओ (S3/Cloudinary use कर सकते हो, अभी local path demo है)
     fileName = file.name;
-    fileUrl = `/uploads/${fileName}`; // TODO: Replace with actual storage upload
+    fileUrl = `/uploads/${fileName}`; // TODO: Replace with real storage (S3/Cloudinary)
     message = null;
   } 
-  // 🔹 Case 2: Text message (application/json)
+  // ----------------- Text message -----------------
   else {
     const body = await request.json();
     sessionId = body.sessionId || body.session_id;
@@ -122,29 +116,27 @@ export async function action({ request }) {
       );
     }
 
-    // अगर frontend से fileUrl आ रहा है तो उसे भी save कर सकते हैं
     if (body.fileUrl) {
       fileUrl = body.fileUrl;
       fileName = body.fileName || "file";
     }
   }
 
-  // 🔹 Sender normalize
+  // Normalize sender
   sender = sender === "customer" ? "customer" : "me";
 
-  // ✅ Ensure session exists
+  // ----------------- Ensure session exists -----------------
   await prisma.storeChatSession.upsert({
     where: { sessionId },
     update: {},
-      create: { sessionId: crypto.randomUUID(), storeDomain, name },
+    create: { sessionId, storeDomain },
   });
 
-  // ✅ Save message (text or file) with name
+  // ----------------- Save message -----------------
   const savedMessage = await prisma.storeChatMessage.create({
     data: { sessionId, storeDomain, sender, name, text: message, fileUrl, fileName },
   });
 
-  // ✅ Return full message with fileUrl so frontend can show image
   return json(
     { ok: true, message: { ...savedMessage, fileUrl, fileName } },
     { headers: corsHeaders }
