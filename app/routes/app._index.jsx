@@ -160,12 +160,11 @@ const convs = data.sessions.map((s) => ({
   id: s.sessionId,
   pageId: page.id,
   pageName: page.name,
-  pageType: "chatwidget",         // indicates it’s from chatwidget
-  source: "chatwidget",            // additional flag for clarity
+  pageType: "chatwidget",
   participants: { data: [{ name: s.name }] },
   sessionId: s.sessionId,
   storeDomain: s.storeDomain,
-  name: s.name,                    // frontend sees actual user name
+  name: s.name, // frontend sees actual name
 }));
 
 setConversations((prev) => [
@@ -588,7 +587,7 @@ if (page.type === "chatwidget") {
 
 // Add this helper function at the top of your component
 const formatTime = (time) => {
- if (!time) return "";
+  if (!time) return "";
   const date = new Date(time);
   if (isNaN(date)) return time; // fallback if invalid date
 
