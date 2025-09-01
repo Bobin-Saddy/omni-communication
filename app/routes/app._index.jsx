@@ -16,6 +16,7 @@ export default function SocialChatDashboard() {
 
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
+const nameInputRef = useRef(null); // ✅ Add this line
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPRZA1Mrm5HEi7WUy4ZAtOBP7gCXVZCkkfahENUclYmTJflJV3aNCJ1rwRrfNl5wrBYeAcf39kfDmBe5tWm1qpipnKh9L6k5vkZBZCm9sEgx6ZA5BN9dZBqgJwDK5y08O3xWFuboZAF8ZCHi9b7KvFdUZBSXIjc3bJ4EqAX8rnmcrJwev3Tev7al2hJtgHJpfvoLrk4xZAkOUPbTxZAD3Q7dbsKmPnWgcIc9hjQZDZD";
@@ -894,19 +895,20 @@ return (
           </label>
 
           {/* Name input */}
-          <input
-            ref={nameInputRef}
-            type="text"
-            placeholder="Your Name"
-            style={{
-              width: "150px",
-              padding: "10px",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              outline: "none",
-              marginRight: "6px",
-            }}
-          />
+       <input
+  ref={nameInputRef}
+  type="text"
+  placeholder="Your Name"
+  style={{
+    width: "150px",
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #ccc",
+    outline: "none",
+    marginRight: "6px",
+  }}
+/>
+
 
           {/* Text input */}
           <input
