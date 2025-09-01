@@ -18,7 +18,7 @@ export default function SocialChatDashboard() {
   const fileInputRef = useRef(null);
 
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPRZA1Mrm5HEi7WUy4ZAtOBP7gCXVZCkkfahENUclYmTJflJV3aNCJ1rwRrfNl5wrBYeAcf39kfDmBe5tWm1qpipnKh9L6k5vkZBZCm9sEgx6ZA5BN9dZBqgJwDK5y08O3xWFuboZAF8ZCHi9b7KvFdUZBSXIjc3bJ4EqAX8rnmcrJwev3Tev7al2hJtgHJpfvoLrk4xZAkOUPbTxZAD3Q7dbsKmPnWgcIc9hjQZDZD";
+    "EAAHvZAZB8ZCmugBPQqekhkGjFymrsY8aRGUnqeoONMVSZBiPfuUSy5mtQEg79mvwFcZC0xhO6qZClZBGwA3vixJGZBUwt2KOVfzmH9O0RiZBlaqHOFoR0dD1FR4BMAYiO6kYOhmVbeGIkZCIXQKX6G6OOgdSWSVVtui7lll5GeyMydk5oMeVjLLTCaFt7HIkZCetFkQnossLOdivuZCibWd20fm5ffjoRXTMkMqAd41hX1WhOFsZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   /** ----------------- LOAD CONVERSATIONS ----------------- **/
