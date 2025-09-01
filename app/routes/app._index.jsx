@@ -538,7 +538,6 @@ const sendMessage = async (text = "", file = null) => {
   }
 
   /** ========== ChatWidget ========== **/
-/** ========== ChatWidget ========== **/
 if (page.type === "chatwidget") {
   const optimistic = {
     _tempId: localId,
@@ -571,7 +570,7 @@ if (page.type === "chatwidget") {
 
     const res = await fetch("/api/chat", {
       method: "POST",
-      body: fd, // ✅ no headers, FormData sets it automatically
+      body: fd, // ✅ JSON ki jagah FormData
     });
 
     const data = await res.json().catch(() => null);
