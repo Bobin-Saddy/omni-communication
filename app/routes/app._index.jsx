@@ -588,14 +588,22 @@ if (page.type === "chatwidget") {
 
 // Add this helper function at the top of your component
 const formatTime = (time) => {
-  if (!time) return "";
+ if (!time) return "";
   const date = new Date(time);
   if (isNaN(date)) return time; // fallback if invalid date
+
+  // Format date: e.g., "Sep 1, 2025"
+  const options = { year: "numeric", month: "short", day: "numeric" };
+  const formattedDate = date.toLocaleDateString(undefined, options);
+
+  // Format time: e.g., "2:05 PM"
   const hours = date.getHours();
   const minutes = date.getMinutes().toString().padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
   const hour12 = hours % 12 || 12;
-  return `${hour12}:${minutes} ${ampm}`;
+  const formattedTime = `${hour12}:${minutes} ${ampm}`;
+
+  return `${formattedDate} ${formattedTime}`;
 };
 
 
