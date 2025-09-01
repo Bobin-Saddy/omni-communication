@@ -153,16 +153,17 @@ useEffect(() => {
         const data = await res.json();
 
         if (Array.isArray(data?.sessions)) {
-          const convs = data.sessions.map((s) => ({
-            id: s.sessionId,
-            pageId: page.id,
-            pageName: page.name,
-            pageType: "chatwidget",
-participants: { data: [{ name: s.userName || `User-${s.sessionId}` }] },
-
-            sessionId: s.sessionId,
-            storeDomain: s.storeDomain,
-          }));
+  await prisma.storeChatMessage.create({
+  data: {
+    storeDomain: storeDomain,
+    sessionId: sessionId,
+    sender: sender,                  // e.g., "me" or "user"
+    name: userName || `User-${sessionId}`, // save participant name
+    text: messageText,
+    fileUrl: fileUrl,
+    fileName: fileName,
+  },
+});
 
           setConversations((prev) => [
             ...prev.filter((c) => c.pageId !== page.id),
