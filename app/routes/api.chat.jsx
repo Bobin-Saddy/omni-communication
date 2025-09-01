@@ -24,30 +24,37 @@ export async function loader({ request }) {
   const url = new URL(request.url);
 
   // Fetch all widget sessions
-if (url.searchParams.get("widget") === "true") {
-  // Fetch sessions with the last message to get the name
-  const sessions = await prisma.storeChatSession.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1, // only last message
+  if (url.searchParams.get("widget") === "true") {
+    // 1️⃣ Get all unique sessions
+    const sessions = await prisma.storeChatMessage.findMany({
+      distinct: ["sessionId", "storeDomain"], // unique sessionId per store
+      orderBy: { createdAt: "desc" },
+      select: {
+        sessionId: true,
+        storeDomain: true,
       },
-    },
-  });
+    });
 
-  // Map name from last message
-  const sessionsWithName = sessions.map((s) => ({
-    sessionId: s.sessionId,
-    storeDomain: s.storeDomain,
-    createdAt: s.createdAt,
-    name: s.messages[0]?.name || "Unknown User", // <- name comes from last message
-  }));
+    // 2️⃣ Get the latest message for each session to get the name
+    const sessionsWithName = await Promise.all(
+      sessions.map(async (s) => {
+        const lastMessage = await prisma.storeChatMessage.findFirst({
+          where: { sessionId: s.sessionId, storeDomain: s.storeDomain },
+          orderBy: { createdAt: "desc" },
+        });
 
-  return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
-}
+        return {
+          sessionId: s.sessionId,
+          storeDomain: s.storeDomain,
+          name: lastMessage?.name || "Unknown User",
+        };
+      })
+    );
 
+    return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
+  }
 
+  // Otherwise, fetch messages for a specific session
   const storeDomain =
     url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
   const sessionId =
@@ -67,6 +74,7 @@ if (url.searchParams.get("widget") === "true") {
 
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
+
 
 // POST message (text or file)
 export async function action({ request }) {
