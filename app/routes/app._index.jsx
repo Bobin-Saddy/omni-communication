@@ -149,18 +149,20 @@ useEffect(() => {
 
       // Chat Widget (fetch sessions)
 // Chat Widget (fetch sessions)
+// Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
   const res = await fetch(`/api/chat?widget=true`);
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
+    // Use the 'name' field from your DB instead of sessionId
     const convs = data.sessions.map((s) => ({
-      id: s.name, // use name as id instead of sessionId
+      id: s.sessionId,          // keep sessionId as unique key
       pageId: page.id,
       pageName: page.name,
       pageType: "chatwidget",
-      participants: { data: [{ name: s.name || s.sessionId }] },
-      sessionId: s.sessionId, // keep sessionId for API calls if needed
+      participants: { data: [{ name: s.name || `User-${s.sessionId}` }] }, // <-- use 'name'
+      sessionId: s.sessionId,
       storeDomain: s.storeDomain,
     }));
 
@@ -177,7 +179,7 @@ if (page.type === "chatwidget") {
       const msgRes = await fetch(
         `/api/chat?storeDomain=${encodeURIComponent(
           firstConv.storeDomain || "myshop.com"
-        )}&sessionId=${encodeURIComponent(firstConv.sessionId)}`
+        )}&sessionId=${encodeURIComponent(firstConv.id)}`
       );
       if (msgRes.ok) {
         const msgData = await msgRes.json();
@@ -192,6 +194,7 @@ if (page.type === "chatwidget") {
   }
   return;
 }
+
 
     } catch (err) {
       console.error("Error fetching conversations:", err);
