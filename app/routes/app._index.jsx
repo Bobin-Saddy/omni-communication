@@ -148,51 +148,51 @@ useEffect(() => {
       }
 
       // Chat Widget (fetch sessions)
-      if (page.type === "chatwidget") {
-        const res = await fetch(`/api/chat?widget=true`);
-        const data = await res.json();
+// Chat Widget (fetch sessions)
+if (page.type === "chatwidget") {
+  const res = await fetch(`/api/chat?widget=true`);
+  const data = await res.json();
 
-        if (Array.isArray(data?.sessions)) {
-  await prisma.storeChatMessage.create({
-  data: {
-    storeDomain: storeDomain,
-    sessionId: sessionId,
-    sender: sender,                  // e.g., "me" or "user"
-    name: userName || `User-${sessionId}`, // save participant name
-    text: messageText,
-    fileUrl: fileUrl,
-    fileName: fileName,
-  },
-});
+  if (Array.isArray(data?.sessions)) {
+    const convs = data.sessions.map((s) => ({
+      id: s.name, // use name as id instead of sessionId
+      pageId: page.id,
+      pageName: page.name,
+      pageType: "chatwidget",
+      participants: { data: [{ name: s.name || s.sessionId }] },
+      sessionId: s.sessionId, // keep sessionId for API calls if needed
+      storeDomain: s.storeDomain,
+    }));
 
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== page.id),
-            ...convs,
-          ]);
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      ...convs,
+    ]);
 
-          // Auto-select first conversation and load messages
-          if (convs.length > 0) {
-            const firstConv = convs[0];
-            setActiveConversation(firstConv);
+    // Auto-select first conversation and load messages
+    if (convs.length > 0) {
+      const firstConv = convs[0];
+      setActiveConversation(firstConv);
 
-            const msgRes = await fetch(
-              `/api/chat?storeDomain=${encodeURIComponent(
-                firstConv.storeDomain || "myshop.com"
-              )}&sessionId=${encodeURIComponent(firstConv.id)}`
-            );
-            if (msgRes.ok) {
-              const msgData = await msgRes.json();
-              setMessages((prev) => ({
-                ...prev,
-                [firstConv.id]: Array.isArray(msgData?.messages)
-                  ? msgData.messages
-                  : [],
-              }));
-            }
-          }
-        }
-        return;
+      const msgRes = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(
+          firstConv.storeDomain || "myshop.com"
+        )}&sessionId=${encodeURIComponent(firstConv.sessionId)}`
+      );
+      if (msgRes.ok) {
+        const msgData = await msgRes.json();
+        setMessages((prev) => ({
+          ...prev,
+          [firstConv.id]: Array.isArray(msgData?.messages)
+            ? msgData.messages
+            : [],
+        }));
       }
+    }
+  }
+  return;
+}
+
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
@@ -641,283 +641,288 @@ const formatTime = (time) => {
 
 
   /** ----------------- UI ----------------- **/
-return (
-  <div
-    style={{
-      display: "flex",
-      height: "90vh",
-      border: "1px solid #ddd",
-      borderRadius: "12px",
-      overflow: "hidden",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      fontFamily: "Arial, sans-serif",
-    }}
-  >
-    {/* Conversations List */}
+  return (
     <div
       style={{
-        width: "28%",
-        borderRight: "1px solid #ddd",
-        padding: 15,
-        background: "#f9fafb",
         display: "flex",
-        flexDirection: "column",
-        overflowY: "auto",
+        height: "90vh",
+        border: "1px solid #ddd",
+        borderRadius: "12px",
+        overflow: "hidden",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        fontFamily: "Arial, sans-serif",
       }}
     >
-      <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
-      {!conversations.length ? (
-        <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
-      ) : (
-        conversations.map((conv) => (
-          <div
-            key={conv.id}
-            style={{
-              padding: "10px 12px",
-              cursor: "pointer",
-              borderRadius: "8px",
-              marginBottom: 8,
-              transition: "0.2s",
-              background:
-                activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-              fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
-              color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
-            }}
-            onClick={() => handleSelectConversation(conv)}
-            onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-            onMouseOut={(e) =>
-              (e.currentTarget.style.background =
-                activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
-            }
-          >
-            {conv.participants?.data
-              ?.map((p) => p.name || p.username)
-              .join(", ")}
-          </div>
-        ))
-      )}
-    </div>
-
-    {/* Chat Box */}
-    <div
-      style={{
-        flex: 1,
-        padding: 15,
-        display: "flex",
-        flexDirection: "column",
-        background: "#fff",
-      }}
-    >
-      <h3
-        style={{
-          margin: "0 0 15px 0",
-          paddingBottom: "10px",
-          borderBottom: "1px solid #eee",
-          color: "#1a73e8",
-        }}
-      >
-        Chat:{" "}
-        {activeConversation
-          ? activeConversation.participants?.data
-              ?.map((p) => p.name || p.username)
-              .join(", ")
-          : ""}
-      </h3>
-
+      {/* Conversations List */}
       <div
         style={{
-          flex: 1,
-          overflowY: "auto",
-          border: "1px solid #ccc",
-          marginBottom: 12,
-          padding: 12,
-          borderRadius: "8px",
-          background: "#fafafa",
+          width: "28%",
+          borderRight: "1px solid #ddd",
+          padding: 15,
+          background: "#f9fafb",
           display: "flex",
           flexDirection: "column",
-          gap: "10px",
+          overflowY: "auto",
         }}
       >
-        {activeConversation &&
-        messages[activeConversation.id] &&
-        messages[activeConversation.id].length ? (
-          messages[activeConversation.id].map((msg, idx) => {
-            const isMe =
-              msg.sender === "me" || msg.from === "me" || msg._tempId;
-            const text = msg.text || msg.message || msg.body;
-
-            return (
-              <div
-                key={idx}
-                style={{
-                  display: "flex",
-                  justifyContent: isMe ? "flex-end" : "flex-start",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: "18px",
-                    background: isMe ? "#1a73e8" : "#e5e5ea",
-                    color: isMe ? "#fff" : "#000",
-                    maxWidth: "70%",
-                    wordWrap: "break-word",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  {/* sender name */}
-                  {!isMe && msg.name && (
-                    <div style={{ fontWeight: "bold", marginBottom: 4 }}>
-                      {msg.name}
-                    </div>
-                  )}
-
-                  {/* message text */}
-                  {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
-
-                  {/* file attachment */}
-                  {msg.fileUrl && (
-                    <div style={{ marginTop: text ? 8 : 0 }}>
-                      {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-                        <img
-                          src={msg.fileUrl}
-                          alt={msg.fileName || "image"}
-                          style={{ maxWidth: "220px", borderRadius: 10 }}
-                        />
-                      ) : (
-                        <a
-                          href={msg.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-                        >
-                          📎 {msg.fileName || "Download file"}
-                        </a>
-                      )}
-                      {msg.uploading && (
-                        <div
-                          style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}
-                        >
-                          Uploading...
-                        </div>
-                      )}
-                      {msg.failed && (
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: "#ff6b6b",
-                            marginTop: 6,
-                          }}
-                        >
-                          Upload failed
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      fontSize: "0.7em",
-                      marginTop: "5px",
-                      color: isMe ? "#dce6f9" : "#555",
-                      textAlign: "right",
-                    }}
-                  >
-                    {formatTime(msg.timestamp || msg.createdAt || msg.created_time)}
-                  </div>
-                </div>
-              </div>
-            );
-          })
+        <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
+        {!conversations.length ? (
+          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
         ) : (
-          <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
+          conversations.map((conv) => (
+            <div
+              key={conv.id}
+              style={{
+                padding: "10px 12px",
+                cursor: "pointer",
+                borderRadius: "8px",
+                marginBottom: 8,
+                transition: "0.2s",
+                background:
+                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
+                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
+                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
+              }}
+              onClick={() => handleSelectConversation(conv)}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+              onMouseOut={(e) =>
+                (e.currentTarget.style.background =
+                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
+              }
+            >
+{conv.participants?.data
+  ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
+  .map((p) => p.name || p.username)
+  .join(", ")}
+
+
+
+
+            </div>
+          ))
         )}
       </div>
 
-      {activeConversation && (
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            id="dashboard-file-input"
-            type="file"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) {
-                sendMessage("", f);
-                e.target.value = "";
-              }
-            }}
-          />
-          <label
-            htmlFor="dashboard-file-input"
-            style={{
-              padding: "10px 12px",
-              borderRadius: "8px",
-              background: "#eef2ff",
-              color: "#1a73e8",
-              cursor: "pointer",
-              fontWeight: "600",
-            }}
-          >
-            📎
-          </label>
+      {/* Chat Box */}
+      <div
+        style={{
+          flex: 1,
+          padding: 15,
+          display: "flex",
+          flexDirection: "column",
+          background: "#fff",
+        }}
+      >
+        <h3
+          style={{
+            margin: "0 0 15px 0",
+            paddingBottom: "10px",
+            borderBottom: "1px solid #eee",
+            color: "#1a73e8",
+          }}
+        >
+          Chat:{" "}
+{activeConversation
+  ? activeConversation.participants?.data
+      ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
+      .map((p) => p.name || p.username)
+      .join(", ")
+  : ""}
 
-          {/* Text input */}
-          <input
-            ref={textInputRef}
-            type="text"
-            placeholder="Type a message..."
-            style={{
-              flex: 1,
-              padding: "10px",
-              borderRadius: "8px",
-              border: "1px solid #ccc",
-              outline: "none",
-              transition: "0.2s",
-            }}
-            onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
-            onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const v = e.target.value.trim();
-                if (v) {
-                  sendMessage(v, null);
+
+        </h3>
+
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            border: "1px solid #ccc",
+            marginBottom: 12,
+            padding: 12,
+            borderRadius: "8px",
+            background: "#fafafa",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+          }}
+        >
+          {activeConversation &&
+          messages[activeConversation.id] &&
+          messages[activeConversation.id].length ? (
+            messages[activeConversation.id].map((msg, idx) => {
+              const isMe =
+                msg.from?.id === activeConversation.pageId ||
+                msg.from?.phone_number_id === activeConversation.pageId ||
+                msg.sender === "me" ||
+                msg.from === "me" ||
+                msg._tempId; // optimistic sent messages
+
+              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    display: "flex",
+                    justifyContent: isMe ? "flex-end" : "flex-start",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: "18px",
+                      background: isMe ? "#1a73e8" : "#e5e5ea",
+                      color: isMe ? "#fff" : "#000",
+                      maxWidth: "70%",
+                      wordWrap: "break-word",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    {/* text */}
+                    {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
+
+                    {/* file */}
+                    {msg.fileUrl && (
+                      <div style={{ marginTop: text ? 8 : 0 }}>
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                          <img
+                            src={msg.fileUrl}
+                            alt={msg.fileName || "image"}
+                            style={{ maxWidth: "220px", borderRadius: 10 }}
+                          />
+                        ) : (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                          >
+                            📎 {msg.fileName || "Download file"}
+                          </a>
+                        )}
+                        {msg.uploading && (
+                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+                            Uploading...
+                          </div>
+                        )}
+                        {msg.failed && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#ff6b6b",
+                              marginTop: 6,
+                            }}
+                          >
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        fontSize: "0.7em",
+                        marginTop: "5px",
+                        color: isMe ? "#dce6f9" : "#555",
+                        textAlign: "right",
+                      }}
+                    >
+                      {formatTime(msg.timestamp || msg.createdAt || msg.created_time)}
+
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
+          )}
+        </div>
+
+        {activeConversation && (
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              id="dashboard-file-input"
+              type="file"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) {
+                  // send file (no text)
+                  sendMessage("", f);
                   e.target.value = "";
                 }
-              }
-            }}
-          />
+              }}
+            />
+            <label
+              htmlFor="dashboard-file-input"
+              style={{
+                padding: "10px 12px",
+                borderRadius: "8px",
+                background: "#eef2ff",
+                color: "#1a73e8",
+                cursor: "pointer",
+                fontWeight: "600",
+              }}
+            >
+              📎
+            </label>
 
-          {/* Send button */}
-          <button
-            style={{
-              padding: "10px 18px",
-              border: "none",
-              borderRadius: "8px",
-              background: "#1a73e8",
-              color: "#fff",
-              cursor: "pointer",
-              transition: "0.3s",
-              fontWeight: "bold",
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
-            onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
-            onClick={() => {
-              const input = textInputRef.current;
-              if (input && input.value.trim()) {
-                sendMessage(input.value.trim(), null);
-                input.value = "";
-              }
-            }}
-          >
-            {uploading ? "Uploading..." : "Send"}
-          </button>
-        </div>
-      )}
+            {/* Text input */}
+            <input
+              ref={textInputRef}
+              type="text"
+              placeholder="Type a message..."
+              style={{
+                flex: 1,
+                padding: "10px",
+                borderRadius: "8px",
+                border: "1px solid #ccc",
+                outline: "none",
+                transition: "0.2s",
+              }}
+              onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
+              onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const v = e.target.value.trim();
+                  if (v) {
+                    sendMessage(v, null);
+                    e.target.value = "";
+                  }
+                }
+              }}
+            />
+
+            {/* Send button */}
+            <button
+              style={{
+                padding: "10px 18px",
+                border: "none",
+                borderRadius: "8px",
+                background: "#1a73e8",
+                color: "#fff",
+                cursor: "pointer",
+                transition: "0.3s",
+                fontWeight: "bold",
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
+              onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
+              onClick={() => {
+                const input = textInputRef.current;
+                if (input && input.value.trim()) {
+                  sendMessage(input.value.trim(), null);
+                  input.value = "";
+                }
+              }}
+            >
+              {uploading ? "Uploading..." : "Send"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
-
+  );
 }
