@@ -161,9 +161,10 @@ if (page.type === "chatwidget") {
       pageId: page.id,
       pageName: page.name,
       pageType: "chatwidget",
-      participants: { data: [{ name: s.name || `User-${s.sessionId}` }] }, // <-- use 'name'
+      participants: { data: [{ name: s.name || `User-${s.name}` }] }, // <-- use 'name'
       sessionId: s.sessionId,
       storeDomain: s.storeDomain,
+      name: s.name,
     }));
 
     setConversations((prev) => [
