@@ -52,13 +52,12 @@ export async function loader({ request }) {
 }
 
 // POST message (text or file)
-// POST message (text or file)
 export async function action({ request }) {
   const corsHeaders = getCorsHeaders(request);
   if (request.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
-  let sessionId, storeDomain, sender, message, fileUrl = null, fileName = null;
+  let sessionId, storeDomain, sender, message, name = null, fileUrl = null, fileName = null;
 
   // 🔹 Case 1: File Upload (multipart/form-data)
   if (request.headers.get("content-type")?.includes("multipart/form-data")) {
@@ -67,9 +66,10 @@ export async function action({ request }) {
     sessionId = formData.get("sessionId") || formData.get("session_id");
     storeDomain = formData.get("storeDomain") || formData.get("store_domain");
     sender = formData.get("sender") || "customer";
+    name = formData.get("name") || null;
     const file = formData.get("file");
 
-    if (!sessionId || !storeDomain || !file) {
+    if (!sessionId || !storeDomain || !file || !name) {
       return json(
         { ok: false, error: "Missing fields" },
         { status: 400, headers: corsHeaders }
@@ -88,8 +88,9 @@ export async function action({ request }) {
     storeDomain = body.storeDomain || body.store_domain;
     message = body.message || null;
     sender = body.sender || "me";
+    name = body.name || null;
 
-    if (!sessionId || !storeDomain || (!message && !body.fileUrl)) {
+    if (!sessionId || !storeDomain || !name || (!message && !body.fileUrl)) {
       return json(
         { ok: false, error: "Missing fields" },
         { status: 400, headers: corsHeaders }
@@ -113,9 +114,9 @@ export async function action({ request }) {
     create: { sessionId, storeDomain },
   });
 
-  // ✅ Save message (text or file)
+  // ✅ Save message (text or file) with name
   const savedMessage = await prisma.storeChatMessage.create({
-    data: { sessionId, storeDomain, sender, text: message, fileUrl, fileName },
+    data: { sessionId, storeDomain, sender, name, text: message, fileUrl, fileName },
   });
 
   // ✅ Return full message with fileUrl so frontend can show image

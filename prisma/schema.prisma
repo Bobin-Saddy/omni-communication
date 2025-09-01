@@ -131,14 +131,16 @@ model StoreChatMessage {
   storeDomain  String
   sessionId    String
   sender       String
-  text         String?   // make optional, since some messages will only be files
-  fileUrl      String?   // URL/path of uploaded file (image, pdf, doc, etc.)
-  fileName     String?   // optional original file name
+  name         String?   // new field
+  text         String?   // make optional
+  fileUrl      String?
+  fileName     String?
   createdAt    DateTime  @default(now())
 
   @@index([storeDomain, sessionId, createdAt])
   @@map("store_chat_messages")
 }
+
 
 
 model StoreChatSession {
