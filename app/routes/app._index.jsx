@@ -157,16 +157,14 @@ if (page.type === "chatwidget") {
   if (Array.isArray(data?.sessions)) {
     // Use the 'name' field from your DB instead of sessionId
 const convs = data.sessions.map((s) => ({
-  id: s.sessionId,          // keep sessionId as unique key
+  id: s.sessionId,
   pageId: page.id,
   pageName: page.name,
   pageType: "chatwidget",
-  participants: { 
-    data: [{ name: s.name || "Unknown User" }] // just show name, fallback if missing
-  },
+  participants: { data: [{ name: s.name }] },
   sessionId: s.sessionId,
   storeDomain: s.storeDomain,
-  name: s.name,             // include the actual name
+  name: s.name, // frontend sees actual name
 }));
 
 setConversations((prev) => [

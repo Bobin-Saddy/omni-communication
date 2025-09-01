@@ -24,12 +24,29 @@ export async function loader({ request }) {
   const url = new URL(request.url);
 
   // Fetch all widget sessions
-  if (url.searchParams.get("widget") === "true") {
-    const sessions = await prisma.storeChatSession.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    return json({ ok: true, sessions }, { headers: corsHeaders });
-  }
+if (url.searchParams.get("widget") === "true") {
+  // Fetch sessions with the last message to get the name
+  const sessions = await prisma.storeChatSession.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1, // only last message
+      },
+    },
+  });
+
+  // Map name from last message
+  const sessionsWithName = sessions.map((s) => ({
+    sessionId: s.sessionId,
+    storeDomain: s.storeDomain,
+    createdAt: s.createdAt,
+    name: s.messages[0]?.name || "Unknown User", // <- name comes from last message
+  }));
+
+  return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
+}
+
 
   const storeDomain =
     url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
