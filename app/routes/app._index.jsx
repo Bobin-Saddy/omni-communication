@@ -538,97 +538,89 @@ const sendMessage = async (text = "", file = null) => {
   }
 
   /** ========== ChatWidget ========== **/
-if (page.type === "chatwidget") {
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",
-    text: text || null,
-    fileUrl: file ? URL.createObjectURL(file) : null,
-    fileName: file?.name || null,
-    createdAt: new Date().toISOString(),
-    uploading: !!file,
-  };
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [
-      ...(prev[activeConversation.id] || []),
-      optimistic,
-    ],
-  }));
+  if (page.type === "chatwidget") {
+    const optimistic = {
+      _tempId: localId,
+      sender: "me",
+      text: text || null,
+      fileUrl: file ? URL.createObjectURL(file) : null,
+      fileName: file?.name || null,
+      createdAt: new Date().toISOString(),
+      uploading: !!file,
+    };
+    setMessages((prev) => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        optimistic,
+      ],
+    }));
 
-  try {
-    let res, data;
+    try {
+      let payload;
+      if (file) {
+        // Upload file
+        const fd = new FormData();
+        fd.append("file", file);
+        const uploadRes = await fetch("/upload-image", {
+          method: "POST",
+          body: fd,
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadData.success) throw new Error("Upload failed");
 
-    if (file) {
-      // ✅ File flow (no change)
-      const fd = new FormData();
-      fd.append("file", file);
-      const uploadRes = await fetch("/upload-image", {
-        method: "POST",
-        body: fd,
-      });
-      const uploadData = await uploadRes.json();
-      if (!uploadData.success) throw new Error("Upload failed");
+        payload = {
+          sessionId: activeConversation.id,
+          storeDomain: activeConversation.storeDomain || "myshop.com",
+          sender: "me",
+          fileUrl: uploadData.url,
+          fileName: file.name,
+        };
+      } else {
+        payload = {
+          sessionId: activeConversation.id,
+          storeDomain: activeConversation.storeDomain || "myshop.com",
+          sender: "me",
+          text,
+        };
+      }
 
-      const payload = {
-        sessionId: activeConversation.id,
-        storeDomain: activeConversation.storeDomain || "myshop.com",
-        sender: "me",
-        fileUrl: uploadData.url,
-        fileName: file.name,
-      };
-
-      res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      data = await res.json().catch(() => null);
-    } else {
-      // ✅ Text-only flow (use FormData instead of JSON)
-      const fd = new FormData();
-      fd.append("sessionId", activeConversation.id);
-      fd.append("storeDomain", activeConversation.storeDomain || "myshop.com");
-      fd.append("sender", "me");
-      fd.append("text", text);
+      const data = await res.json().catch(() => null);
 
-      res = await fetch("/api/chat", {
-        method: "POST",
-        body: fd, // 👈 no headers, FormData sets its own
-      });
-      data = await res.json().catch(() => null);
-    }
-
-    // Update optimistic message
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-        if (data?.ok && data.message) {
-          arr[idx] = {
-            ...arr[idx],
-            ...data.message,
-            uploading: false,
-            failed: false,
-          };
-        } else {
-          arr[idx] = {
-            ...arr[idx],
-            uploading: false,
-            failed: true,
-            error: data?.error || "Upload failed",
-          };
+      // Update optimistic message
+      setMessages((prev) => {
+        const arr = [...(prev[activeConversation.id] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1) {
+          if (data?.ok && data.message) {
+            arr[idx] = {
+              ...arr[idx],
+              ...data.message,
+              uploading: false,
+              failed: false,
+            };
+          } else {
+            arr[idx] = {
+              ...arr[idx],
+              uploading: false,
+              failed: true,
+              error: data?.error || "Upload failed",
+            };
+          }
+          delete arr[idx]._tempId;
         }
-        delete arr[idx]._tempId;
-      }
-      return { ...prev, [activeConversation.id]: arr };
-    });
-  } catch (err) {
-    console.error("ChatWidget send error:", err);
+        return { ...prev, [activeConversation.id]: arr };
+      });
+    } catch (err) {
+      console.error("ChatWidget send error:", err);
+    }
+    return;
   }
-  return;
-}
-
 };
 
 
