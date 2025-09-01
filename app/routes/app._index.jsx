@@ -618,291 +618,174 @@ const formatTime = (time) => {
 
 
   /** ----------------- UI ----------------- **/
-  return (
+ return (
+  <div
+    style={{
+      display: "flex",
+      height: "90vh",
+      border: "1px solid #ddd",
+      borderRadius: "12px",
+      overflow: "hidden",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+      fontFamily: "Arial, sans-serif",
+    }}
+  >
+    {/* Conversations List */}
     <div
       style={{
-        display: "flex",
-        height: "90vh",
-        border: "1px solid #ddd",
-        borderRadius: "12px",
-        overflow: "hidden",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-        fontFamily: "Arial, sans-serif",
+        width: "28%",
+        borderRight: "1px solid #eee",
+        background: "#fafafa",
+        overflowY: "auto",
       }}
     >
-      {/* Conversations List */}
-      <div
-        style={{
-          width: "28%",
-          borderRight: "1px solid #ddd",
-          padding: 15,
-          background: "#f9fafb",
-          display: "flex",
-          flexDirection: "column",
-          overflowY: "auto",
-        }}
-      >
-        <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
-        {!conversations.length ? (
-          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
-        ) : (
-          conversations.map((conv) => (
-            <div
-              key={conv.id}
-              style={{
-                padding: "10px 12px",
-                cursor: "pointer",
-                borderRadius: "8px",
-                marginBottom: 8,
-                transition: "0.2s",
-                background:
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
-                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
-              }}
-              onClick={() => handleSelectConversation(conv)}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-              onMouseOut={(e) =>
-                (e.currentTarget.style.background =
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
-              }
-            >
-{conv.participants?.data
-  ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
-  .map((p) => p.name || p.username)
-  .join(", ")}
+      {conversations.map((conv) => (
+        <div
+          key={conv.id}
+          onClick={() => setActiveConversation(conv)}
+          style={{
+            padding: "14px",
+            cursor: "pointer",
+            background:
+              activeConversation?.id === conv.id ? "#eaf1ff" : "transparent",
+            borderBottom: "1px solid #f0f0f0",
+          }}
+        >
+          <strong>{conv.name}</strong>
+          <div style={{ fontSize: "12px", color: "#555" }}>
+            {conv.lastMessage}
+          </div>
+        </div>
+      ))}
+    </div>
 
-
-
-
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Chat Box */}
+    {/* Chat Window */}
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      {/* Messages */}
       <div
         style={{
           flex: 1,
-          padding: 15,
+          padding: "16px",
+          overflowY: "auto",
+          background: "#f9f9f9",
+        }}
+      >
+        {messages
+          .filter((msg) => msg.conversationId === activeConversation?.id)
+          .map((msg, idx) => {
+            const isMe = msg.sender === "me";
+            const text = msg.text || "";
+            return (
+              <div
+                key={idx}
+                style={{
+                  display: "flex",
+                  justifyContent: isMe ? "flex-end" : "flex-start",
+                  marginBottom: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    maxWidth: "65%",
+                    padding: "10px",
+                    borderRadius: "10px",
+                    background: isMe ? "#1a73e8" : "#fff",
+                    color: isMe ? "#fff" : "#333",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  {/* Text */}
+                  {text && <div>{text}</div>}
+
+                  {/* File / Image */}
+                  {msg.fileUrl && (
+                    <div style={{ marginTop: text ? 8 : 0 }}>
+                      {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                        <img
+                          src={msg.fileUrl}
+                          alt={msg.fileName || "image"}
+                          style={{ maxWidth: "220px", borderRadius: 10 }}
+                        />
+                      ) : (
+                        <a
+                          href={msg.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                        >
+                          📎 {msg.fileName || "Download file"}
+                        </a>
+                      )}
+
+                      {/* Upload Status */}
+                      {msg.uploading && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            opacity: 0.8,
+                            marginTop: 6,
+                          }}
+                        >
+                          Uploading...
+                        </div>
+                      )}
+                      {msg.failed && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: "#ff6b6b",
+                            marginTop: 6,
+                          }}
+                        >
+                          Upload failed
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+      </div>
+
+      {/* Input */}
+      <div
+        style={{
+          padding: "10px",
+          borderTop: "1px solid #eee",
           display: "flex",
-          flexDirection: "column",
+          alignItems: "center",
           background: "#fff",
         }}
       >
-        <h3
-          style={{
-            margin: "0 0 15px 0",
-            paddingBottom: "10px",
-            borderBottom: "1px solid #eee",
-            color: "#1a73e8",
-          }}
-        >
-          Chat:{" "}
-{activeConversation
-  ? activeConversation.participants?.data
-      ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
-      .map((p) => p.name || p.username)
-      .join(", ")
-  : ""}
-
-
-        </h3>
-
-        <div
+        <input
+          ref={textInputRef}
+          type="text"
+          placeholder="Type a message..."
           style={{
             flex: 1,
-            overflowY: "auto",
+            padding: "10px",
             border: "1px solid #ccc",
-            marginBottom: 12,
-            padding: 12,
-            borderRadius: "8px",
-            background: "#fafafa",
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
+            borderRadius: "20px",
+            outline: "none",
+          }}
+        />
+        <button
+          style={{
+            marginLeft: "10px",
+            padding: "10px 16px",
+            background: "#1a73e8",
+            border: "none",
+            borderRadius: "20px",
+            color: "#fff",
+            cursor: "pointer",
           }}
         >
-          {activeConversation &&
-          messages[activeConversation.id] &&
-          messages[activeConversation.id].length ? (
-            messages[activeConversation.id].map((msg, idx) => {
-              const isMe =
-                msg.from?.id === activeConversation.pageId ||
-                msg.from?.phone_number_id === activeConversation.pageId ||
-                msg.sender === "me" ||
-                msg.from === "me" ||
-                msg._tempId; // optimistic sent messages
-
-              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
-
-              return (
-                <div
-                  key={idx}
-                  style={{
-                    display: "flex",
-                    justifyContent: isMe ? "flex-end" : "flex-start",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: "18px",
-                      background: isMe ? "#1a73e8" : "#e5e5ea",
-                      color: isMe ? "#fff" : "#000",
-                      maxWidth: "70%",
-                      wordWrap: "break-word",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    {/* text */}
-                    {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
-
-                    {/* file */}
-                {msg.fileUrl && (
-  <div style={{ marginTop: text ? 8 : 0 }}>
-    {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-      <img
-        src={msg.fileUrl}
-        alt={msg.fileName || "image"}
-        style={{ maxWidth: "220px", borderRadius: 10 }}
-      />
-    ) : (
-      <a
-        href={msg.fileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-      >
-        📎 {msg.fileName || "Download file"}
-      </a>
-    )}
-
-    {msg.uploading && (
-      <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-        Uploading...
-      </div>
-    )}
-
-    {msg.failed && (
-      <div
-        style={{
-          fontSize: 12,
-          color: "#ff6b6b",
-          marginTop: 6,
-        }}
-      >
-        Upload failed
-      </div>
-    )}
-  </div>
-)}
-
-
-                    <div
-                      style={{
-                        fontSize: "0.7em",
-                        marginTop: "5px",
-                        color: isMe ? "#dce6f9" : "#555",
-                        textAlign: "right",
-                      }}
-                    >
-                      {formatTime(msg.timestamp || msg.createdAt || msg.created_time)}
-
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
-          )}
-        </div>
-
-        {activeConversation && (
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              id="dashboard-file-input"
-              type="file"
-              style={{ display: "none" }}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  // send file (no text)
-                  sendMessage("", f);
-                  e.target.value = "";
-                }
-              }}
-            />
-            <label
-              htmlFor="dashboard-file-input"
-              style={{
-                padding: "10px 12px",
-                borderRadius: "8px",
-                background: "#eef2ff",
-                color: "#1a73e8",
-                cursor: "pointer",
-                fontWeight: "600",
-              }}
-            >
-              📎
-            </label>
-
-            {/* Text input */}
-            <input
-              ref={textInputRef}
-              type="text"
-              placeholder="Type a message..."
-              style={{
-                flex: 1,
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid #ccc",
-                outline: "none",
-                transition: "0.2s",
-              }}
-              onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
-              onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const v = e.target.value.trim();
-                  if (v) {
-                    sendMessage(v, null);
-                    e.target.value = "";
-                  }
-                }
-              }}
-            />
-
-            {/* Send button */}
-            <button
-              style={{
-                padding: "10px 18px",
-                border: "none",
-                borderRadius: "8px",
-                background: "#1a73e8",
-                color: "#fff",
-                cursor: "pointer",
-                transition: "0.3s",
-                fontWeight: "bold",
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
-              onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
-              onClick={() => {
-                const input = textInputRef.current;
-                if (input && input.value.trim()) {
-                  sendMessage(input.value.trim(), null);
-                  input.value = "";
-                }
-              }}
-            >
-              {uploading ? "Uploading..." : "Send"}
-            </button>
-          </div>
-        )}
+          Send
+        </button>
       </div>
     </div>
-  );
+  </div>
+);
+
 }
