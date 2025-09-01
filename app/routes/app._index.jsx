@@ -529,15 +529,16 @@ const sendMessage = async (text = "", file = null) => {
   // ---------- ChatWidget ----------
   if (page.type === "chatwidget") {
     // (unchanged)
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text: text || null,
-      fileUrl: file ? URL.createObjectURL(file) : null,
-      fileName: file?.name || null,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
+const optimistic = {
+  _tempId: localId,
+  sender: "me",
+  text: text || null,
+  fileUrl: file ? URL.createObjectURL(file) : null,
+  fileName: file?.name || null,
+  createdAt: new Date().toISOString(),
+  uploading: !!file,
+};
+
 
     setMessages((prev) => ({
       ...prev,
@@ -582,7 +583,13 @@ const sendMessage = async (text = "", file = null) => {
       const arr = [...(prev[activeConversation.id] || [])];
       const idx = arr.findIndex((m) => m._tempId === localId);
       if (idx !== -1) {
-        if (data?.ok && data.message) arr[idx] = data.message;
+if (data?.ok && data.message) {
+  arr[idx] = {
+    ...arr[idx],   // keep optimistic values (like fileUrl)
+    ...data.message, // overwrite with server fields
+  };
+}
+
         else
           arr[idx] = {
             ...arr[idx],
