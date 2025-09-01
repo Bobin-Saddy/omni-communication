@@ -547,25 +547,63 @@ const sendMessage = async (text = "", file = null) => {
       ],
     }));
 
-    if (!file) {
-      await fetch(`/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: activeConversation.id,
-          storeDomain: activeConversation.storeDomain || "myshop.com",
-          message: text,
-          sender: "me",
-        }),
-      });
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) arr[idx].uploading = false;
-        return { ...prev, [activeConversation.id]: arr };
-      });
-      return;
+// inside sendMessage, before optimistic update for chatwidget or whatsapp
+if (file) {
+  setUploading(true);
+
+  const fd = new FormData();
+  fd.append("file", file);
+
+  try {
+    const uploadRes = await fetch("/upload-image", {
+      method: "POST",
+      body: fd,
+    });
+    const uploadData = await uploadRes.json();
+
+    if (uploadData.success) {
+      // we now have a file URL from the backend
+      const fileUrl = uploadData.url;
+
+      // send this URL as message
+      if (page.type === "whatsapp") {
+        await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: activeConversation.userNumber,
+              type: "image",   // or "document" depending on file
+              image: { link: fileUrl },
+            }),
+          }
+        );
+      }
+
+      if (page.type === "chatwidget") {
+        await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: activeConversation.id,
+            storeDomain: activeConversation.storeDomain || "myshop.com",
+            sender: "me",
+            fileUrl,
+            fileName: file.name,
+          }),
+        });
+      }
     }
+  } catch (err) {
+    console.error("Upload failed", err);
+  } finally {
+    setUploading(false);
+  }
+
+  return; // ⛔ stop further execution
+}
 
     // file upload
     const formData = new FormData();
