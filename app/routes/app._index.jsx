@@ -160,11 +160,12 @@ const convs = data.sessions.map((s) => ({
   id: s.sessionId,
   pageId: page.id,
   pageName: page.name,
-  pageType: "chatwidget",
+  pageType: "chatwidget",         // indicates it’s from chatwidget
+  source: "chatwidget",            // additional flag for clarity
   participants: { data: [{ name: s.name }] },
   sessionId: s.sessionId,
   storeDomain: s.storeDomain,
-  name: s.name, // frontend sees actual name
+  name: s.name,                    // frontend sees actual user name
 }));
 
 setConversations((prev) => [
