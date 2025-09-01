@@ -725,9 +725,10 @@ const formatTime = (time) => {
 {activeConversation
   ? activeConversation.participants?.data
       ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
-      .map((p) => p.name || p.username)
+      .map((p) => p.name) // no need for p.username if chatwidget
       .join(", ")
   : ""}
+
 
 
         </h3>
