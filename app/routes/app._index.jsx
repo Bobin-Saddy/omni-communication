@@ -585,8 +585,9 @@ const optimistic = {
       if (idx !== -1) {
 if (data?.ok && data.message) {
   arr[idx] = {
-    ...arr[idx],   // keep optimistic values (like fileUrl)
-    ...data.message, // overwrite with server fields
+    ...arr[idx],
+    ...data.message,
+    fileUrl: data.message.fileUrl || arr[idx].fileUrl, // 🔒 safe merge
   };
 }
 
