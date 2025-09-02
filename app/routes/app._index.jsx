@@ -37,6 +37,7 @@ useEffect(() => {
   }, [connectedPages]);
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
+// ChatWidget SSE
 useEffect(() => {
   if (activeConversation?.pageType !== "chatwidget") return;
 
@@ -45,40 +46,6 @@ useEffect(() => {
       activeConversation.storeDomain || ""
     )}`
   );
-
-  // For Facebook
-useEffect(() => {
-  const es = new EventSource("/fb/subscribe");
-
-  es.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-      setMessages((prev) => ({
-        ...prev,
-        [msg.convId]: [...(prev[msg.convId] || []), msg],
-      }));
-    } catch (err) {
-      console.warn("FB SSE parse error", err);
-    }
-  };
-
-  es.onerror = () => es.close();
-  return () => es.close();
-}, []);
-
-// For Instagram (same idea)
-useEffect(() => {
-  const es = new EventSource("/instagram/subscribe");
-  es.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    setMessages((prev) => ({
-      ...prev,
-      [msg.convId]: [...(prev[msg.convId] || []), msg],
-    }));
-  };
-  return () => es.close();
-}, []);
-
 
   es.onmessage = (event) => {
     try {
@@ -100,38 +67,68 @@ useEffect(() => {
     }
   };
 
-  es.onerror = (err) => {
-    console.warn("SSE error", err);
-    es.close();
-  };
-
+  es.onerror = () => es.close();
   return () => es.close();
 }, [activeConversation]);
 
+// Facebook SSE
+useEffect(() => {
+  const es = new EventSource("/fb/subscribe");
 
+  es.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      setMessages((prev) => ({
+        ...prev,
+        [msg.convId]: [...(prev[msg.convId] || []), msg],
+      }));
+    } catch (err) {
+      console.warn("FB SSE parse error", err);
+    }
+  };
+
+  es.onerror = () => es.close();
+  return () => es.close();
+}, []);
+
+// Instagram SSE
+useEffect(() => {
+  const es = new EventSource("/instagram/subscribe");
+  es.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    setMessages((prev) => ({
+      ...prev,
+      [msg.convId]: [...(prev[msg.convId] || []), msg],
+    }));
+  };
+  es.onerror = () => es.close();
+  return () => es.close();
+}, []);
+
+// WhatsApp SSE
 useEffect(() => {
   const evtSource = new EventSource("/whatsapp/subscribe");
 
-evtSource.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-
-  setMessages(prev => ({
-    ...prev,
-    [msg.number]: [...(prev[msg.number] || []), msg],
-  }));
-
-  // 👉 Agar active chat wahi number ka hai, to UI turant scroll/update ho jaye
-  if (activeConversation && activeConversation.id === msg.number) {
-    setMessages(prev => ({
+  evtSource.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    setMessages((prev) => ({
       ...prev,
-      [activeConversation.id]: [...(prev[activeConversation.id] || []), msg],
+      [msg.number]: [...(prev[msg.number] || []), msg],
     }));
-  }
-};
 
+    if (activeConversation && activeConversation.id === msg.number) {
+      setMessages((prev) => ({
+        ...prev,
+        [activeConversation.id]: [...(prev[activeConversation.id] || []), msg],
+      }));
+    }
+  };
 
+  evtSource.onerror = () => evtSource.close();
   return () => evtSource.close();
-}, []);
+}, [activeConversation]);
+
+
 
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
