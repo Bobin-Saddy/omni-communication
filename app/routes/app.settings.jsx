@@ -10,13 +10,15 @@ export default function Settings() {
 
   const FACEBOOK_APP_ID = "544704651303656";
 
-  const {
-    connectedPages,
-    setConnectedPages,
-    setSelectedPage,
-    setConversations,
-    setMessages,
-  } = useContext(AppContext);
+const {
+  connectedPages,
+  setConnectedPages,
+  setSelectedPage,
+  setConversations,
+  setMessages,
+  activeConversation,       // ⬅️ add this
+  setActiveConversation,    // ⬅️ add this
+} = useContext(AppContext);
 
   // Load FB SDK
   useEffect(() => {
@@ -136,17 +138,14 @@ export default function Settings() {
     }
   };
 
-  // Disconnect page
-// Disconnect page
-// Disconnect page
-const handleDisconnectPage = (pageId) => {
+ const handleDisconnectPage = (pageId) => {
   // 1. Remove page from connected list
   setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
 
-  // 2. Remove all conversations linked to this page
+  // 2. Remove conversations linked to this page
   setConversations((prev) => prev.filter((c) => c.pageId !== pageId));
 
-  // 3. Remove all messages linked to this page
+  // 3. Remove messages linked to this page
   setMessages((prev) => {
     const newMsgs = {};
     Object.keys(prev).forEach((key) => {
@@ -161,14 +160,15 @@ const handleDisconnectPage = (pageId) => {
     return newMsgs;
   });
 
-  // 4. If selected page is the one being disconnected → clear it
+  // 4. Clear selected page if it's disconnected
   setSelectedPage((prev) => (prev?.id === pageId ? null : prev));
 
-  // 5. If activeConversation belongs to this page → clear it too
+  // 5. Clear activeConversation if it belongs to this page
   setActiveConversation((prev) =>
     prev?.pageId === pageId ? null : prev
   );
 };
+
 
 
   return (
