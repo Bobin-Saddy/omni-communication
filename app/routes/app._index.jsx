@@ -17,7 +17,6 @@ export default function SocialChatDashboard() {
 
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
-const socket = io("https://omnichannel-communication-3d7329b35a37.herokuapp.com");
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPWo4Uu1OrTOQZBZARMsQZBZAYlZBVaAJy0BuwG9K8tVMYvxRcLhmJpwiXuZAigPAhnX4UHjbR8rrpfMv54FvY2NLkiacsQf0ZA3ZCxR9Hjf2rv5NSuoWlWKoSD0J0qFcerkLyLRmUNfaiHToV3VKC4ZAqmwcR157tazy1teCG5PbL9jqIxHZAA7UUbLmNNz9he5rQyWLEudjfRYswCSxDwzq6ZAx2QdZBCuIPVAZD";
@@ -48,29 +47,7 @@ useEffect(() => {
     )}`
   );
 
-  useEffect(() => {
-  const socket = io("https://omnichannel-communication-3d7329b35a37.herokuapp.com", {
-    transports: ["websocket"], // ensure WebSocket transport
-  });
-
-  socket.on("newMessage", (msg) => {
-    setMessages((prev) => ({
-      ...prev,
-      [msg.conversationId]: [
-        ...(prev[msg.conversationId] || []),
-        {
-          text: msg.message,
-          sender: "them",
-          createdAt: msg.createdAt,
-        },
-      ],
-    }));
-  });
-
-  return () => {
-    socket.disconnect();
-  };
-}, [setMessages]);
+  
 
   es.onmessage = (event) => {
     try {
