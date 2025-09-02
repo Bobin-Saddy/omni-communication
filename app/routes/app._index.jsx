@@ -102,6 +102,60 @@ evtSource.onmessage = (event) => {
   return () => evtSource.close();
 }, []);
 
+useEffect(() => {
+  if (!activeConversation) return;
+
+  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+  if (!page) return;
+
+  let interval;
+
+  const fetchLatestMessages = async () => {
+    try {
+      if (page.type === "instagram" || page.type === "facebook") {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${activeConversation.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.data)) {
+            const formatted = data.data
+              .map((msg) => ({
+                id: msg.id,
+                sender:
+                  page.type === "instagram"
+                    ? msg.from?.id === page.igId
+                      ? "me"
+                      : "them"
+                    : msg.from?.id === page.id
+                    ? "me"
+                    : "them",
+                text: msg.message,
+                createdAt: msg.created_time,
+              }))
+              .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+            setMessages((prev) => ({
+              ...prev,
+              [activeConversation.id]: formatted,
+            }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Polling error:", err);
+    }
+  };
+
+  // Fetch first time immediately
+  fetchLatestMessages();
+
+  // Then keep polling every 5s
+  interval = setInterval(fetchLatestMessages, 5000);
+
+  return () => clearInterval(interval);
+}, [activeConversation, connectedPages]);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
