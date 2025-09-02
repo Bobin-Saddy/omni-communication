@@ -759,14 +759,20 @@ const formatTime = (time) => {
           }
         }}
       >
-        {conv.participants?.data
-          ?.filter(
-            (p) =>
-              p.name !== WHATSAPP_PHONE_NUMBER_ID &&
-              p.username !== WHATSAPP_PHONE_NUMBER_ID
-          )
-          .map((p) => p.name || p.username)
-          .join(", ") || "Unknown user"}
+   {(() => {
+  const participantNames =
+    conv.participants?.data
+      ?.filter(
+        (p) =>
+          p.name !== WHATSAPP_PHONE_NUMBER_ID &&
+          p.username !== WHATSAPP_PHONE_NUMBER_ID
+      )
+      .map((p) => p.name || p.username)
+      .join(", ");
+
+  return participantNames ? participantNames : null; // hide if empty
+})()}
+
       </div>
     ))
 )}
