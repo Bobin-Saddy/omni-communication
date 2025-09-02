@@ -37,7 +37,6 @@ useEffect(() => {
   }, [connectedPages]);
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
-// ChatWidget SSE
 useEffect(() => {
   if (activeConversation?.pageType !== "chatwidget") return;
 
@@ -46,6 +45,8 @@ useEffect(() => {
       activeConversation.storeDomain || ""
     )}`
   );
+
+  
 
   es.onmessage = (event) => {
     try {
@@ -67,68 +68,38 @@ useEffect(() => {
     }
   };
 
-  es.onerror = () => es.close();
+  es.onerror = (err) => {
+    console.warn("SSE error", err);
+    es.close();
+  };
+
   return () => es.close();
 }, [activeConversation]);
 
-// Facebook SSE
-useEffect(() => {
-  const es = new EventSource("/fb/subscribe");
 
-  es.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-      setMessages((prev) => ({
-        ...prev,
-        [msg.convId]: [...(prev[msg.convId] || []), msg],
-      }));
-    } catch (err) {
-      console.warn("FB SSE parse error", err);
-    }
-  };
-
-  es.onerror = () => es.close();
-  return () => es.close();
-}, []);
-
-// Instagram SSE
-useEffect(() => {
-  const es = new EventSource("/instagram/subscribe");
-  es.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    setMessages((prev) => ({
-      ...prev,
-      [msg.convId]: [...(prev[msg.convId] || []), msg],
-    }));
-  };
-  es.onerror = () => es.close();
-  return () => es.close();
-}, []);
-
-// WhatsApp SSE
 useEffect(() => {
   const evtSource = new EventSource("/whatsapp/subscribe");
 
-  evtSource.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    setMessages((prev) => ({
+evtSource.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+
+  setMessages(prev => ({
+    ...prev,
+    [msg.number]: [...(prev[msg.number] || []), msg],
+  }));
+
+  // 👉 Agar active chat wahi number ka hai, to UI turant scroll/update ho jaye
+  if (activeConversation && activeConversation.id === msg.number) {
+    setMessages(prev => ({
       ...prev,
-      [msg.number]: [...(prev[msg.number] || []), msg],
+      [activeConversation.id]: [...(prev[activeConversation.id] || []), msg],
     }));
+  }
+};
 
-    if (activeConversation && activeConversation.id === msg.number) {
-      setMessages((prev) => ({
-        ...prev,
-        [activeConversation.id]: [...(prev[activeConversation.id] || []), msg],
-      }));
-    }
-  };
 
-  evtSource.onerror = () => evtSource.close();
   return () => evtSource.close();
-}, [activeConversation]);
-
-
+}, []);
 
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
@@ -919,11 +890,12 @@ const formatTime = (time) => {
               onFocus={(e) => (e.target.style.border = "1px solid #1a73e8")}
               onBlur={(e) => (e.target.style.border = "1px solid #ccc")}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const v = e.target.value.trim();
-                  if (v) {
-                    sendMessage(v, null);
-                    e.target.value = "";
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  const text = e.currentTarget.value.trim();
+                  if (text) {
+                    sendMessage(text);
+                    e.currentTarget.value = "";
                   }
                 }
               }}
@@ -931,27 +903,27 @@ const formatTime = (time) => {
 
             {/* Send button */}
             <button
+              onClick={() => {
+                const text = textInputRef.current.value.trim();
+                if (text) {
+                  sendMessage(text);
+                  textInputRef.current.value = "";
+                }
+              }}
               style={{
                 padding: "10px 18px",
-                border: "none",
                 borderRadius: "8px",
                 background: "#1a73e8",
                 color: "#fff",
+                border: "none",
+                fontWeight: "600",
                 cursor: "pointer",
-                transition: "0.3s",
-                fontWeight: "bold",
+                transition: "0.2s",
               }}
               onMouseOver={(e) => (e.currentTarget.style.background = "#1669c1")}
               onMouseOut={(e) => (e.currentTarget.style.background = "#1a73e8")}
-              onClick={() => {
-                const input = textInputRef.current;
-                if (input && input.value.trim()) {
-                  sendMessage(input.value.trim(), null);
-                  input.value = "";
-                }
-              }}
             >
-              {uploading ? "Uploading..." : "Send"}
+              ➤
             </button>
           </div>
         )}
@@ -959,3 +931,4 @@ const formatTime = (time) => {
     </div>
   );
 }
+
