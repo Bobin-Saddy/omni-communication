@@ -1,23 +1,21 @@
-import { json } from "@remix-run/node";
-import { WebSocketServer } from "ws";
+import express from "express";
+import bodyParser from "body-parser";
+import pkg from "ws";
 
-// Keep WebSocket server alive across hot reloads
-let wss;
+const { WebSocketServer } = pkg;
+
+const app = express();
+app.use(bodyParser.json());
+
+const wss = new WebSocketServer({ port: 8080 });
 let clients = [];
 
-if (!global._fbInstaWSS) {
-  wss = new WebSocketServer({ port: 8080 });
-  global._fbInstaWSS = wss;
-
-  wss.on("connection", (ws) => {
-    clients.push(ws);
-    ws.on("close", () => {
-      clients = clients.filter((c) => c !== ws);
-    });
+wss.on("connection", (ws) => {
+  clients.push(ws);
+  ws.on("close", () => {
+    clients = clients.filter((c) => c !== ws);
   });
-} else {
-  wss = global._fbInstaWSS;
-}
+});
 
 /**
  * Handle GET (Meta webhook verification)
