@@ -46,6 +46,40 @@ useEffect(() => {
     )}`
   );
 
+  // For Facebook
+useEffect(() => {
+  const es = new EventSource("/fb/subscribe");
+
+  es.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      setMessages((prev) => ({
+        ...prev,
+        [msg.convId]: [...(prev[msg.convId] || []), msg],
+      }));
+    } catch (err) {
+      console.warn("FB SSE parse error", err);
+    }
+  };
+
+  es.onerror = () => es.close();
+  return () => es.close();
+}, []);
+
+// For Instagram (same idea)
+useEffect(() => {
+  const es = new EventSource("/instagram/subscribe");
+  es.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    setMessages((prev) => ({
+      ...prev,
+      [msg.convId]: [...(prev[msg.convId] || []), msg],
+    }));
+  };
+  return () => es.close();
+}, []);
+
+
   es.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
