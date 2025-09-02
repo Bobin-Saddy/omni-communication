@@ -1,29 +1,31 @@
-let clients = []; // store connected clients
+let clients = [];
 
 export async function loader({ request }) {
   const { readable, writable } = new TransformStream();
-  const res = new Response(readable, {
+  const writer = writable.getWriter();
+
+  clients.push(writer);
+
+  // Send heartbeat every 25s so Heroku doesn't kill the connection
+  const interval = setInterval(() => {
+    writer.write(new TextEncoder().encode(":\n\n"));
+  }, 25000);
+
+  request.signal.addEventListener("abort", () => {
+    clearInterval(interval);
+    clients = clients.filter(c => c !== writer);
+  });
+
+  return new Response(readable, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
     },
   });
-
-  const client = writable.getWriter();
-  clients.push(client);
-
-  request.signal.addEventListener("abort", () => {
-    clients = clients.filter(c => c !== client);
-  });
-
-  return res;
 }
 
-// helper function to broadcast message to all clients
 export function broadcast(message) {
   const data = `data: ${JSON.stringify(message)}\n\n`;
-  clients.forEach((client) => {
-    client.write(new TextEncoder().encode(data));
-  });
+  clients.forEach(writer => writer.write(new TextEncoder().encode(data)));
 }
