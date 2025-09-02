@@ -1,5 +1,6 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
+import { io } from "socket.io-client";
 
 export default function SocialChatDashboard() {
   const {
@@ -46,7 +47,29 @@ useEffect(() => {
     )}`
   );
 
-  
+  useEffect(() => {
+  const socket = io("https://omnichannel-communication-3d7329b35a37.herokuapp.com", {
+    transports: ["websocket"], // ensure WebSocket transport
+  });
+
+  socket.on("newMessage", (msg) => {
+    setMessages((prev) => ({
+      ...prev,
+      [msg.conversationId]: [
+        ...(prev[msg.conversationId] || []),
+        {
+          text: msg.message,
+          sender: "them",
+          createdAt: msg.createdAt,
+        },
+      ],
+    }));
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, [setMessages]);
 
   es.onmessage = (event) => {
     try {
