@@ -138,6 +138,7 @@ export default function Settings() {
 
   // Disconnect page
 // Disconnect page
+// Disconnect page
 const handleDisconnectPage = (pageId) => {
   // 1. Remove page from connected list
   setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
@@ -151,7 +152,6 @@ const handleDisconnectPage = (pageId) => {
     Object.keys(prev).forEach((key) => {
       const msgs = prev[key];
       if (Array.isArray(msgs)) {
-        // keep only messages not belonging to this page
         const filteredMsgs = msgs.filter((m) => m.pageId !== pageId);
         if (filteredMsgs.length > 0) {
           newMsgs[key] = filteredMsgs;
@@ -163,7 +163,13 @@ const handleDisconnectPage = (pageId) => {
 
   // 4. If selected page is the one being disconnected → clear it
   setSelectedPage((prev) => (prev?.id === pageId ? null : prev));
+
+  // 5. If activeConversation belongs to this page → clear it too
+  setActiveConversation((prev) =>
+    prev?.pageId === pageId ? null : prev
+  );
 };
+
 
   return (
     <div className="settings-container">
