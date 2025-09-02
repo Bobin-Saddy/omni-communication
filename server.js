@@ -1,37 +1,50 @@
-// server.js
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import facebookWebhook, { setSocket } from "./app/routes/webhook.facebook.js";
+// If you use Remix, import it here
+// import { createRequestHandler } from "@remix-run/express";
 
 const app = express();
 app.use(express.json());
 
-// Create HTTP server
 const server = createServer(app);
 
-// Initialize Socket.io with CORS
+// ✅ Socket.io init
 const io = new Server(server, {
   cors: {
     origin: [
       "https://seo-partner.myshopify.com",
-      "https://omnichannel-communication-3d7329b35a37.herokuapp.com"
+      "https://omnichannel-communication-3d7329b35a37.herokuapp.com",
     ],
     methods: ["GET", "POST"],
   },
 });
 
-// Pass io to webhook
+// ✅ Pass io into webhook
 setSocket(io);
 
-// ✅ Health check route
+// ✅ Health check
 app.get("/", (req, res) => {
-  res.send("🚀 Omnichannel Communication Server is running");
+  res.send("🚀 Omnichannel server running");
 });
 
-// ✅ Facebook webhook route
+// ✅ Webhook
 app.use("/webhook/facebook", facebookWebhook);
 
-// Start server
+// ✅ Mount Remix last, but exclude `/socket.io/*`
+// app.all(
+//   "*",
+//   (req, res, next) => {
+//     if (req.path.startsWith("/socket.io")) return next(); // let socket.io handle
+//     return createRequestHandler({
+//       build: require("./build"), // adjust path if needed
+//       mode: process.env.NODE_ENV,
+//     })(req, res, next);
+//   }
+// );
+
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
+server.listen(PORT, () =>
+  console.log(`✅ Server + Socket.io running on port ${PORT}`)
+);
