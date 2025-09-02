@@ -1,13 +1,16 @@
+// server.js
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import facebookWebhook, { setSocket } from "./app/routes/webhook.facebook";
+import facebookWebhook, { setSocket } from "./app/routes/webhook.facebook.js";
 
 const app = express();
 app.use(express.json());
 
+// Create HTTP server
 const server = createServer(app);
 
+// Initialize Socket.io with CORS
 const io = new Server(server, {
   cors: {
     origin: [
@@ -18,8 +21,17 @@ const io = new Server(server, {
   },
 });
 
+// Pass io to webhook
 setSocket(io);
-app.use("/app/routes/webhook.facebook", facebookWebhook);
 
+// ✅ Health check route
+app.get("/", (req, res) => {
+  res.send("🚀 Omnichannel Communication Server is running");
+});
+
+// ✅ Facebook webhook route
+app.use("/webhook/facebook", facebookWebhook);
+
+// Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`✅ Server running on ${PORT}`));
+server.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
