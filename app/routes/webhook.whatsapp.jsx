@@ -1,6 +1,6 @@
 // routes/webhook.whatsapp.jsx
 import { PrismaClient } from "@prisma/client";
-import { broadcast } from "./whatsapp.subscribe"; // adjust path if needed
+import { broadcast } from "./whatsapp.subscribe"; // 👈 SSE/WS clients ko notify karne ke liye
 
 const prisma = new PrismaClient();
 const VERIFY_TOKEN = "12345";
@@ -45,38 +45,43 @@ export async function action({ request }) {
         return new Response("EVENT_RECEIVED", { status: 200 });
       }
 
-      // 🔹 Save INCOMING user message
-// 🔹 Save INCOMING user message
-await prisma.customerWhatsAppMessage.create({
-  data: {
-    from,
-    to: BUSINESS_NUMBER,
-    message: text,
-    direction: "incoming",
-    timestamp: new Date(),
-    platformMessageId: msg.id,
-  },
-});
+      // 🔹 Save INCOMING user message in DB
+      await prisma.customerWhatsAppMessage.create({
+        data: {
+          from,
+          to: BUSINESS_NUMBER,
+          message: text,
+          direction: "incoming",
+          timestamp: new Date(),
+          platformMessageId: msg.id,
+        },
+      });
 
-// 🔹 Broadcast to live clients
-broadcast({ from, text, name });
-
+      // 🔹 Broadcast real-time update to UI via SSE/WS
+      const incoming = {
+        number: from,
+        text,           // ✅ UI ke liye ek consistent field
+        sender: "them",
+        name,
+        createdAt: new Date().toISOString(),
+      };
+      broadcast(incoming); // 👈 yahi se UI turant update hoga
 
       // 🔹 Update or create chat session
       await prisma.chatSession.upsert({
         where: { phone: from },
         update: {
-          messages: { create: { content: text, sender: "them" } }, // 🔑 normalize sender
+          messages: { create: { content: text, sender: "them" } },
         },
         create: {
           userId: from,
           userName: name,
           phone: from,
-          messages: { create: { content: text, sender: "them" } }, // keep sender consistent
+          messages: { create: { content: text, sender: "them" } },
         },
       });
 
-      console.log("📥 Stored incoming WhatsApp message from", from, text);
+      console.log("📥 Stored + broadcast incoming WhatsApp message:", incoming);
     }
 
     return new Response("EVENT_RECEIVED", { status: 200 });
