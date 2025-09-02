@@ -65,17 +65,23 @@ useEffect(() => {
 
   return () => es.close();
 }, [activeConversation]);
+
+
 useEffect(() => {
   const evtSource = new EventSource("/whatsapp/subscribe");
 
   evtSource.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    // Update your messages state
-    setMessages(prev => [...prev, msg]);
+
+    setMessages(prev => ({
+      ...prev,
+      [msg.number]: [...(prev[msg.number] || []), msg], // group by number
+    }));
   };
 
   return () => evtSource.close();
 }, []);
+
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
