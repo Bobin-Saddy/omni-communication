@@ -137,23 +137,33 @@ export default function Settings() {
   };
 
   // Disconnect page
-  const handleDisconnectPage = (pageId) => {
-    setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
-    setConversations((prev) => prev.filter((c) => c.pageId !== pageId));
-    setMessages((prev) => {
-      const newMsgs = {};
-      Object.keys(prev).forEach((key) => {
-        const msgs = prev[key];
-        if (Array.isArray(msgs) && msgs.length > 0) {
-          const firstConv = msgs[0];
-          if (firstConv.pageId !== pageId) {
-            newMsgs[key] = msgs;
-          }
+// Disconnect page
+const handleDisconnectPage = (pageId) => {
+  // 1. Remove page from connected list
+  setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
+
+  // 2. Remove all conversations linked to this page
+  setConversations((prev) => prev.filter((c) => c.pageId !== pageId));
+
+  // 3. Remove all messages linked to this page
+  setMessages((prev) => {
+    const newMsgs = {};
+    Object.keys(prev).forEach((key) => {
+      const msgs = prev[key];
+      if (Array.isArray(msgs)) {
+        // keep only messages not belonging to this page
+        const filteredMsgs = msgs.filter((m) => m.pageId !== pageId);
+        if (filteredMsgs.length > 0) {
+          newMsgs[key] = filteredMsgs;
         }
-      });
-      return newMsgs;
+      }
     });
-  };
+    return newMsgs;
+  });
+
+  // 4. If selected page is the one being disconnected → clear it
+  setSelectedPage((prev) => (prev?.id === pageId ? null : prev));
+};
 
   return (
     <div className="settings-container">
