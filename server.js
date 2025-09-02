@@ -1,7 +1,7 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import facebookWebhook, { setSocket } from "./webhook.facebook.js";
+import facebookWebhook, { setSocket } from "./app/routes/webhook.facebook";
 
 const app = express();
 app.use(express.json());
@@ -19,7 +19,7 @@ const io = new Server(server, {
 });
 
 setSocket(io);
-app.use("/webhook/facebook", facebookWebhook);
+app.use("/app/routes/webhook.facebook", facebookWebhook);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`✅ Server running on ${PORT}`));
