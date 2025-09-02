@@ -1,5 +1,6 @@
 // routes/webhook.whatsapp.jsx
 import { PrismaClient } from "@prisma/client";
+import { broadcast } from "./whatsapp.subscribe"; // adjust path if needed
 
 const prisma = new PrismaClient();
 const VERIFY_TOKEN = "12345";
@@ -45,16 +46,21 @@ export async function action({ request }) {
       }
 
       // 🔹 Save INCOMING user message
-      await prisma.customerWhatsAppMessage.create({
-        data: {
-          from,
-          to: BUSINESS_NUMBER,
-          message: text,
-          direction: "incoming",
-          timestamp: new Date(),
-          platformMessageId: msg.id,
-        },
-      });
+// 🔹 Save INCOMING user message
+await prisma.customerWhatsAppMessage.create({
+  data: {
+    from,
+    to: BUSINESS_NUMBER,
+    message: text,
+    direction: "incoming",
+    timestamp: new Date(),
+    platformMessageId: msg.id,
+  },
+});
+
+// 🔹 Broadcast to live clients
+broadcast({ from, text, name });
+
 
       // 🔹 Update or create chat session
       await prisma.chatSession.upsert({

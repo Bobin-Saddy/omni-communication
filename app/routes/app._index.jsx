@@ -18,7 +18,7 @@ export default function SocialChatDashboard() {
   const fileInputRef = useRef(null);
 
   const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPbY18aOcLcK0HN7427NKEUNnxmjChZCMnA64Y1drLZA5w4PbqCRZB0xSGz34Mq8ky8PaXgPbEVfzuoBUin8mcIj5rZBLobzflVpgcZC5ZCdgafMpnDEluSGG55IgYlaavLQfPrx1aWdudofMoPVnSM653ZCGLZATYbIfG9HokZAmMV7KYLboMl2XmeNlbBHxN89oOhhWNh4JuM9d6V0v73msxkyavgnQLGZClI8ucZD";
+    "EAAHvZAZB8ZCmugBPWo4Uu1OrTOQZBZARMsQZBZAYlZBVaAJy0BuwG9K8tVMYvxRcLhmJpwiXuZAigPAhnX4UHjbR8rrpfMv54FvY2NLkiacsQf0ZA3ZCxR9Hjf2rv5NSuoWlWKoSD0J0qFcerkLyLRmUNfaiHToV3VKC4ZAqmwcR157tazy1teCG5PbL9jqIxHZAA7UUbLmNNz9he5rQyWLEudjfRYswCSxDwzq6ZAx2QdZBCuIPVAZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   /** ----------------- LOAD CONVERSATIONS ----------------- **/
@@ -65,6 +65,17 @@ useEffect(() => {
 
   return () => es.close();
 }, [activeConversation]);
+useEffect(() => {
+  const evtSource = new EventSource("/whatsapp/subscribe");
+
+  evtSource.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    // Update your messages state
+    setMessages(prev => [...prev, msg]);
+  };
+
+  return () => evtSource.close();
+}, []);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
