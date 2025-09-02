@@ -103,31 +103,59 @@ evtSource.onmessage = (event) => {
 }, []);
 
 useEffect(() => {
-  const ws = new WebSocket("ws://localhost:8080");
+  if (!activeConversation) return;
 
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    if (msg.type === "fb_message") {
-      const m = msg.data;
+  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+  if (!page) return;
 
-      setMessages((prev) => ({
-        ...prev,
-        [m.recipient.id]: [
-          ...(prev[m.recipient.id] || []),
-          {
-            id: m.message.mid,
-            sender: m.sender.id === page.id ? "me" : "them",
-            text: m.message.text,
-            createdAt: new Date(m.timestamp).toISOString(),
-          },
-        ],
-      }));
+  let interval;
+
+  const fetchLatestMessages = async () => {
+    try {
+      if (page.type === "instagram" || page.type === "facebook") {
+        const res = await fetch(
+          `https://graph.facebook.com/v18.0/${activeConversation.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.data)) {
+            const formatted = data.data
+              .map((msg) => ({
+                id: msg.id,
+                sender:
+                  page.type === "instagram"
+                    ? msg.from?.id === page.igId
+                      ? "me"
+                      : "them"
+                    : msg.from?.id === page.id
+                    ? "me"
+                    : "them",
+                text: msg.message,
+                createdAt: msg.created_time,
+              }))
+              .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+            setMessages((prev) => ({
+              ...prev,
+              [activeConversation.id]: formatted,
+            }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Polling error:", err);
     }
   };
 
-  return () => ws.close();
-}, []);
+  // Fetch first time immediately
+  fetchLatestMessages();
 
+  // Then keep polling every 5s
+  interval = setInterval(fetchLatestMessages, 2000);
+
+  return () => clearInterval(interval);
+}, [activeConversation, connectedPages]);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
