@@ -21,6 +21,14 @@ export default function SocialChatDashboard() {
     "EAAHvZAZB8ZCmugBPWo4Uu1OrTOQZBZARMsQZBZAYlZBVaAJy0BuwG9K8tVMYvxRcLhmJpwiXuZAigPAhnX4UHjbR8rrpfMv54FvY2NLkiacsQf0ZA3ZCxR9Hjf2rv5NSuoWlWKoSD0J0qFcerkLyLRmUNfaiHToV3VKC4ZAqmwcR157tazy1teCG5PbL9jqIxHZAA7UUbLmNNz9he5rQyWLEudjfRYswCSxDwzq6ZAx2QdZBCuIPVAZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
+  const bottomRef = useRef(null);
+
+useEffect(() => {
+  if (bottomRef.current) {
+    bottomRef.current.scrollIntoView({ behavior: "smooth" });
+  }
+}, [messages, activeConversation]);
+
   /** ----------------- LOAD CONVERSATIONS ----------------- **/
   useEffect(() => {
     if (!connectedPages.length) return;
@@ -70,14 +78,23 @@ useEffect(() => {
 useEffect(() => {
   const evtSource = new EventSource("/whatsapp/subscribe");
 
-  evtSource.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
+evtSource.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
 
+  setMessages(prev => ({
+    ...prev,
+    [msg.number]: [...(prev[msg.number] || []), msg],
+  }));
+
+  // 👉 Agar active chat wahi number ka hai, to UI turant scroll/update ho jaye
+  if (activeConversation && activeConversation.id === msg.number) {
     setMessages(prev => ({
       ...prev,
-      [msg.number]: [...(prev[msg.number] || []), msg], // group by number
+      [activeConversation.id]: [...(prev[activeConversation.id] || []), msg],
     }));
-  };
+  }
+};
+
 
   return () => evtSource.close();
 }, []);
@@ -821,6 +838,7 @@ const formatTime = (time) => {
           ) : (
             <p style={{ color: "#777", fontStyle: "italic" }}>No messages yet.</p>
           )}
+            <div ref={bottomRef} />
         </div>
 
         {activeConversation && (
