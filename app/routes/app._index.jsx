@@ -31,11 +31,14 @@ useEffect(() => {
 }, [messages, activeConversation]);
 
   /** ----------------- LOAD CONVERSATIONS ----------------- **/
-  useEffect(() => {
-    if (!connectedPages.length) return;
-    connectedPages.forEach((page) => fetchConversations(page));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connectedPages]);
+useEffect(() => {
+  if (!connectedPages.length) {
+    setConversations([]); // ✅ reset when no pages connected
+    return;
+  }
+  connectedPages.forEach((page) => fetchConversations(page));
+}, [connectedPages]);
+
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
 useEffect(() => {
@@ -723,41 +726,51 @@ const formatTime = (time) => {
         }}
       >
         <h3 style={{ margin: "0 0 15px 0", color: "#333" }}>💬 Conversations</h3>
-        {!conversations.length ? (
-          <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
-        ) : (
-          conversations.map((conv) => (
-            <div
-              key={conv.id}
-              style={{
-                padding: "10px 12px",
-                cursor: "pointer",
-                borderRadius: "8px",
-                marginBottom: 8,
-                transition: "0.2s",
-                background:
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
-                fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
-                color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
-              }}
-              onClick={() => handleSelectConversation(conv)}
-              onMouseOver={(e) => (e.currentTarget.style.background = "#f1f5f9")}
-              onMouseOut={(e) =>
-                (e.currentTarget.style.background =
-                  activeConversation?.id === conv.id ? "#e6f0ff" : "transparent")
-              }
-            >
-{conv.participants?.data
-  ?.filter(p => p.name !== WHATSAPP_PHONE_NUMBER_ID && p.username !== WHATSAPP_PHONE_NUMBER_ID)
-  .map((p) => p.name || p.username)
-  .join(", ")}
+  {conversations.filter(c =>
+  connectedPages.some(p => p.id === c.pageId)
+).length === 0 ? (
+  <p style={{ color: "#777", fontStyle: "italic" }}>No conversations</p>
+) : (
+  conversations
+    .filter(c => connectedPages.some(p => p.id === c.pageId))
+    .map((conv) => (
+      <div
+        key={conv.id}
+        style={{
+          padding: "10px 12px",
+          cursor: "pointer",
+          borderRadius: "8px",
+          marginBottom: 8,
+          transition: "0.2s",
+          background:
+            activeConversation?.id === conv.id ? "#e6f0ff" : "transparent",
+          fontWeight: activeConversation?.id === conv.id ? "bold" : "normal",
+          color: activeConversation?.id === conv.id ? "#1a73e8" : "#333",
+        }}
+        onClick={() => handleSelectConversation(conv)}
+        onMouseEnter={(e) => {
+          if (activeConversation?.id !== conv.id) {
+            e.currentTarget.style.background = "#f1f5f9";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (activeConversation?.id !== conv.id) {
+            e.currentTarget.style.background = "transparent";
+          }
+        }}
+      >
+        {conv.participants?.data
+          ?.filter(
+            (p) =>
+              p.name !== WHATSAPP_PHONE_NUMBER_ID &&
+              p.username !== WHATSAPP_PHONE_NUMBER_ID
+          )
+          .map((p) => p.name || p.username)
+          .join(", ") || "Unknown user"}
+      </div>
+    ))
+)}
 
-
-
-
-            </div>
-          ))
-        )}
       </div>
 
       {/* Chat Box */}

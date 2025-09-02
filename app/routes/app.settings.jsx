@@ -64,20 +64,19 @@ const {
       const res = await fetch(
         `https://graph.facebook.com/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${token}`
       );
-const igAccounts = data.data
-  .filter((page) => page.instagram_business_account)
-  .map((page) => {
-    const igUniqueId = `ig_${page.instagram_business_account.id}`;
-    return {
-      id: igUniqueId,
-      pageId: igUniqueId,   // ✅ same id jaisa connectedPages me hai
-      igId: page.instagram_business_account.id,
-      name: page.name,
-      type: "instagram",
-      access_token: page.access_token,
-    };
-  });
+      const data = await res.json();
+      if (!Array.isArray(data.data)) return;
 
+      const igAccounts = data.data
+        .filter((page) => page.instagram_business_account)
+        .map((page) => ({
+          id: `ig_${page.instagram_business_account.id}`,
+          pageId: page.id,
+          igId: page.instagram_business_account.id,
+          name: page.name,
+          type: "instagram",
+          access_token: page.access_token,
+        }));
 
       setIgPages(igAccounts);
     } catch (err) {
@@ -139,14 +138,9 @@ const igAccounts = data.data
     }
   };
 
- const handleDisconnectPage = (pageId) => {
-  // 1. Remove page from connected list
+const handleDisconnectPage = (pageId) => {
   setConnectedPages((prev) => prev.filter((p) => p.id !== pageId));
-
-  // 2. Remove conversations linked to this page
   setConversations((prev) => prev.filter((c) => c.pageId !== pageId));
-
-  // 3. Remove messages linked to this page
   setMessages((prev) => {
     const newMsgs = {};
     Object.keys(prev).forEach((key) => {
@@ -161,14 +155,16 @@ const igAccounts = data.data
     return newMsgs;
   });
 
-  // 4. Clear selected page if it's disconnected
-  setSelectedPage((prev) => (prev?.id === pageId ? null : prev));
+  // ✅ Remove from localStorage if you are persisting there
+  localStorage.removeItem(`conversations_${pageId}`);
+  localStorage.removeItem(`messages_${pageId}`);
 
-  // 5. Clear activeConversation if it belongs to this page
+  setSelectedPage((prev) => (prev?.id === pageId ? null : prev));
   setActiveConversation((prev) =>
     prev?.pageId === pageId ? null : prev
   );
 };
+
 
 
 
