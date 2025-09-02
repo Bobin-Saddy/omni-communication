@@ -152,7 +152,7 @@ useEffect(() => {
   fetchLatestMessages();
 
   // Then keep polling every 5s
-  interval = setInterval(fetchLatestMessages, 5000);
+  interval = setInterval(fetchLatestMessages, 1000);
 
   return () => clearInterval(interval);
 }, [activeConversation, connectedPages]);
