@@ -301,10 +301,11 @@ useEffect(() => {
 
 
 // Chat Widget (fetch sessions)
+// Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
   const shopDomain =
-    normalizeShopDomain(page.storeDomain) ||
-    getShopDomain(); // ✅ force extraction from URL, never fallback to page.name
+    normalizeShopDomain(page.storeDomain) || getShopDomain(); // ✅ no page.name
+
 
   console.log("✅ USING SHOP DOMAIN =>", shopDomain);
 
