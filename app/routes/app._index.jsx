@@ -240,12 +240,34 @@ useEffect(() => {
         }
         return;
       }
+function getShopDomain() {
+  let shopDomain = null;
+
+  try {
+    const host = window.location.host; // e.g. "checkd-lorem.myshopify.com" OR "admin.shopify.com"
+
+    if (host.includes("myshopify.com")) {
+      shopDomain = host.split(".myshopify.com")[0]; // storefront → "checkd-lorem"
+    } else if (host.includes("admin.shopify.com")) {
+      const parts = window.location.pathname.split("/");
+      const storeIndex = parts.indexOf("store");
+      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
+        shopDomain = parts[storeIndex + 1]; // admin → "checkd-lorem"
+      }
+    }
+  } catch (err) {
+    console.error("Error extracting shop domain:", err);
+  }
+
+  return shopDomain;
+}
 
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const res = await fetch(
-      `/api/chat?storeDomain=${encodeURIComponent(page.storeDomain)}`
+  const shopDomain = getShopDomain();
 
+  const res = await fetch(
+    `/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
   );
 
   const data = await res.json();
