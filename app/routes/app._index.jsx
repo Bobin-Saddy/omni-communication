@@ -3,6 +3,16 @@ import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
 
 export default function SocialChatDashboard() {
+  function normalizeShopDomain(domain) {
+  if (!domain) return null;
+  let d = domain.trim().toLowerCase();
+  if (!d.endsWith(".myshopify.com")) {
+    d = d.replace(/\/+$/, ""); // remove trailing slashes
+    d = `${d}.myshopify.com`;
+  }
+  return d;
+}
+
   const {
     connectedPages,
     conversations,
