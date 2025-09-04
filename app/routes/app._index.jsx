@@ -23,31 +23,6 @@ export default function SocialChatDashboard() {
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   const bottomRef = useRef(null);
-app.get("/api/chat", async (req, res) => {
-  const { storeDomain, sessionId, widget } = req.query;
-
-  try {
-    if (widget === "true") {
-      // Return all active chatwidget sessions
-      const sessions = await db.ChatSessions.findAll(); // replace with your DB query
-      return res.json({ sessions });
-    }
-
-    if (storeDomain && sessionId) {
-      // Return messages for a specific session
-      const messages = await db.ChatMessages.findAll({
-        where: { storeDomain, sessionId },
-        order: [["createdAt", "ASC"]],
-      });
-      return res.json({ messages });
-    }
-
-    return res.status(400).json({ error: "Missing required parameters" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
 
 useEffect(() => {
   if (bottomRef.current) {
@@ -71,9 +46,10 @@ useEffect(() => {
   if (!activeConversation || activeConversation.pageType !== "chatwidget") return;
 
   const { id: sessionId, storeDomain } = activeConversation;
-  const es = new EventSource(
-    `/api/chat/stream?sessionId=${sessionId}&storeDomain=${encodeURIComponent(storeDomain || "")}`
-  );
+const es = new EventSource(
+  `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain || "")}`
+);
+
 
   // Handle incoming messages
   es.onmessage = (event) => {
@@ -117,8 +93,7 @@ useEffect(() => {
   const evtSource = new EventSource("/whatsapp/subscribe");
 
 evtSource.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-
+    const msg = JSON.parse(event.data);
   setMessages(prev => ({
     ...prev,
     [msg.number]: [...(prev[msg.number] || []), msg],
@@ -865,7 +840,7 @@ const formatTime = (time) => {
                 msg.from === "me" ||
                 msg._tempId; // optimistic sent messages
 
-              const text = msg.text || msg.message || msg.body || (msg.from && msg.from.text);
+              const text = msg.text ?? msg.message ?? msg.body ?? msg.from?.text ?? "";
 
               return (
                 <div
