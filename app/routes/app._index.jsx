@@ -1,6 +1,43 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
+function getShopDomain() {
+  let shopDomain = null;
+
+  try {
+    // ✅ Highest priority: query param from Shopify app bridge
+    const urlParams = new URLSearchParams(window.location.search);
+    const shopParam = urlParams.get("shop"); // e.g. "checkd-lorem.myshopify.com"
+    if (shopParam) {
+      shopDomain = shopParam.split(".myshopify.com")[0]; 
+      console.log("📦 Extracted shop param:", shopDomain);
+      return shopDomain;
+    }
+
+    // ✅ Storefront case
+    const host = window.location.host;
+    if (host.includes("myshopify.com")) {
+      shopDomain = host.split(".myshopify.com")[0];
+      return shopDomain;
+    }
+
+    // ✅ Admin case (embedded app)
+    if (host.includes("admin.shopify.com")) {
+      const parts = window.location.pathname.split("/");
+      const storeIndex = parts.indexOf("store");
+      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
+        shopDomain = parts[storeIndex + 1];
+        return shopDomain;
+      }
+    }
+  } catch (err) {
+    console.error("Error extracting shop domain:", err);
+  }
+
+  console.log("❌ No shop domain detected");
+  return null;
+}
+
 
 export default function SocialChatDashboard() {
   const {
@@ -257,35 +294,6 @@ useEffect(() => {
         }
         return;
       }
-function getShopDomain() {
-  let shopDomain = null;
-
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get("shop"); // e.g. "checkd-lorem.myshopify.com"
-    if (shopParam) {
-      shopDomain = shopParam.split(".myshopify.com")[0]; // → "checkd-lorem"
-      console.log("📦 Extracted from shop param:", shopDomain);
-      return shopDomain;
-    }
-
-    const host = window.location.host;
-    if (host.includes("myshopify.com")) {
-      shopDomain = host.split(".myshopify.com")[0];
-    } else if (host.includes("admin.shopify.com")) {
-      const parts = window.location.pathname.split("/");
-      const storeIndex = parts.indexOf("store");
-      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        shopDomain = parts[storeIndex + 1];
-      }
-    }
-  } catch (err) {
-    console.error("Error extracting shop domain:", err);
-  }
-
-  console.log("FINAL SHOP DOMAIN =>", shopDomain);
-  return shopDomain;
-}
 
 
 
