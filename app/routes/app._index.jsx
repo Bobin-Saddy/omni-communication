@@ -246,8 +246,9 @@ useEffect(() => {
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
 const res = await fetch(
-  `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
+  `/api/chat?storeDomain=${encodeURIComponent(conv.storeDomain)}&sessionId=${encodeURIComponent(conv.sessionId)}`
 );
+
 
   const data = await res.json();
 
@@ -279,6 +280,7 @@ const msgRes = await fetch(
 );
 
 
+
   if (msgRes.ok) {
     const msgData = await msgRes.json();
     setMessages((prev) => ({
@@ -308,9 +310,10 @@ const handleSelectConversation = async (conv) => {
   try {
     // ---------- ChatWidget ----------
     if (page.type === "chatwidget") {
-  const res = await fetch(
+const res = await fetch(
   `/api/chat?storeDomain=${encodeURIComponent(conv.storeDomain)}&sessionId=${encodeURIComponent(conv.sessionId)}`
 );
+
 
       if (res.ok) {
         const data = await res.json();
