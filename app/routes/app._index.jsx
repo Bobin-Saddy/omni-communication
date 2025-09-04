@@ -19,13 +19,17 @@ export default function SocialChatDashboard() {
   const [shopDomain, setShopDomain] = useState("");
 
 useEffect(() => {
-  const domain = getShopDomainFromUrl();
+  const domain = window.Shopify?.shop || getShopDomainFromUrl();
   if (domain) setShopDomain(domain);
 }, []);
 
+
 useEffect(() => {
-   console.log("shopDomain---", shopDomain);
+  if (!shopDomain) return;
+  console.log("Shop domain ready:", shopDomain);
+  // fetch chatwidget data, messages, etc.
 }, [shopDomain]);
+
 
 function getShopDomainFromUrl() {
   try {
