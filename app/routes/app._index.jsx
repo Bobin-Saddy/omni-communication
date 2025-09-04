@@ -1,5 +1,6 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
+import createApp from '@shopify/app-bridge';
 import { io } from "socket.io-client";
 
 export default function SocialChatDashboard() {
@@ -14,9 +15,15 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const [uploading, setUploading] = useState(false);
-  useEffect(() => {
-    console.log("window.location.href", window.location.href);
-  }, [])
+const app = createApp({
+  apiKey: process.env.SHOPIFY_API_KEY,
+  shopOrigin: window.location.hostname,
+  forceRedirect: true,
+});
+
+// Get shop domain
+const shop = app.config.shopOrigin;
+console.log("Shop domain:", shop);
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
