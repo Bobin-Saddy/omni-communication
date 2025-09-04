@@ -16,9 +16,9 @@ export default function SocialChatDashboard() {
   const [uploading, setUploading] = useState(false);
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
-    const { shopDomain } = useContext(AppContext);
+  const { shopDomain } = useContext(AppContext);
 
-  console.log("Shop domain:", shopDomain); // ✅ always available
+  console.log("Shop domain:", shopDomain); // always available
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPd0HoVJtMtBTY8V8kobwsZCz8OCxcZBk97aaMQf2kq2mhJ3BOsmGKbKlApwvPRy6ZBJZAmgZA5MDa16bVfZB8HzzVxygoIoDGMBeIOxyZCYiI9XJ8HtK26HtA9piZCc1e2pSGskDgSck8bn00gakg7JVwTJMqAZCDyHacsJ7ZANESRvENa33bPs7Ip8nTp3QpxtsRzn8uI17qCHuZAQSCHUIABkYgLwYX8uCwZDZD";
