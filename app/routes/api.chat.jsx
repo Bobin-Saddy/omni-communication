@@ -23,11 +23,18 @@ export async function loader({ request }) {
     return new Response(null, { headers: corsHeaders });
 
   const url = new URL(request.url);
+  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
+  const sessionId = url.searchParams.get("session_id") || url.searchParams.get("sessionId");
+  const widget = url.searchParams.get("widget") === "true";
+  const stream = url.searchParams.get("stream") === "true";
 
   // ----------------- Widget sessions -----------------
-  if (url.searchParams.get("widget") === "true") {
+  if (widget) {
+    const whereClause = storeDomain ? { storeDomain } : {};
+
     const sessions = await prisma.storeChatMessage.findMany({
-      distinct: ["sessionId", "storeDomain"],
+      where: whereClause,
+      distinct: ["sessionId"],
       orderBy: { createdAt: "desc" },
       select: { sessionId: true, storeDomain: true },
     });
@@ -50,17 +57,65 @@ export async function loader({ request }) {
     return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
   }
 
-  // ----------------- Fetch messages for a session -----------------
-  const storeDomain =
-    url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
-  const sessionId =
-    url.searchParams.get("session_id") || url.searchParams.get("sessionId");
+  // ----------------- SSE stream -----------------
+  if (stream) {
+    if (!storeDomain || !sessionId) {
+      return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
+    }
 
+    const stream = new ReadableStream({
+      async start(controller) {
+        let lastTimestamp = new Date(0);
+
+        const interval = setInterval(async () => {
+          try {
+            const messages = await prisma.storeChatMessage.findMany({
+              where: { sessionId, storeDomain, createdAt: { gt: lastTimestamp } },
+              orderBy: { createdAt: "asc" },
+            });
+
+            messages.forEach((msg) => {
+              controller.enqueue(
+                `data: ${JSON.stringify({
+                  id: msg.id,
+                  text: msg.text,
+                  sender: msg.sender,
+                  name: msg.name,
+                  fileUrl: msg.fileUrl,
+                  fileName: msg.fileName,
+                  createdAt: msg.createdAt,
+                  sessionId: msg.sessionId,
+                  storeDomain: msg.storeDomain,
+                })}\n\n`
+              );
+              lastTimestamp = msg.createdAt;
+            });
+          } catch (err) {
+            console.error("Error fetching chat messages:", err);
+          }
+        }, 2000);
+
+        return {
+          cancel() {
+            clearInterval(interval);
+          },
+        };
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        ...corsHeaders,
+      },
+    });
+  }
+
+  // ----------------- Fetch messages for a session -----------------
   if (!storeDomain || !sessionId) {
-    return json(
-      { ok: false, error: "Missing params" },
-      { status: 400, headers: corsHeaders }
-    );
+    return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
   }
 
   const messages = await prisma.storeChatMessage.findMany({
@@ -77,12 +132,10 @@ export async function action({ request }) {
   if (request.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
-  let sessionId, storeDomain, sender, message, name = null, fileUrl = null, fileName = null;
+  let sessionId, storeDomain, sender, message = null, name = null, fileUrl = null, fileName = null;
 
-  // ----------------- File upload -----------------
   if (request.headers.get("content-type")?.includes("multipart/form-data")) {
     const formData = await request.formData();
-
     sessionId = formData.get("sessionId") || formData.get("session_id");
     storeDomain = formData.get("storeDomain") || formData.get("store_domain");
     sender = formData.get("sender") || "customer";
@@ -90,57 +143,40 @@ export async function action({ request }) {
     const file = formData.get("file");
 
     if (!sessionId || !storeDomain || !file || !name) {
-      return json(
-        { ok: false, error: "Missing fields" },
-        { status: 400, headers: corsHeaders }
-      );
+      return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
     }
 
     fileName = file.name;
-    fileUrl = `/uploads/${fileName}`; // TODO: Replace with real storage (S3/Cloudinary)
-    message = null;
-  } 
-  // ----------------- Text message -----------------
-// ----------------- Text message -----------------
-else {
-  const body = await request.json();
-  sessionId = body.sessionId || body.session_id;
-  storeDomain = body.storeDomain || body.store_domain;
-  message = body.message || null;
-  sender = body.sender || "me";
-  name = body.name || `User-${sessionId}`; // <-- default if missing
+    fileUrl = `/uploads/${fileName}`; // TODO: Replace with real storage
+  } else {
+    const body = await request.json();
+    sessionId = body.sessionId || body.session_id;
+    storeDomain = body.storeDomain || body.store_domain;
+    message = body.message || null;
+    sender = body.sender || "me";
+    name = body.name || `User-${sessionId}`;
 
-  if (!storeDomain || (!message && !body.fileUrl)) {
-    return json(
-      { ok: false, error: "Missing fields" },
-      { status: 400, headers: corsHeaders }
-    );
+    if (!storeDomain || (!message && !body.fileUrl)) {
+      return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
+    }
+
+    if (body.fileUrl) {
+      fileUrl = body.fileUrl;
+      fileName = body.fileName || "file";
+    }
   }
 
-  if (body.fileUrl) {
-    fileUrl = body.fileUrl;
-    fileName = body.fileName || "file";
-  }
-}
-
-
-  // Normalize sender
   sender = sender === "customer" ? "customer" : "me";
 
-  // ----------------- Ensure session exists -----------------
   await prisma.storeChatSession.upsert({
-    where: { sessionId },
+    where: { storeDomain_sessionId: { storeDomain, sessionId } },
     update: {},
     create: { sessionId, storeDomain },
   });
 
-  // ----------------- Save message -----------------
   const savedMessage = await prisma.storeChatMessage.create({
     data: { sessionId, storeDomain, sender, name, text: message, fileUrl, fileName },
   });
 
-  return json(
-    { ok: true, message: { ...savedMessage, fileUrl, fileName } },
-    { headers: corsHeaders }
-  );
+  return json({ ok: true, message: savedMessage }, { headers: corsHeaders });
 }
