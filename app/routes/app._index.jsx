@@ -261,38 +261,43 @@ function getShopDomain() {
   let shopDomain = null;
 
   try {
-    const host = window.location.host; 
-    console.log("HOST =>", host); // Debug
+    const urlParams = new URLSearchParams(window.location.search);
+    const shopParam = urlParams.get("shop"); // e.g. "checkd-lorem.myshopify.com"
+    if (shopParam) {
+      shopDomain = shopParam.split(".myshopify.com")[0]; // → "checkd-lorem"
+      console.log("📦 Extracted from shop param:", shopDomain);
+      return shopDomain;
+    }
 
+    const host = window.location.host;
     if (host.includes("myshopify.com")) {
-      shopDomain = host.split(".myshopify.com")[0]; 
+      shopDomain = host.split(".myshopify.com")[0];
     } else if (host.includes("admin.shopify.com")) {
       const parts = window.location.pathname.split("/");
-      console.log("PATH PARTS =>", parts); // Debug
-
       const storeIndex = parts.indexOf("store");
       if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        shopDomain = parts[storeIndex + 1]; 
+        shopDomain = parts[storeIndex + 1];
       }
     }
   } catch (err) {
     console.error("Error extracting shop domain:", err);
   }
 
-  console.log("FINAL SHOP DOMAIN =>", shopDomain); // Debug
+  console.log("FINAL SHOP DOMAIN =>", shopDomain);
   return shopDomain;
 }
+
 
 
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
   // Try get domain from page first
-  const shopDomain = normalizeShopDomain(page.storeDomain) 
-                  || normalizeShopDomain(page.name) 
-                  || getShopDomain();
+ const shopDomain =
+    normalizeShopDomain(page.storeDomain) ||
+    normalizeShopDomain(page.name) ||
+    getShopDomain();
 
   console.log("✅ USING SHOP DOMAIN =>", shopDomain);
-  console.log("domain--->", normalizeShopDomain);
 
   if (!shopDomain) {
     console.error("❌ No shop domain detected for chatwidget");
@@ -300,7 +305,7 @@ if (page.type === "chatwidget") {
   }
 
   const res = await fetch(
-    `https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
+    `/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
   );
 
   const data = await res.json();
