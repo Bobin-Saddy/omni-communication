@@ -140,11 +140,17 @@ else {
   sender = sender === "customer" ? "customer" : "me";
 
   // ----------------- Ensure session exists -----------------
-  await prisma.storeChatSession.upsert({
-    where: { sessionId },
-    update: {},
-    create: { sessionId, storeDomain },
-  });
+// ----------------- Ensure session exists -----------------
+await prisma.storeChatSession.upsert({
+  where: {
+    storeDomain_sessionId: {
+      storeDomain,
+      sessionId,
+    },
+  },
+  update: {}, // nothing to update
+  create: { sessionId, storeDomain },
+});
 
   // ----------------- Save message -----------------
   const savedMessage = await prisma.storeChatMessage.create({
