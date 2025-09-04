@@ -43,36 +43,34 @@ useEffect(() => {
 useEffect(() => {
   if (!activeConversation || activeConversation.pageType !== "chatwidget") return;
 
-  const { id: sessionId, storeDomain } = activeConversation;
-
-  // include storeDomain in query
   const es = new EventSource(
-    `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain)}`
+    `/api/chat/stream?storeDomain=${encodeURIComponent(activeConversation.storeDomain)}`
   );
 
   es.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
-    // **strict filtering**
+    // Filter by storeDomain AND sessionId
     if (
-      data.sessionId !== activeConversation.id ||
-      data.storeDomain !== activeConversation.storeDomain
-    ) return;
+      data.storeDomain !== activeConversation.storeDomain ||
+      !data.sessionId
+    )
+      return;
 
-    setMessages(prev => ({
+    setMessages((prev) => ({
       ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
+      [data.sessionId]: [
+        ...(prev[data.sessionId] || []),
         {
           text: data.text,
           sender: data.sender || "them",
           fileUrl: data.fileUrl || null,
           fileName: data.fileName || null,
           createdAt: data.createdAt,
-          name: data.name,
+          name: data.name || `User-${data.sessionId}`,
           failed: false,
-        }
-      ]
+        },
+      ],
     }));
   };
 
@@ -260,12 +258,12 @@ if (page.type === "chatwidget") {
     pageType: "chatwidget",
     participants: { data: [{ name: s.name }] },
     sessionId: s.sessionId,
-    storeDomain: s.storeDomain, // ✅ always keep storeDomain
+    storeDomain: s.storeDomain, // ✅ must keep
     name: s.name,
   }));
 
-  setConversations(prev => [
-    ...prev.filter(c => c.pageId !== page.id),
+  setConversations((prev) => [
+    ...prev.filter((c) => c.pageId !== page.id),
     ...convs,
   ]);
 
