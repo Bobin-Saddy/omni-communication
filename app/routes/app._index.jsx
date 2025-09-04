@@ -46,17 +46,16 @@ useEffect(() => {
   if (!activeConversation || activeConversation.pageType !== "chatwidget") return;
 
   const { id: sessionId, storeDomain } = activeConversation;
-const es = new EventSource(
-  `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain || "")}`
-);
+  const es = new EventSource(
+    `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain)}`
+  );
 
-
-  // Handle incoming messages
   es.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
 
-      if (!data) return;
+      // Only add messages for the current session
+      if (!data || data.sessionId !== sessionId) return;
 
       setMessages((prev) => ({
         ...prev,
@@ -73,20 +72,17 @@ const es = new EventSource(
         ],
       }));
     } catch (err) {
-      console.warn("SSE parse error for chatwidget:", err);
+      console.warn("SSE parse error:", err);
     }
   };
 
-  // Handle SSE errors
   es.onerror = (err) => {
-    console.warn("SSE connection error for chatwidget:", err);
+    console.warn("SSE error for chatwidget:", err);
     es.close();
   };
 
-  // Cleanup
   return () => es.close();
 }, [activeConversation]);
-
 
 
 useEffect(() => {
@@ -626,7 +622,7 @@ if (page.type === "chatwidget") {
 
       payload = {
         sessionId: activeConversation.id,
-        storeDomain: activeConversation.storeDomain || "myshop.com",
+          storeDomain: activeConversation.storeDomain, // important
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         fileUrl: uploadData.url,
@@ -635,7 +631,7 @@ if (page.type === "chatwidget") {
     } else {
       payload = {
         sessionId: activeConversation.id,
-        storeDomain: activeConversation.storeDomain || "myshop.com",
+          storeDomain: activeConversation.storeDomain, // important
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         message: text,
