@@ -314,15 +314,16 @@ const handleSelectConversation = async (conv) => {
 
       if (res.ok) {
         const data = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [conv.id]: Array.isArray(data?.messages)
-            ? data.messages.map((m) => ({
-                ...m,
-                sender: m.sender === "me" ? "me" : "them",
-              }))
-            : [],
-        }));
+    setMessages((prev) => ({
+  ...prev,
+  [conv.sessionId]: Array.isArray(data?.messages)
+    ? data.messages.map((m) => ({
+        ...m,
+        sender: m.sender === "me" ? "me" : "them",
+      }))
+    : [],
+}));
+
       }
       return;
     }
@@ -621,8 +622,10 @@ if (page.type === "chatwidget") {
       if (!uploadData.success) throw new Error("Upload failed");
 
       payload = {
-        sessionId: activeConversation.id,
-        storeDomain: activeConversation.storeDomain || "myshop.com",
+          sessionId: activeConversation.sessionId,
+
+          storeDomain: activeConversation.storeDomain,
+
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         fileUrl: uploadData.url,
@@ -630,8 +633,9 @@ if (page.type === "chatwidget") {
       };
     } else {
       payload = {
-        sessionId: activeConversation.id,
-        storeDomain: activeConversation.storeDomain || "myshop.com",
+            sessionId: activeConversation.sessionId,
+
+          storeDomain: activeConversation.storeDomain,
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         message: text,
