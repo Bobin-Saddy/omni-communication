@@ -269,7 +269,8 @@ function getShopDomain() {
 
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const shopDomain = getShopDomain();
+  // Try get domain from page first
+  const shopDomain = page.storeDomain || page.name || getShopDomain();
   console.log("USING SHOP DOMAIN =>", shopDomain);
 
   if (!shopDomain) {
@@ -277,9 +278,10 @@ if (page.type === "chatwidget") {
     return;
   }
 
-const res = await fetch(
-  `https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/chat?storeDomain=${shopDomain}`
-);
+  const res = await fetch(
+    `https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
+  );
+
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
@@ -290,7 +292,7 @@ const res = await fetch(
       pageType: "chatwidget",
       participants: { data: [{ name: s.name || "Guest User" }] },
       sessionId: s.sessionId,
-      storeDomain: shopDomain, // ✅ force resolved domain
+      storeDomain: shopDomain, // ✅ force domain from here
       name: s.name,
     }));
 
@@ -320,6 +322,7 @@ const res = await fetch(
   }
   return;
 }
+
 
 
     } catch (err) {
