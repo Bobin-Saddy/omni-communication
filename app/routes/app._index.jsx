@@ -1,31 +1,7 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
-function getShopDomain(page) {
-  try {
-    const host = window.location.host; // "checkd-lorem.myshopify.com" OR "admin.shopify.com"
 
-    if (host.includes("myshopify.com")) {
-      return host.split(".myshopify.com")[0]; // storefront
-    }
-
-    if (host.includes("admin.shopify.com")) {
-      const parts = window.location.pathname.split("/");
-      const storeIndex = parts.indexOf("store");
-      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        return parts[storeIndex + 1]; // admin
-      }
-    }
-
-    // 👉 fallback to page.name or page.storeDomain if available
-    if (page?.storeDomain) return page.storeDomain;
-    if (page?.name) return page.name;
-
-  } catch (err) {
-    console.error("Error extracting shop domain:", err);
-  }
-  return null;
-}
 export default function SocialChatDashboard() {
   const {
     connectedPages,
@@ -48,8 +24,6 @@ export default function SocialChatDashboard() {
 
   const bottomRef = useRef(null);
 
-
-  
 useEffect(() => {
   if (bottomRef.current) {
     bottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -266,11 +240,35 @@ useEffect(() => {
         }
         return;
       }
+function getShopDomain(page) {
+  try {
+    const host = window.location.host; // "checkd-lorem.myshopify.com" OR "admin.shopify.com"
 
+    if (host.includes("myshopify.com")) {
+      return host.split(".myshopify.com")[0]; // storefront
+    }
+
+    if (host.includes("admin.shopify.com")) {
+      const parts = window.location.pathname.split("/");
+      const storeIndex = parts.indexOf("store");
+      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
+        return parts[storeIndex + 1]; // admin
+      }
+    }
+
+    // 👉 fallback to page.name or page.storeDomain if available
+    if (page?.storeDomain) return page.storeDomain;
+    if (page?.name) return page.name;
+
+  } catch (err) {
+    console.error("Error extracting shop domain:", err);
+  }
+  return null;
+}
 
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-   const shopDomain = getShopDomain(page);
+  const shopDomain = getShopDomain(page);
 
   if (!shopDomain) {
     console.error("❌ No shop domain detected for chatwidget");
@@ -280,8 +278,6 @@ if (page.type === "chatwidget") {
   const res = await fetch(
     `/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
   );
-
-
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
@@ -292,7 +288,7 @@ if (page.type === "chatwidget") {
       pageType: "chatwidget",
       participants: { data: [{ name: s.name || "Guest User" }] },
       sessionId: s.sessionId,
-      storeDomain: s.storeDomain,
+      storeDomain: shopDomain, // ✅ force resolved domain
       name: s.name,
     }));
 
@@ -301,7 +297,6 @@ if (page.type === "chatwidget") {
       ...convs,
     ]);
 
-    // Auto-select first conversation and load messages
     if (convs.length > 0) {
       const firstConv = convs[0];
       setActiveConversation(firstConv);
@@ -323,6 +318,7 @@ if (page.type === "chatwidget") {
   }
   return;
 }
+
 
     } catch (err) {
       console.error("Error fetching conversations:", err);
