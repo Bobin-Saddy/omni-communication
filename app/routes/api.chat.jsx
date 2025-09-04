@@ -58,58 +58,65 @@ export async function loader({ request }) {
   }
 
   // ----------------- SSE stream -----------------
-  if (stream) {
-    if (!storeDomain || !sessionId) {
-      return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
-    }
-
-    let lastTimestamp = new Date();
-
-    const sseStream = new ReadableStream({
-      async start(controller) {
-        // Immediately send existing messages
-        const initialMessages = await prisma.storeChatMessage.findMany({
-          where: { storeDomain, sessionId },
-          orderBy: { createdAt: "asc" },
-        });
-
-        initialMessages.forEach((msg) => {
-          controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
-          lastTimestamp = new Date(msg.createdAt);
-        });
-
-        const interval = setInterval(async () => {
-          try {
-            const messages = await prisma.storeChatMessage.findMany({
-              where: { storeDomain, sessionId, createdAt: { gt: lastTimestamp } },
-              orderBy: { createdAt: "asc" },
-            });
-
-            messages.forEach((msg) => {
-              controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
-              lastTimestamp = new Date(msg.createdAt);
-            });
-          } catch (err) {
-            console.error("Error fetching chat messages:", err);
-          }
-        }, 1000);
-
-        controller.signal.addEventListener("abort", () => {
-          clearInterval(interval);
-          controller.close();
-        });
-      },
-    });
-
-    return new Response(sseStream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        ...corsHeaders,
-      },
-    });
+// ----------------- SSE stream -----------------
+if (stream) {
+  if (!storeDomain || !sessionId) {
+    return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
   }
+
+  // Start with earliest message if any
+  let lastTimestamp = null;
+
+  const sseStream = new ReadableStream({
+    async start(controller) {
+      // Send all existing messages first
+      const initialMessages = await prisma.storeChatMessage.findMany({
+        where: { storeDomain, sessionId },
+        orderBy: { createdAt: "asc" },
+      });
+
+      initialMessages.forEach((msg) => {
+        controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
+        lastTimestamp = new Date(msg.createdAt);
+      });
+
+      // Poll new messages every 1s
+      const interval = setInterval(async () => {
+        try {
+          const messages = await prisma.storeChatMessage.findMany({
+            where: lastTimestamp
+              ? { storeDomain, sessionId, createdAt: { gt: lastTimestamp } }
+              : { storeDomain, sessionId },
+            orderBy: { createdAt: "asc" },
+          });
+
+          messages.forEach((msg) => {
+            controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
+            lastTimestamp = new Date(msg.createdAt);
+          });
+        } catch (err) {
+          console.error("Error fetching chat messages:", err);
+        }
+      }, 1000);
+
+      // Cleanup
+      controller.signal.addEventListener("abort", () => {
+        clearInterval(interval);
+        controller.close();
+      });
+    },
+  });
+
+  return new Response(sseStream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      ...corsHeaders,
+    },
+  });
+}
+
 
   // ----------------- Fetch messages for a session -----------------
   if (!storeDomain || !sessionId) {
