@@ -63,45 +63,45 @@ export async function loader({ request }) {
       return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
     }
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        let lastTimestamp = new Date(0);
+const stream = new ReadableStream({
+  async start(controller) {
+    let lastTimestamp = new Date();
 
-        const interval = setInterval(async () => {
-          try {
-            const messages = await prisma.storeChatMessage.findMany({
-              where: { sessionId, storeDomain, createdAt: { gt: lastTimestamp } },
-              orderBy: { createdAt: "asc" },
-            });
-
-            messages.forEach((msg) => {
-              controller.enqueue(
-                `data: ${JSON.stringify({
-                  id: msg.id,
-                  text: msg.text,
-                  sender: msg.sender,
-                  name: msg.name,
-                  fileUrl: msg.fileUrl,
-                  fileName: msg.fileName,
-                  createdAt: msg.createdAt,
-                  sessionId: msg.sessionId,
-                  storeDomain: msg.storeDomain,
-                })}\n\n`
-              );
-              lastTimestamp = msg.createdAt;
-            });
-          } catch (err) {
-            console.error("Error fetching chat messages:", err);
-          }
-        }, 2000);
-
-        return {
-          cancel() {
-            clearInterval(interval);
-          },
-        };
-      },
+    // Immediately fetch any existing messages (optional)
+    const initialMessages = await prisma.storeChatMessage.findMany({
+      where: { sessionId, storeDomain },
+      orderBy: { createdAt: "asc" },
     });
+
+    initialMessages.forEach((msg) => {
+      controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
+      lastTimestamp = msg.createdAt;
+    });
+
+    const interval = setInterval(async () => {
+      try {
+        const messages = await prisma.storeChatMessage.findMany({
+          where: { sessionId, storeDomain, createdAt: { gt: lastTimestamp } },
+          orderBy: { createdAt: "asc" },
+        });
+
+        messages.forEach((msg) => {
+          controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
+          lastTimestamp = msg.createdAt;
+        });
+      } catch (err) {
+        console.error("Error fetching chat messages:", err);
+      }
+    }, 1000); // Poll every 1s instead of 2s
+
+    return {
+      cancel() {
+        clearInterval(interval);
+      },
+    };
+  },
+});
+
 
     return new Response(stream, {
       headers: {
