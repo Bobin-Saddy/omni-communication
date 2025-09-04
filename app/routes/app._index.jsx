@@ -292,6 +292,7 @@ if (page.type === "chatwidget") {
                   || getShopDomain();
 
   console.log("✅ USING SHOP DOMAIN =>", shopDomain);
+  console.log("domain--->", normalizeShopDomain);
 
   if (!shopDomain) {
     console.error("❌ No shop domain detected for chatwidget");
