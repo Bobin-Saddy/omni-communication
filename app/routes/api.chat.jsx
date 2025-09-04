@@ -24,18 +24,10 @@ export async function loader({ request }) {
 
   const url = new URL(request.url);
 
-  const storeDomain =
-    url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
-  const sessionId =
-    url.searchParams.get("session_id") || url.searchParams.get("sessionId");
-
   // ----------------- Widget sessions -----------------
   if (url.searchParams.get("widget") === "true") {
-    const whereClause = storeDomain ? { storeDomain } : {};
-
     const sessions = await prisma.storeChatMessage.findMany({
-      where: whereClause,
-      distinct: ["sessionId"],
+      distinct: ["sessionId", "storeDomain"],
       orderBy: { createdAt: "desc" },
       select: { sessionId: true, storeDomain: true },
     });
@@ -59,6 +51,11 @@ export async function loader({ request }) {
   }
 
   // ----------------- Fetch messages for a session -----------------
+  const storeDomain =
+    url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
+  const sessionId =
+    url.searchParams.get("session_id") || url.searchParams.get("sessionId");
+
   if (!storeDomain || !sessionId) {
     return json(
       { ok: false, error: "Missing params" },
@@ -104,33 +101,35 @@ export async function action({ request }) {
     message = null;
   } 
   // ----------------- Text message -----------------
-  else {
-    const body = await request.json();
-    sessionId = body.sessionId || body.session_id;
-    storeDomain = body.storeDomain || body.store_domain;
-    message = body.message || null;
-    sender = body.sender || "me";
-    name = body.name || `User-${sessionId}`;
+// ----------------- Text message -----------------
+else {
+  const body = await request.json();
+  sessionId = body.sessionId || body.session_id;
+  storeDomain = body.storeDomain || body.store_domain;
+  message = body.message || null;
+  sender = body.sender || "me";
+  name = body.name || `User-${sessionId}`; // <-- default if missing
 
-    if (!storeDomain || (!message && !body.fileUrl)) {
-      return json(
-        { ok: false, error: "Missing fields" },
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    if (body.fileUrl) {
-      fileUrl = body.fileUrl;
-      fileName = body.fileName || "file";
-    }
+  if (!storeDomain || (!message && !body.fileUrl)) {
+    return json(
+      { ok: false, error: "Missing fields" },
+      { status: 400, headers: corsHeaders }
+    );
   }
+
+  if (body.fileUrl) {
+    fileUrl = body.fileUrl;
+    fileName = body.fileName || "file";
+  }
+}
+
 
   // Normalize sender
   sender = sender === "customer" ? "customer" : "me";
 
   // ----------------- Ensure session exists -----------------
   await prisma.storeChatSession.upsert({
-    where: { storeDomain_sessionId: { storeDomain, sessionId } },
+    where: { sessionId },
     update: {},
     create: { sessionId, storeDomain },
   });
@@ -141,7 +140,7 @@ export async function action({ request }) {
   });
 
   return json(
-    { ok: true, message: { ...savedMessage } },
+    { ok: true, message: { ...savedMessage, fileUrl, fileName } },
     { headers: corsHeaders }
   );
 }
