@@ -638,11 +638,20 @@ if (page.type === "chatwidget") {
         text,
       };
     }
+const existingIds = new Set();
+
+sse.onmessage = (e) => {
+  const msg = JSON.parse(e.data);
+  if (!existingIds.has(msg.id)) {
+    existingIds.add(msg.id);
+    addMessageToChat(msg);
+  }
+};
 
     const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+method: "POST",
+  body: JSON.stringify({ message, sessionId, storeDomain }),
+  headers: { "Content-Type": "application/json" },
     });
     const data = await res.json().catch(() => null);
 
