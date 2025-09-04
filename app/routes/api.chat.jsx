@@ -26,7 +26,7 @@ export async function loader({ request }) {
 
   // ----------------- Widget sessions -----------------
 if (url.searchParams.get("widget") === "true") {
-  const storeDomain = url.searchParams.get("storeDomain");
+  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
   if (!storeDomain) {
     return json({ ok: false, error: "Missing storeDomain" }, { status: 400, headers: corsHeaders });
   }
@@ -59,10 +59,11 @@ if (url.searchParams.get("widget") === "true") {
 
 
   // ----------------- Fetch messages for a session -----------------
-  const storeDomain =
-    url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
-  const sessionId =
-    url.searchParams.get("session_id") || url.searchParams.get("sessionId");
+const storeDomain =
+  url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
+const sessionId =
+  url.searchParams.get("session_id") || url.searchParams.get("sessionId");
+
 
   if (!storeDomain || !sessionId) {
     return json(
@@ -138,10 +139,11 @@ else {
 
   // ----------------- Ensure session exists -----------------
 await prisma.storeChatSession.upsert({
-  where: { storeDomain_sessionId: { storeDomain, sessionId } },
-  update: { lastSeenAt: new Date() },
-  create: { storeDomain, sessionId },
+  where: { sessionId_storeDomain: { sessionId, storeDomain } },
+  update: {},
+  create: { sessionId, storeDomain },
 });
+
 
 
   // ----------------- Save message -----------------

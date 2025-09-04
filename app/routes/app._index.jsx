@@ -271,9 +271,10 @@ if (convs.length > 0) {
   const firstConv = convs[0];
   setActiveConversation(firstConv);
 
-  const msgRes = await fetch(
-    `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
-  );
+const msgRes = await fetch(
+  `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.sessionId)}`
+);
+
 
   if (msgRes.ok) {
     const msgData = await msgRes.json();
@@ -304,11 +305,11 @@ const handleSelectConversation = async (conv) => {
   try {
     // ---------- ChatWidget ----------
     if (page.type === "chatwidget") {
-      const res = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(
-          conv.storeDomain || "myshop.com"
-        )}&sessionId=${encodeURIComponent(conv.id)}`
-      );
+  const res = await fetch(
+  `/api/chat?storeDomain=${encodeURIComponent(
+    conv.storeDomain || "myshop.com"
+  )}&sessionId=${encodeURIComponent(conv.sessionId)}`
+);
 
       if (res.ok) {
         const data = await res.json();
