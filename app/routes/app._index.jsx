@@ -1,62 +1,5 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
-import { io } from "socket.io-client";
-
-function getShopDomain() {
-  try {
-    // ✅ 1. From query param ?shop=checkd-lorem.myshopify.com
-    const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get("shop");
-    if (shopParam) {
-      const shopDomain = shopParam.replace(".myshopify.com", "");
-      console.log("📦 Extracted from query param:", shopDomain);
-      return shopDomain;
-    }
-
-    // ✅ 2. From storefront domain
-    const host = window.location.host;
-    if (host.includes("myshopify.com")) {
-      const shopDomain = host.replace(".myshopify.com", "");
-      console.log("📦 Extracted from storefront host:", shopDomain);
-      return shopDomain;
-    }
-
-    // ✅ 3. From Admin Embedded App URL
-    // Example: https://admin.shopify.com/store/checkd-lorem/apps/...
-    if (host.includes("admin.shopify.com")) {
-      const parts = window.location.pathname.split("/");
-      const storeIndex = parts.indexOf("store");
-      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        const shopDomain = parts[storeIndex + 1];
-        console.log("📦 Extracted from admin path:", shopDomain);
-        return shopDomain;
-      }
-    }
-  } catch (err) {
-    console.error("❌ Error extracting shop domain:", err);
-  }
-
-  console.log("❌ No shop domain detected");
-  return null;
-}
-
-
-function normalizeShopDomain(input) {
-  if (!input) return null;
-  let val = input.trim().toLowerCase();
-
-  // remove protocols
-  val = val.replace(/^https?:\/\//, "");
-  val = val.replace(/\/.*$/, ""); // remove path if present
-
-  // strip .myshopify.com if present
-  if (val.includes(".myshopify.com")) {
-    val = val.split(".myshopify.com")[0];
-  }
-
-  return val;
-}
-
 
 
 
@@ -304,10 +247,54 @@ useEffect(() => {
 
 
 // Chat Widget (fetch sessions)
-if (page.type === "chatwidget") {
+// ✅ Utility to normalize Shopify shop domains
+function normalizeShopDomain(domain) {
+  if (!domain) return null;
+  return domain
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
+}
+
+// ✅ Extract shop domain directly from App Bridge (if available)
+function getShopDomainFromAppBridge(app) {
+  try {
+    if (app && app.shopOrigin) {
+      return normalizeShopDomain(app.shopOrigin);
+    }
+    if (app && app.config && app.config.shopOrigin) {
+      return normalizeShopDomain(app.config.shopOrigin);
+    }
+  } catch (err) {
+    console.error("⚠️ Error extracting shop domain from App Bridge:", err);
+  }
+  return null;
+}
+
+// ✅ Fallback: Extract shop domain from URL (query param or pathname)
+function getShopDomain() {
+  try {
+    const url = new URL(window.location.href);
+
+    // Try query param ?shop=
+    const fromQuery = url.searchParams.get("shop");
+    if (fromQuery) return normalizeShopDomain(fromQuery);
+
+    // Try pathname (e.g. /apps/myapp?shop=xxx.myshopify.com)
+    const match = url.href.match(/([\w-]+\.myshopify\.com)/i);
+    if (match) return normalizeShopDomain(match[1]);
+  } catch (err) {
+    console.error("⚠️ Error extracting shop domain from URL:", err);
+  }
+  return null;
+}
+
+// ✅ Main logic for chatwidget pages
+async function handleChatWidgetPage(page, app, setConversations, setActiveConversation, setMessages) {
   const shopDomain =
     normalizeShopDomain(page.storeDomain) ||
-    getShopDomain(); // ✅ force extraction from URL, never fallback to page.name
+    getShopDomainFromAppBridge(app) ||
+    getShopDomain(); // ✅ prefer AppBridge > URL > page.storeDomain
 
   console.log("✅ USING SHOP DOMAIN =>", shopDomain);
 
@@ -321,7 +308,7 @@ if (page.type === "chatwidget") {
 
   if (Array.isArray(data?.sessions)) {
     const convs = data.sessions.map((s) => ({
-      id: s.sessionId, // use this as master key
+      id: s.sessionId, // master key
       pageId: page.id,
       pageName: page.name,
       pageType: "chatwidget",
@@ -352,8 +339,8 @@ if (page.type === "chatwidget") {
       }
     }
   }
-  return;
 }
+
 
 
     } catch (err) {
