@@ -23,6 +23,31 @@ export default function SocialChatDashboard() {
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   const bottomRef = useRef(null);
+app.get("/api/chat", async (req, res) => {
+  const { storeDomain, sessionId, widget } = req.query;
+
+  try {
+    if (widget === "true") {
+      // Return all active chatwidget sessions
+      const sessions = await db.ChatSessions.findAll(); // replace with your DB query
+      return res.json({ sessions });
+    }
+
+    if (storeDomain && sessionId) {
+      // Return messages for a specific session
+      const messages = await db.ChatMessages.findAll({
+        where: { storeDomain, sessionId },
+        order: [["createdAt", "ASC"]],
+      });
+      return res.json({ messages });
+    }
+
+    return res.status(400).json({ error: "Missing required parameters" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 useEffect(() => {
   if (bottomRef.current) {
