@@ -18,7 +18,7 @@ export const loader = async ({ request }) => {
         const interval = setInterval(async () => {
           try {
             // DB query: only messages for this session & store
-            const messages = await prisma.storeChatMessage.findMany({
+            const messages = await prisma.StoreChatMessage.findMany({
               where: {
                 sessionId,
                 storeDomain,
