@@ -1,42 +1,45 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
-function getShopDomain() {
-  let shopDomain = null;
 
+function getShopDomain() {
   try {
-    // ✅ Highest priority: query param from Shopify app bridge
+    // ✅ 1. From query param ?shop=checkd-lorem.myshopify.com
     const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get("shop"); // e.g. "checkd-lorem.myshopify.com"
+    const shopParam = urlParams.get("shop");
     if (shopParam) {
-      shopDomain = shopParam.split(".myshopify.com")[0]; 
-      console.log("📦 Extracted shop param:", shopDomain);
+      const shopDomain = shopParam.replace(".myshopify.com", "");
+      console.log("📦 Extracted from query param:", shopDomain);
       return shopDomain;
     }
 
-    // ✅ Storefront case
+    // ✅ 2. From storefront domain
     const host = window.location.host;
     if (host.includes("myshopify.com")) {
-      shopDomain = host.split(".myshopify.com")[0];
+      const shopDomain = host.replace(".myshopify.com", "");
+      console.log("📦 Extracted from storefront host:", shopDomain);
       return shopDomain;
     }
 
-    // ✅ Admin case (embedded app)
+    // ✅ 3. From Admin Embedded App URL
+    // Example: https://admin.shopify.com/store/checkd-lorem/apps/...
     if (host.includes("admin.shopify.com")) {
       const parts = window.location.pathname.split("/");
       const storeIndex = parts.indexOf("store");
       if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        shopDomain = parts[storeIndex + 1];
+        const shopDomain = parts[storeIndex + 1];
+        console.log("📦 Extracted from admin path:", shopDomain);
         return shopDomain;
       }
     }
   } catch (err) {
-    console.error("Error extracting shop domain:", err);
+    console.error("❌ Error extracting shop domain:", err);
   }
 
   console.log("❌ No shop domain detected");
   return null;
 }
+
 
 function normalizeShopDomain(input) {
   if (!input) return null;
@@ -301,11 +304,10 @@ useEffect(() => {
 
 
 // Chat Widget (fetch sessions)
-// Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
   const shopDomain =
-    normalizeShopDomain(page.storeDomain) || getShopDomain(); // ✅ no page.name
-
+    normalizeShopDomain(page.storeDomain) ||
+    getShopDomain(); // ✅ force extraction from URL, never fallback to page.name
 
   console.log("✅ USING SHOP DOMAIN =>", shopDomain);
 
@@ -314,7 +316,7 @@ if (page.type === "chatwidget") {
     return;
   }
 
-  const res = await fetch( `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`);
+  const res = await fetch(`/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`);
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
