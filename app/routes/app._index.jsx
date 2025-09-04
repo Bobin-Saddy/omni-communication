@@ -13,6 +13,25 @@ export default function SocialChatDashboard() {
   return d;
 }
 
+function getShopDomainFromAppBridge() {
+  try {
+    // Agar URL me `shop` param hai (common in embedded apps)
+    const urlParams = new URLSearchParams(window.location.search);
+    const shopParam = urlParams.get("shop");
+    if (shopParam) return shopParam.toLowerCase();
+
+    // Agar localStorage me shop save kiya hua hai
+    const storedShop = localStorage.getItem("shopDomain");
+    if (storedShop) return storedShop.toLowerCase();
+
+    return null;
+  } catch (err) {
+    console.error("❌ Failed to get shop domain from AppBridge or URL:", err);
+    return null;
+  }
+}
+
+
   const {
     connectedPages,
     conversations,
