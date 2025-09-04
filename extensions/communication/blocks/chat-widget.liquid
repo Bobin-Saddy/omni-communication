@@ -208,7 +208,7 @@
 
   (function(){
     const root     = document.getElementById('oc-chat');  // ✅ fixed
-    const store    = getShopDomain() || root.dataset.store;
+   const store    = root.dataset.store || getShopDomain();
     const endpoint = root.dataset.endpoint;
     const origin   = window.location.origin;
 
