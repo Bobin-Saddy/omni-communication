@@ -46,9 +46,9 @@ useEffect(() => {
   if (!activeConversation || activeConversation.pageType !== "chatwidget") return;
 
   const { id: sessionId, storeDomain } = activeConversation;
-  const es = new EventSource(
-    `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain)}`
-  );
+const es = new EventSource(
+  `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain || "")}`
+);
 
   es.onmessage = (event) => {
     try {
