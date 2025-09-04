@@ -20,9 +20,9 @@ export const loader = async ({ request }) => {
             // DB query: only messages for this session & store
             const messages = await prisma.StoreChatMessage.findMany({
               where: {
-                sessionId,
-                storeDomain,
-                createdAt: { gt: lastTimestamp },
+          sessionId,
+  storeDomain,   // ye ensure karta hai ki sirf is store ke messages aaye
+  createdAt: { gt: lastTimestamp },
               },
               orderBy: { createdAt: "asc" },
             });
