@@ -1,4 +1,5 @@
-import { db } from "../db.server";
+import { json } from "@remix-run/node";
+import prisma from "../db.server";
 
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
@@ -17,7 +18,7 @@ export const loader = async ({ request }) => {
         const interval = setInterval(async () => {
           try {
             // DB query: only messages for this session & store
-            const messages = await db.storeChatMessage.findMany({
+            const messages = await prisma.storeChatMessage.findMany({
               where: {
                 sessionId,
                 storeDomain,
