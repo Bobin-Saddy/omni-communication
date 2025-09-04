@@ -2,17 +2,14 @@ import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
 
+/** ----------------- SHOP DOMAIN HELPERS ----------------- **/
 function getShopDomainFromAppBridge() {
   try {
-    // Agar URL me `shop` param hai (common in embedded apps)
     const urlParams = new URLSearchParams(window.location.search);
     const shopParam = urlParams.get("shop");
     if (shopParam) return shopParam.toLowerCase();
-
-    // Agar localStorage me shop save kiya hua hai
     const storedShop = localStorage.getItem("shopDomain");
     if (storedShop) return storedShop.toLowerCase();
-
     return null;
   } catch (err) {
     console.error("❌ Failed to get shop domain from AppBridge or URL:", err);
@@ -24,55 +21,43 @@ function getShopDomainFromAdminUrl() {
   try {
     const url = window.location.href;
     const match = url.match(/admin\.shopify\.com\/store\/([^/]+)/);
-    if (match && match[1]) {
-      return `${match[1].toLowerCase()}.myshopify.com`;
-    }
+    if (match && match[1]) return `${match[1].toLowerCase()}.myshopify.com`;
   } catch (err) {
     console.error("Failed to extract shop from admin URL:", err);
   }
   return null;
 }
 
-function detectShopDomain(page) {
-  // 1️⃣ Use page.storeDomain if exists
-  if (page?.storeDomain) return normalizeShopDomain(page.storeDomain);
-
-  // 2️⃣ Use ?shop= query param
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get("shop")) return normalizeShopDomain(urlParams.get("shop"));
-
-  // 3️⃣ Embedded admin URL
-  const match = window.location.href.match(/\/store\/([^/]+)/);
-  if (match && match[1]) return normalizeShopDomain(match[1]);
-
-  // 4️⃣ Local storage fallback
-  const stored = localStorage.getItem("shopDomain");
-  if (stored) return normalizeShopDomain(stored);
-
-  // 5️⃣ Dataset fallback
-  const el = document.querySelector("#oc-chat");
-  if (el?.dataset?.store) return normalizeShopDomain(el.dataset.store);
-
-  console.error("❌ Could not detect shop domain");
-  return null;
-}
-
-  function normalizeShopDomain(domain) {
+function normalizeShopDomain(domain) {
   if (!domain) return null;
   let d = domain.trim().toLowerCase();
   if (!d.endsWith(".myshopify.com")) {
-    d = d.replace(/\/+$/, ""); // remove trailing slashes
+    d = d.replace(/\/+$/, "");
     d = `${d}.myshopify.com`;
   }
   return d;
 }
 
+/** ----------------- TIME FORMAT HELPER ----------------- **/
+const formatTime = (time) => {
+  if (!time) return "";
+  const date = new Date(time);
+  if (isNaN(date)) return time;
 
+  const options = { year: "numeric", month: "short", day: "numeric" };
+  const formattedDate = date.toLocaleDateString(undefined, options);
+
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const hour12 = hours % 12 || 12;
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const formattedTime = `${hour12}:${minutes} ${ampm}`;
+
+  return `${formattedDate} ${formattedTime}`;
+};
+
+/** ----------------- MAIN COMPONENT ----------------- **/
 export default function SocialChatDashboard() {
-
-
-
-
   const {
     connectedPages,
     conversations,
@@ -84,151 +69,138 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const [uploading, setUploading] = useState(false);
-
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const bottomRef = useRef(null);
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPd0HoVJtMtBTY8V8kobwsZCz8OCxcZBk97aaMQf2kq2mhJ3BOsmGKbKlApwvPRy6ZBJZAmgZA5MDa16bVfZB8HzzVxygoIoDGMBeIOxyZCYiI9XJ8HtK26HtA9piZCc1e2pSGskDgSck8bn00gakg7JVwTJMqAZCDyHacsJ7ZANESRvENa33bPs7Ip8nTp3QpxtsRzn8uI17qCHuZAQSCHUIABkYgLwYX8uCwZDZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
-  const bottomRef = useRef(null);
+  /** ----------------- SCROLL TO BOTTOM ----------------- **/
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, activeConversation]);
 
-useEffect(() => {
-  if (bottomRef.current) {
-    bottomRef.current.scrollIntoView({ behavior: "smooth" });
-  }
-}, [messages, activeConversation]);
+  /** ----------------- LOAD CONVERSATIONS ON CONNECTED PAGES ----------------- **/
+  useEffect(() => {
+    if (!connectedPages.length) {
+      setConversations([]);
+      return;
+    }
+    connectedPages.forEach((page) => fetchConversations(page));
+  }, [connectedPages]);
 
-  /** ----------------- LOAD CONVERSATIONS ----------------- **/
-useEffect(() => {
-  if (!connectedPages.length) {
-    setConversations([]); // ✅ reset when no pages connected
-    return;
-  }
-  connectedPages.forEach((page) => fetchConversations(page));
-}, [connectedPages]);
+  /** ----------------- SSE FOR CHATWIDGET ----------------- **/
+  useEffect(() => {
+    if (activeConversation?.pageType !== "chatwidget") return;
 
+    const es = new EventSource(
+      `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
+        activeConversation.storeDomain || ""
+      )}`
+    );
 
-  /** ----------------- SSE for chatwidget (real-time) ----------------- **/
-useEffect(() => {
-  if (activeConversation?.pageType !== "chatwidget") return;
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [
+            ...(prev[activeConversation.id] || []),
+            {
+              text: data.text || "",
+              fileUrl: data.fileUrl || null,
+              sender: data.sender || "them",
+              createdAt: data.createdAt || new Date().toISOString(),
+            },
+          ],
+        }));
+      } catch (e) {
+        console.warn("SSE parse error", e);
+      }
+    };
 
-  const es = new EventSource(
-    `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
-      activeConversation.storeDomain || ""
-    )}`
-  );
+    es.onerror = (err) => {
+      console.warn("SSE error", err);
+      es.close();
+    };
 
-  
+    return () => es.close();
+  }, [activeConversation]);
 
-  es.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data);
+  /** ----------------- POLLING FOR WHATSAPP ----------------- **/
+  useEffect(() => {
+    const evtSource = new EventSource("/whatsapp/subscribe");
+
+    evtSource.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
       setMessages((prev) => ({
         ...prev,
-        [activeConversation.id]: [
-          ...(prev[activeConversation.id] || []),
-          {
-            text: data.text || "",
-            fileUrl: data.fileUrl || null,
-            sender: data.sender || "them",
-            createdAt: data.createdAt || new Date().toISOString(),
-          },
-        ],
+        [msg.number]: [...(prev[msg.number] || []), msg],
       }));
-    } catch (e) {
-      console.warn("SSE parse error", e);
-    }
-  };
+      if (activeConversation && activeConversation.id === msg.number) {
+        setMessages((prev) => ({
+          ...prev,
+          [activeConversation.id]: [...(prev[activeConversation.id] || []), msg],
+        }));
+      }
+    };
 
-  es.onerror = (err) => {
-    console.warn("SSE error", err);
-    es.close();
-  };
+    return () => evtSource.close();
+  }, []);
 
-  return () => es.close();
-}, [activeConversation]);
+  /** ----------------- POLLING FOR INSTAGRAM/FACEBOOK ----------------- **/
+  useEffect(() => {
+    if (!activeConversation) return;
+    const page = connectedPages.find((p) => p.id === activeConversation.pageId);
+    if (!page) return;
 
+    let interval;
 
-useEffect(() => {
-  const evtSource = new EventSource("/whatsapp/subscribe");
-
-evtSource.onmessage = (event) => {
-  const msg = JSON.parse(event.data);
-
-  setMessages(prev => ({
-    ...prev,
-    [msg.number]: [...(prev[msg.number] || []), msg],
-  }));
-
-  // 👉 Agar active chat wahi number ka hai, to UI turant scroll/update ho jaye
-  if (activeConversation && activeConversation.id === msg.number) {
-    setMessages(prev => ({
-      ...prev,
-      [activeConversation.id]: [...(prev[activeConversation.id] || []), msg],
-    }));
-  }
-};
-
-
-  return () => evtSource.close();
-}, []);
-
-useEffect(() => {
-  if (!activeConversation) return;
-
-  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
-  if (!page) return;
-
-  let interval;
-
-  const fetchLatestMessages = async () => {
-    try {
-      if (page.type === "instagram" || page.type === "facebook") {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${activeConversation.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
-        );
-
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data?.data)) {
-            const formatted = data.data
-              .map((msg) => ({
-                id: msg.id,
-                sender:
-                  page.type === "instagram"
-                    ? msg.from?.id === page.igId
+    const fetchLatestMessages = async () => {
+      try {
+        if (page.type === "instagram" || page.type === "facebook") {
+          const res = await fetch(
+            `https://graph.facebook.com/v18.0/${activeConversation.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.data)) {
+              const formatted = data.data
+                .map((msg) => ({
+                  id: msg.id,
+                  sender:
+                    page.type === "instagram"
+                      ? msg.from?.id === page.igId
+                        ? "me"
+                        : "them"
+                      : msg.from?.id === page.id
                       ? "me"
-                      : "them"
-                    : msg.from?.id === page.id
-                    ? "me"
-                    : "them",
-                text: msg.message,
-                createdAt: msg.created_time,
-              }))
-              .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                      : "them",
+                  text: msg.message,
+                  createdAt: msg.created_time,
+                }))
+                .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
-            setMessages((prev) => ({
-              ...prev,
-              [activeConversation.id]: formatted,
-            }));
+              setMessages((prev) => ({
+                ...prev,
+                [activeConversation.id]: formatted,
+              }));
+            }
           }
         }
+      } catch (err) {
+        console.error("Polling error:", err);
       }
-    } catch (err) {
-      console.error("Polling error:", err);
-    }
-  };
+    };
 
-  // Fetch first time immediately
-  fetchLatestMessages();
-
-  // Then keep polling every 5s
-  interval = setInterval(fetchLatestMessages, 2000);
-
-  return () => clearInterval(interval);
-}, [activeConversation, connectedPages]);
+    fetchLatestMessages();
+    interval = setInterval(fetchLatestMessages, 2000);
+    return () => clearInterval(interval);
+  }, [activeConversation, connectedPages]);
 
   /** ----------------- FETCH CONVERSATIONS ----------------- **/
   const fetchConversations = async (page) => {
@@ -311,445 +283,149 @@ useEffect(() => {
         return;
       }
 
-      // Chat Widget (fetch sessions)
-if (page.type === "chatwidget") {
- const shopDomain =
-    normalizeShopDomain(page.storeDomain) ||
-    getShopDomainFromAppBridge() ||
-    getShopDomainFromAdminUrl() ||
-    localStorage.getItem("shopDomain") ||
-    document.querySelector("#oc-chat")?.dataset?.store ||
-    null;
+      // Chat Widget
+      if (page.type === "chatwidget") {
+        const shopDomain =
+          normalizeShopDomain(page.storeDomain) ||
+          getShopDomainFromAppBridge() ||
+          getShopDomainFromAdminUrl() ||
+          localStorage.getItem("shopDomain") ||
+          document.querySelector("#oc-chat")?.dataset?.store ||
+          null;
 
+        if (!shopDomain) {
+          console.error("❌ No shop domain detected for chatwidget");
+          return;
+        }
 
-  if (!shopDomain) {
-    console.error("❌ No shop domain detected for chatwidget");
-    return;
-  }
+        localStorage.setItem("shopDomain", shopDomain);
 
-  // Save for future use
-  localStorage.setItem("shopDomain", shopDomain);
+        const sessionRes = await fetch(
+          `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
+        );
+        const sessionData = await sessionRes.json();
 
-  // -------- 1️⃣ Fetch sessions for this shop --------
-  const sessionRes = await fetch(
-    `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
-  );
-  const sessionData = await sessionRes.json();
- 
-  if (Array.isArray(sessionData?.sessions)) {
-    const convs = sessionData.sessions
-      .filter((s) => s.storeDomain === shopDomain)
-      .map((s) => ({
-        id: s.sessionId,
-        pageId: page.id,
-        pageName: page.name,
-        pageType: "chatwidget",
-        participants: { data: [{ name: s.name }] },
-        sessionId: s.sessionId,
-        storeDomain: s.storeDomain,
-        name: s.name,
-      }));
+        if (Array.isArray(sessionData?.sessions)) {
+          const convs = sessionData.sessions
+            .filter((s) => s.storeDomain === shopDomain)
+            .map((s) => ({
+              id: s.sessionId,
+              pageId: page.id,
+              pageName: page.name,
+              pageType: "chatwidget",
+              participants: { data: [{ name: s.name }] },
+              sessionId: s.sessionId,
+              storeDomain: s.storeDomain,
+              name: s.name,
+            }));
 
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      ...convs,
-    ]);
+          setConversations((prev) => [
+            ...prev.filter((c) => c.pageId !== page.id),
+            ...convs,
+          ]);
 
- 
-    if (convs.length > 0) {
-      const firstConv = convs[0];
-      setActiveConversation(firstConv);
+          if (convs.length > 0) {
+            const firstConv = convs[0];
+            setActiveConversation(firstConv);
 
-      // -------- 2️⃣ Fetch messages for first conversation --------
-      const msgRes = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
-      );
+            const msgRes = await fetch(
+              `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
+            );
 
-      if (msgRes.ok) {
-        const msgData = await msgRes.json();
-        setMessages((prev) => ({
-          ...prev,
-          [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
-        }));
+            if (msgRes.ok) {
+              const msgData = await msgRes.json();
+              setMessages((prev) => ({
+                ...prev,
+                [firstConv.id]: Array.isArray(msgData?.messages)
+                  ? msgData.messages
+                  : [],
+              }));
+            }
+          }
+        }
+        return;
       }
-    }
-  
-  }
-  return;
-}
-
-
-
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
   };
 
   /** ----------------- SELECT CONVERSATION ----------------- **/
-const handleSelectConversation = async (conv) => {
-  setActiveConversation(conv);
+  const handleSelectConversation = async (conv) => {
+    setActiveConversation(conv);
+    const page = connectedPages.find((p) => p.id === conv.pageId);
+    if (!page) return;
 
-  const page = connectedPages.find((p) => p.id === conv.pageId);
-  if (!page) return;
-
-  try {
-    // ---------- ChatWidget ----------
-    if (page.type === "chatwidget") {
-      const res = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(
-          conv.storeDomain || "myshop.com"
-        )}&sessionId=${encodeURIComponent(conv.id)}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        setMessages((prev) => ({
-          ...prev,
-          [conv.id]: Array.isArray(data?.messages)
-            ? data.messages.map((m) => ({
-                ...m,
-                sender: m.sender === "me" ? "me" : "them",
-              }))
-            : [],
-        }));
-      }
-      return;
-    }
-
-    // ---------- Instagram ----------
-    if (page.type === "instagram") {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const formatted = data.data
-            .map((msg) => {
-              const sender =
-                msg.from?.id === page.igId ? "me" : "them";
-              return {
-                id: msg.id,
-                sender,
-                text: msg.message,
-                createdAt: msg.created_time,
-              };
-            })
-            // Sort by timestamp ascending
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
+    // Fetch messages per platform (same logic as sendMessage)
+    try {
+      if (page.type === "chatwidget") {
+        const res = await fetch(
+          `/api/chat?storeDomain=${encodeURIComponent(
+            conv.storeDomain || "myshop.com"
+          )}&sessionId=${encodeURIComponent(conv.id)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setMessages((prev) => ({
+            ...prev,
+            [conv.id]: Array.isArray(data?.messages)
+              ? data.messages.map((m) => ({
+                  ...m,
+                  sender: m.sender === "me" ? "me" : "them",
+                }))
+              : [],
+          }));
         }
       }
-      return;
+    } catch (err) {
+      console.error(err);
     }
-
-    // ---------- Facebook ----------
-    if (page.type === "facebook") {
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${conv.id}/messages?fields=from,to,message,created_time&access_token=${page.access_token}`
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          const formatted = data.data
-            .map((msg) => {
-              const sender = msg.from?.id === page.id ? "me" : "them";
-              return {
-                id: msg.id,
-                sender,
-                text: msg.message,
-                createdAt: msg.created_time,
-              };
-            })
-            .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-
-          setMessages((prev) => ({ ...prev, [conv.id]: formatted }));
-        }
-      }
-      return;
-    }
-
-    // ---------- WhatsApp ----------
-if (page.type === "whatsapp") {
-const res = await fetch(`/whatsapp-messages?number=${conv.id}`);
-  if (res.ok) {
-    const data = await res.json();
-    setMessages((prev) => ({
-      ...prev,
-    [conv.id]: Array.isArray(data) ? data : [],
-    }));
-  }
-}
-
-  } catch (error) {
-    console.error("Error loading messages:", error);
-  }
-};
-
-
-/** ----------------- SEND MESSAGE (supports file for chatwidget + whatsapp) ----------------- **/
-const sendMessage = async (text = "", file = null) => {
-  if (!activeConversation) return;
-  const page = connectedPages.find((p) => p.id === activeConversation.pageId);
-  if (!page) return;
-
-  const localId = "temp-" + Date.now();
-  const userName = activeConversation?.userName || `User-${activeConversation.id}`;
-
-  // Optimistic message
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",
-    name: userName,
-    text: text || null,
-    fileUrl: file ? URL.createObjectURL(file) : null,
-    fileName: file?.name || null,
-    createdAt: new Date().toISOString(),
-    uploading: !!file,
   };
 
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
-  }));
+  /** ----------------- SEND MESSAGE ----------------- **/
+  const handleSendMessage = async () => {
+    if (!activeConversation || !textInputRef.current.value) return;
+    const msg = textInputRef.current.value;
+    const conv = activeConversation;
+    const page = connectedPages.find((p) => p.id === conv.pageId);
+    if (!page) return;
 
-  try {
-    /** ========== WhatsApp ========== **/
-    if (page.type === "whatsapp") {
-      let platformMessageId = null;
-      let fileUrl = null;
+    // Optimistic UI update
+    setMessages((prev) => ({
+      ...prev,
+      [conv.id]: [
+        ...(prev[conv.id] || []),
+        { text: msg, sender: "me", createdAt: new Date().toISOString() },
+      ],
+    }));
+    textInputRef.current.value = "";
 
-      if (file) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
-        const uploadData = await uploadRes.json();
-        if (!uploadData.success) throw new Error("File upload failed");
-        fileUrl = uploadData.url;
-
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
+    try {
+      if (page.type === "whatsapp") {
+        await fetch(
+          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               messaging_product: "whatsapp",
-              to: activeConversation.userNumber,
-              type: "image",
-              image: { link: fileUrl },
+              to: conv.userNumber,
+              type: "text",
+              text: { body: msg },
             }),
           }
         );
-        const data = await res.json();
-        if (!res.ok) throw new Error(JSON.stringify(data));
-        platformMessageId = data?.messages?.[0]?.id || null;
-      } else {
-        const res = await fetch(
-          `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages?access_token=${WHATSAPP_TOKEN}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: activeConversation.userNumber,
-              text: { body: text },
-            }),
-          }
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(JSON.stringify(data));
-        platformMessageId = data?.messages?.[0]?.id || null;
-      }
-
-      // Save message in DB
-      const savePayload = {
-        number: activeConversation.userNumber,
-        text,
-        fileUrl,
-        direction: "outgoing",
-        platform: "whatsapp",
-        platformMessageId,
-        localId,
-        createdAt: new Date().toISOString(),
-      };
-      await fetch(`/whatsapp-messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(savePayload),
-      });
-
-      // Update optimistic message
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          arr[idx] = { ...arr[idx], fileUrl, platformMessageId, uploading: false };
-          delete arr[idx]._tempId;
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
-
-      return;
-    }
-
-    /** ========== Instagram ========== **/
-    if (page.type === "instagram") {
-      const recipientId =
-        activeConversation.recipientId ||
-        activeConversation.participants?.data?.find((p) => p.id && p.id !== page.igId)?.id;
-      if (!recipientId) return console.error("No IG recipient id");
-
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
-        {
+      } else if (page.type === "chatwidget") {
+        await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messaging_type: "RESPONSE",
-            recipient: { id: recipientId },
-            message: { text },
-          }),
-        }
-      );
-      const result = await res.json();
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1)
-          arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
-        return { ...prev, [activeConversation.id]: arr };
-      });
-
-      if (!res.ok) console.error("Instagram send failed:", result);
-      return;
-    }
-
-    /** ========== Facebook ========== **/
-    if (page.type === "facebook") {
-      const userParticipant = activeConversation.participants?.data?.find((p) => p.id !== page.id);
-      if (!userParticipant) return;
-
-      const res = await fetch(
-        `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipient: { id: userParticipant.id },
-            message: { text },
-            messaging_type: "MESSAGE_TAG",
-            tag: "ACCOUNT_UPDATE",
-          }),
-        }
-      );
-      const result = await res.json();
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1)
-          arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
-        return { ...prev, [activeConversation.id]: arr };
-      });
-
-      if (!res.ok) console.error("Facebook send failed:", result);
-      return;
-    }
-
-    /** ========== ChatWidget ========== **/
-    if (page.type === "chatwidget") {
-      const storeDomain =
-        activeConversation.storeDomain || page.storeDomain || page.store_domain || localStorage.getItem("shopDomain");
-      if (!storeDomain) {
-        console.error("❌ No shop domain detected for chatwidget sendMessage");
-        return;
+          body: JSON.stringify({ sessionId: conv.id, text: msg }),
+        });
       }
-
-      let payload;
-      if (file) {
-        const fd = new FormData();
-        fd.append("file", file);
-        const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
-        const uploadData = await uploadRes.json();
-        if (!uploadData.success) throw new Error("Upload failed");
-
-        payload = {
-          sessionId: activeConversation.id,
-          storeDomain,
-          sender: "me",
-          name: userName,
-          fileUrl: uploadData.url,
-          fileName: file.name,
-        };
-      } else {
-        payload = {
-          sessionId: activeConversation.id,
-          storeDomain,
-          sender: "me",
-          name: userName,
-          message: text,
-          text,
-        };
-      }
-
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => null);
-
-      setMessages((prev) => {
-        const arr = [...(prev[activeConversation.id] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) {
-          if (data?.ok && data.message) arr[idx] = { ...arr[idx], ...data.message, uploading: false, failed: false };
-          else arr[idx] = { ...arr[idx], uploading: false, failed: true, error: data?.error || "Upload failed" };
-          delete arr[idx]._tempId;
-        }
-        return { ...prev, [activeConversation.id]: arr };
-      });
-
-      return;
+    } catch (err) {
+      console.error(err);
     }
-  } catch (err) {
-    console.error("sendMessage error:", err);
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) arr[idx] = { ...arr[idx], uploading: false, failed: true, error: err.message || "Send failed" };
-      return { ...prev, [activeConversation.id]: arr };
-    });
-  }
-};
-
-
-
-
-// Add this helper function at the top of your component
-const formatTime = (time) => {
-  if (!time) return "";
-  const date = new Date(time);
-  if (isNaN(date)) return time; // fallback if invalid date
-
-  // Format date: e.g., "Sep 1, 2025"
-  const options = { year: "numeric", month: "short", day: "numeric" };
-  const formattedDate = date.toLocaleDateString(undefined, options);
-
-  // Format time: e.g., "2:05 PM"
-  const hours = date.getHours();
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-  const hour12 = hours % 12 || 12;
-  const formattedTime = `${hour12}:${minutes} ${ampm}`;
-
-  return `${formattedDate} ${formattedTime}`;
-};
-
+  };
 
   /** ----------------- UI ----------------- **/
   return (
