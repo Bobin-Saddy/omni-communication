@@ -33,7 +33,30 @@ function getShopDomainFromAdminUrl() {
   return null;
 }
 
-export default function SocialChatDashboard() {
+function detectShopDomain(page) {
+  // 1️⃣ Use page.storeDomain if exists
+  if (page?.storeDomain) return normalizeShopDomain(page.storeDomain);
+
+  // 2️⃣ Use ?shop= query param
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("shop")) return normalizeShopDomain(urlParams.get("shop"));
+
+  // 3️⃣ Embedded admin URL
+  const match = window.location.href.match(/\/store\/([^/]+)/);
+  if (match && match[1]) return normalizeShopDomain(match[1]);
+
+  // 4️⃣ Local storage fallback
+  const stored = localStorage.getItem("shopDomain");
+  if (stored) return normalizeShopDomain(stored);
+
+  // 5️⃣ Dataset fallback
+  const el = document.querySelector("#oc-chat");
+  if (el?.dataset?.store) return normalizeShopDomain(el.dataset.store);
+
+  console.error("❌ Could not detect shop domain");
+  return null;
+}
+
   function normalizeShopDomain(domain) {
   if (!domain) return null;
   let d = domain.trim().toLowerCase();
@@ -43,6 +66,9 @@ export default function SocialChatDashboard() {
   }
   return d;
 }
+
+
+export default function SocialChatDashboard() {
 
 
 
@@ -287,10 +313,10 @@ useEffect(() => {
 
       // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-const shopDomain =
+ const shopDomain =
     normalizeShopDomain(page.storeDomain) ||
     getShopDomainFromAppBridge() ||
-    getShopDomainFromAdminUrl() || // <-- NEW
+    getShopDomainFromAdminUrl() ||
     localStorage.getItem("shopDomain") ||
     document.querySelector("#oc-chat")?.dataset?.store ||
     null;
@@ -304,14 +330,14 @@ const shopDomain =
   // Save for future use
   localStorage.setItem("shopDomain", shopDomain);
 
-  const res = await fetch(
+  // -------- 1️⃣ Fetch sessions for this shop --------
+  const sessionRes = await fetch(
     `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
   );
-  const data = await res.json();
-
-  if (Array.isArray(data?.sessions)) {
-    // Filter sessions strictly for this store
-    const convs = data.sessions
+  const sessionData = await sessionRes.json();
+ 
+  if (Array.isArray(sessionData?.sessions)) {
+    const convs = sessionData.sessions
       .filter((s) => s.storeDomain === shopDomain)
       .map((s) => ({
         id: s.sessionId,
@@ -329,10 +355,12 @@ const shopDomain =
       ...convs,
     ]);
 
+ 
     if (convs.length > 0) {
       const firstConv = convs[0];
       setActiveConversation(firstConv);
 
+      // -------- 2️⃣ Fetch messages for first conversation --------
       const msgRes = await fetch(
         `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
       );
@@ -345,6 +373,7 @@ const shopDomain =
         }));
       }
     }
+  
   }
   return;
 }
@@ -468,25 +497,28 @@ const sendMessage = async (text = "", file = null) => {
   if (!page) return;
 
   const localId = "temp-" + Date.now();
-  const userName = activeConversation?.userName || null; // dynamic name
+  const userName = activeConversation?.userName || `User-${activeConversation.id}`;
 
-  /** ========== WhatsApp ========== **/
-  if (page.type === "whatsapp") {
-    const convId = activeConversation.id;
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text: text || null,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
+  // Optimistic message
+  const optimistic = {
+    _tempId: localId,
+    sender: "me",
+    name: userName,
+    text: text || null,
+    fileUrl: file ? URL.createObjectURL(file) : null,
+    fileName: file?.name || null,
+    createdAt: new Date().toISOString(),
+    uploading: !!file,
+  };
 
-    setMessages((prev) => ({
-      ...prev,
-      [convId]: [...(prev[convId] || []), optimistic],
-    }));
+  setMessages((prev) => ({
+    ...prev,
+    [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
+  }));
 
-    try {
+  try {
+    /** ========== WhatsApp ========== **/
+    if (page.type === "whatsapp") {
       let platformMessageId = null;
       let fileUrl = null;
 
@@ -532,6 +564,7 @@ const sendMessage = async (text = "", file = null) => {
         platformMessageId = data?.messages?.[0]?.id || null;
       }
 
+      // Save message in DB
       const savePayload = {
         number: activeConversation.userNumber,
         text,
@@ -548,223 +581,152 @@ const sendMessage = async (text = "", file = null) => {
         body: JSON.stringify(savePayload),
       });
 
+      // Update optimistic message
       setMessages((prev) => {
-        const arr = [...(prev[convId] || [])];
+        const arr = [...(prev[activeConversation.id] || [])];
         const idx = arr.findIndex((m) => m._tempId === localId);
         if (idx !== -1) {
           arr[idx] = { ...arr[idx], fileUrl, platformMessageId, uploading: false };
           delete arr[idx]._tempId;
         }
-        return { ...prev, [convId]: arr };
+        return { ...prev, [activeConversation.id]: arr };
       });
-    } catch (err) {
-      console.error("WhatsApp send/save error:", err);
-      setMessages((prev) => {
-        const arr = [...(prev[convId] || [])];
-        const idx = arr.findIndex((m) => m._tempId === localId);
-        if (idx !== -1) arr[idx] = { ...arr[idx], failed: true, uploading: false };
-        return { ...prev, [convId]: arr };
-      });
+
+      return;
     }
-    return;
-  }
 
-  /** ========== Instagram ========== **/
-  if (page.type === "instagram") {
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
-    }));
+    /** ========== Instagram ========== **/
+    if (page.type === "instagram") {
+      const recipientId =
+        activeConversation.recipientId ||
+        activeConversation.participants?.data?.find((p) => p.id && p.id !== page.igId)?.id;
+      if (!recipientId) return console.error("No IG recipient id");
 
-    const recipientId =
-      activeConversation.recipientId ||
-      activeConversation.participants?.data?.find((p) => p.id && p.id !== page.igId)?.id;
-    if (!recipientId) return console.error("No IG recipient id");
-
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messaging_type: "RESPONSE", recipient: { id: recipientId }, message: { text } }),
-      }
-    );
-    const result = await res.json();
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
-      return { ...prev, [activeConversation.id]: arr };
-    });
-    if (!res.ok) console.error("Instagram send failed:", result);
-    return;
-  }
-
-  /** ========== Facebook ========== **/
-  if (page.type === "facebook") {
-    const optimistic = {
-      _tempId: localId,
-      sender: "me",
-      text,
-      createdAt: new Date().toISOString(),
-      uploading: !!file,
-    };
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [...(prev[activeConversation.id] || []), optimistic],
-    }));
-
-    const userParticipant = activeConversation.participants?.data?.find((p) => p.id !== page.id);
-    if (!userParticipant) return;
-
-    const res = await fetch(
-      `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipient: { id: userParticipant.id },
-          message: { text },
-          messaging_type: "MESSAGE_TAG",
-          tag: "ACCOUNT_UPDATE",
-        }),
-      }
-    );
-    const result = await res.json();
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
-      return { ...prev, [activeConversation.id]: arr };
-    });
-    if (!res.ok) console.error("Facebook send failed:", result);
-    return;
-  }
-
-  /** ========== ChatWidget ========== **/
-if (page.type === "chatwidget") {
-  const optimistic = {
-    _tempId: localId,
-    sender: "me",
-    name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic fallback
-    text: text || null,
-    fileUrl: file ? URL.createObjectURL(file) : null,
-    fileName: file?.name || null,
-    createdAt: new Date().toISOString(),
-    uploading: !!file,
-  };
-
-  setMessages((prev) => ({
-    ...prev,
-    [activeConversation.id]: [
-      ...(prev[activeConversation.id] || []),
-      optimistic,
-    ],
-  }));
-
-  try {
-    let payload;
-
-    if (file) {
-      // Upload file first
-      const fd = new FormData();
-      fd.append("file", file);
-      const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
-      const uploadData = await uploadRes.json();
-      if (!uploadData.success) throw new Error("Upload failed");
-
-const storeDomain =
-  activeConversation.storeDomain ||
-  page.storeDomain ||
-  page.store_domain ||
-  localStorage.getItem("shopDomain") ||
-  null;
-
-if (!storeDomain) {
-  console.error("❌ No shop domain detected for chatwidget sendMessage");
-  return;
-}
-
-payload = {
-  sessionId: activeConversation.id,
-  storeDomain,
-  sender: "me",
-  name: activeConversation.userName || `User-${activeConversation.id}`,
-  ...(file
-    ? { fileUrl: uploadData.url, fileName: file.name }
-    : { message: text, text }),
-};
-
- } else {
-  const storeDomain =
-    activeConversation.storeDomain ||
-    page.storeDomain ||
-    page.store_domain ||
-    localStorage.getItem("shopDomain") ||
-    null;
-
-  if (!storeDomain) {
-    console.error("❌ No shop domain detected for chatwidget sendMessage");
-    return;
-  }
-
-  payload = {
-    sessionId: activeConversation.id,
-    storeDomain,
-    sender: "me",
-    name: activeConversation.userName || `User-${activeConversation.id}`,
-    message: text,
-    text,
-  };
-}
-
-
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => null);
-
-    // Update optimistic message
-    setMessages((prev) => {
-      const arr = [...(prev[activeConversation.id] || [])];
-      const idx = arr.findIndex((m) => m._tempId === localId);
-      if (idx !== -1) {
-        if (data?.ok && data.message) {
-          arr[idx] = {
-            ...arr[idx],
-            ...data.message,
-            uploading: false,
-            failed: false,
-          };
-        } else {
-          arr[idx] = {
-            ...arr[idx],
-            uploading: false,
-            failed: true,
-            error: data?.error || "Upload failed",
-          };
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/${page.pageId}/messages?access_token=${page.access_token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messaging_type: "RESPONSE",
+            recipient: { id: recipientId },
+            message: { text },
+          }),
         }
-        delete arr[idx]._tempId;
+      );
+      const result = await res.json();
+
+      setMessages((prev) => {
+        const arr = [...(prev[activeConversation.id] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1)
+          arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
+        return { ...prev, [activeConversation.id]: arr };
+      });
+
+      if (!res.ok) console.error("Instagram send failed:", result);
+      return;
+    }
+
+    /** ========== Facebook ========== **/
+    if (page.type === "facebook") {
+      const userParticipant = activeConversation.participants?.data?.find((p) => p.id !== page.id);
+      if (!userParticipant) return;
+
+      const res = await fetch(
+        `https://graph.facebook.com/v18.0/me/messages?access_token=${page.access_token}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: { id: userParticipant.id },
+            message: { text },
+            messaging_type: "MESSAGE_TAG",
+            tag: "ACCOUNT_UPDATE",
+          }),
+        }
+      );
+      const result = await res.json();
+
+      setMessages((prev) => {
+        const arr = [...(prev[activeConversation.id] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1)
+          arr[idx] = { ...arr[idx], text, sender: "me", uploading: false, createdAt: new Date().toISOString() };
+        return { ...prev, [activeConversation.id]: arr };
+      });
+
+      if (!res.ok) console.error("Facebook send failed:", result);
+      return;
+    }
+
+    /** ========== ChatWidget ========== **/
+    if (page.type === "chatwidget") {
+      const storeDomain =
+        activeConversation.storeDomain || page.storeDomain || page.store_domain || localStorage.getItem("shopDomain");
+      if (!storeDomain) {
+        console.error("❌ No shop domain detected for chatwidget sendMessage");
+        return;
       }
+
+      let payload;
+      if (file) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const uploadRes = await fetch("/upload-image", { method: "POST", body: fd });
+        const uploadData = await uploadRes.json();
+        if (!uploadData.success) throw new Error("Upload failed");
+
+        payload = {
+          sessionId: activeConversation.id,
+          storeDomain,
+          sender: "me",
+          name: userName,
+          fileUrl: uploadData.url,
+          fileName: file.name,
+        };
+      } else {
+        payload = {
+          sessionId: activeConversation.id,
+          storeDomain,
+          sender: "me",
+          name: userName,
+          message: text,
+          text,
+        };
+      }
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => null);
+
+      setMessages((prev) => {
+        const arr = [...(prev[activeConversation.id] || [])];
+        const idx = arr.findIndex((m) => m._tempId === localId);
+        if (idx !== -1) {
+          if (data?.ok && data.message) arr[idx] = { ...arr[idx], ...data.message, uploading: false, failed: false };
+          else arr[idx] = { ...arr[idx], uploading: false, failed: true, error: data?.error || "Upload failed" };
+          delete arr[idx]._tempId;
+        }
+        return { ...prev, [activeConversation.id]: arr };
+      });
+
+      return;
+    }
+  } catch (err) {
+    console.error("sendMessage error:", err);
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) arr[idx] = { ...arr[idx], uploading: false, failed: true, error: err.message || "Send failed" };
       return { ...prev, [activeConversation.id]: arr };
     });
-  } catch (err) {
-    console.error("ChatWidget send error:", err);
   }
-
-  return;
-}
-
 };
+
 
 
 
