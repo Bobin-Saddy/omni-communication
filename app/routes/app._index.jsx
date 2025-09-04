@@ -1,8 +1,6 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
-const currentURL = window.location.href;
-console.log('currentURL-->', currentURL);
 export default function SocialChatDashboard() {
   const currentURL = window.location.href;
 console.log('currentURL-->', currentURL);
