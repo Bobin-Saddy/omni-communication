@@ -1,41 +1,44 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
-function getShopDomain() {
+
+function resolveShopDomain() {
   let shopDomain = null;
 
   try {
-    // ✅ Highest priority: query param from Shopify app bridge
+    // Case 1: Embedded app → Shopify passes ?shop=domain.myshopify.com
     const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get("shop"); // e.g. "checkd-lorem.myshopify.com"
+    const shopParam = urlParams.get("shop");
     if (shopParam) {
-      shopDomain = shopParam.split(".myshopify.com")[0]; 
-      console.log("📦 Extracted shop param:", shopDomain);
+      shopDomain = shopParam.split(".myshopify.com")[0];
+      console.log("📦 Extracted from query param:", shopDomain);
       return shopDomain;
     }
 
-    // ✅ Storefront case
+    // Case 2: Storefront (like checkd-lorem.myshopify.com)
     const host = window.location.host;
     if (host.includes("myshopify.com")) {
       shopDomain = host.split(".myshopify.com")[0];
+      console.log("🛒 Extracted from storefront host:", shopDomain);
       return shopDomain;
     }
 
-    // ✅ Admin case (embedded app)
+    // Case 3: Admin dashboard (like admin.shopify.com/store/checkd-lorem/apps/…)
     if (host.includes("admin.shopify.com")) {
       const parts = window.location.pathname.split("/");
       const storeIndex = parts.indexOf("store");
       if (storeIndex !== -1 && parts.length > storeIndex + 1) {
         shopDomain = parts[storeIndex + 1];
+        console.log("⚙️ Extracted from admin URL:", shopDomain);
         return shopDomain;
       }
     }
   } catch (err) {
-    console.error("Error extracting shop domain:", err);
+    console.error("❌ Error extracting shop domain:", err);
   }
 
-  console.log("❌ No shop domain detected");
-  return null;
+  console.warn("⚠️ No shop domain detected, using fallback.");
+  return "unknown-shop";
 }
 
 
@@ -60,6 +63,64 @@ export default function SocialChatDashboard() {
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    async function fetchChats() {
+      const shopDomain = resolveShopDomain(); // ✅ Always normalized
+
+      try {
+        const res = await fetch(
+          `/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
+        );
+        const data = await res.json();
+
+        if (Array.isArray(data?.sessions)) {
+          const convs = data.sessions.map((s) => ({
+            id: s.sessionId,
+            pageId: shopDomain,
+            pageName: shopDomain,
+            pageType: "chatwidget",
+            participants: { data: [{ name: s.name || "Guest User" }] },
+            sessionId: s.sessionId,
+            storeDomain: shopDomain,
+            name: s.name,
+          }));
+
+          setConversations((prev) => [
+            ...prev.filter((c) => c.pageId !== shopDomain),
+            ...convs,
+          ]);
+
+          // Auto-select first conversation + load messages
+          if (convs.length > 0) {
+            const firstConv = convs[0];
+            setActiveConversation(firstConv);
+
+            const msgRes = await fetch(
+              `/api/chat?storeDomain=${encodeURIComponent(
+                firstConv.storeDomain
+              )}&sessionId=${encodeURIComponent(firstConv.sessionId)}`
+            );
+
+            if (msgRes.ok) {
+              const msgData = await msgRes.json();
+              setMessages((prev) => ({
+                ...prev,
+                [firstConv.id]: Array.isArray(msgData?.messages)
+                  ? msgData.messages
+                  : [],
+              }));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("❌ Error fetching chats:", err);
+      }
+    }
+
+    fetchChats();
+  }, [setConversations, setActiveConversation, setMessages]);
+
 
   function normalizeShopDomain(input) {
   if (!input) return null;
