@@ -10,44 +10,53 @@ export const loader = async ({ request }) => {
     return new Response("Missing params", { status: 400 });
   }
 
-const stream = new ReadableStream({
-  async start(controller) {
-    let lastTimestamp = new Date();
+  let lastTimestamp = new Date();
 
-    // Immediately fetch any existing messages (optional)
-    const initialMessages = await prisma.storeChatMessage.findMany({
-      where: { sessionId, storeDomain },
-      orderBy: { createdAt: "asc" },
-    });
-
-    initialMessages.forEach((msg) => {
-      controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
-      lastTimestamp = msg.createdAt;
-    });
-
-    const interval = setInterval(async () => {
+  const stream = new ReadableStream({
+    async start(controller) {
+      // Send any existing messages immediately
       try {
-        const messages = await prisma.storeChatMessage.findMany({
-          where: { sessionId, storeDomain, createdAt: { gt: lastTimestamp } },
+        const initialMessages = await prisma.storeChatMessage.findMany({
+          where: { sessionId, storeDomain },
           orderBy: { createdAt: "asc" },
         });
 
-        messages.forEach((msg) => {
+        initialMessages.forEach((msg) => {
           controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
-          lastTimestamp = msg.createdAt;
+          lastTimestamp = new Date(msg.createdAt);
         });
       } catch (err) {
-        console.error("Error fetching chat messages:", err);
+        console.error("Error fetching initial messages:", err);
       }
-    }, 1000); // Poll every 1s instead of 2s
 
-    return {
-      cancel() {
+      // Polling for new messages
+      const interval = setInterval(async () => {
+        try {
+          const messages = await prisma.storeChatMessage.findMany({
+            where: { 
+              sessionId, 
+              storeDomain, 
+              createdAt: { gt: lastTimestamp } 
+            },
+            orderBy: { createdAt: "asc" },
+          });
+
+          messages.forEach((msg) => {
+            controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
+            lastTimestamp = new Date(msg.createdAt);
+          });
+        } catch (err) {
+          console.error("Error fetching new messages:", err);
+        }
+      }, 1000);
+
+      // Cleanup on client disconnect
+      controller.signal.addEventListener("abort", () => {
         clearInterval(interval);
-      },
-    };
-  },
-});
+        controller.close();
+      });
+    },
+  });
 
   return new Response(stream, {
     headers: {
