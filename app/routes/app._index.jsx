@@ -1,6 +1,5 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
-import createApp from '@shopify/app-bridge';
 import { io } from "socket.io-client";
 
 export default function SocialChatDashboard() {
@@ -15,17 +14,29 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const [uploading, setUploading] = useState(false);
-const app = createApp({
-  apiKey: process.env.SHOPIFY_API_KEY,
-  shopOrigin: window.location.hostname,
-  forceRedirect: true,
-});
-
-// Get shop domain
-const shop = app.config.shopOrigin;
-console.log("Shop domain:", shop);
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [shopDomain, setShopDomain] = useState("");
+
+useEffect(() => {
+  const domain = getShopDomainFromUrl();
+  if (domain) setShopDomain(domain);
+}, []);
+
+useEffect(() => {
+   console.log("shopDomain---", shopDomain);
+}, [shopDomain]);
+
+function getShopDomainFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("shop"); // e.g., "myshop.myshopify.com"
+  } catch (e) {
+    console.warn("Unable to extract shop domain", e);
+    return null;
+  }
+}
+
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPd0HoVJtMtBTY8V8kobwsZCz8OCxcZBk97aaMQf2kq2mhJ3BOsmGKbKlApwvPRy6ZBJZAmgZA5MDa16bVfZB8HzzVxygoIoDGMBeIOxyZCYiI9XJ8HtK26HtA9piZCc1e2pSGskDgSck8bn00gakg7JVwTJMqAZCDyHacsJ7ZANESRvENa33bPs7Ip8nTp3QpxtsRzn8uI17qCHuZAQSCHUIABkYgLwYX8uCwZDZD";
