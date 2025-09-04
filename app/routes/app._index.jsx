@@ -41,46 +41,47 @@ useEffect(() => {
 
 
 useEffect(() => {
-  if (!activeConversation || activeConversation.pageType !== "chatwidget") return;
+  if (!connectedPages.length) return;
 
-  const es = new EventSource(
-    `/api/chat/stream?storeDomain=${encodeURIComponent(activeConversation.storeDomain)}`
-  );
+  // Listen to all chatwidget pages
+  const chatwidgetPages = connectedPages.filter(p => p.type === "chatwidget");
+  const sources = [];
 
-  es.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+  chatwidgetPages.forEach(page => {
+    const es = new EventSource(`/api/chat/stream?storeDomain=${encodeURIComponent(page.storeDomain)}`);
 
-    // Filter by storeDomain AND sessionId
-    if (
-      data.storeDomain !== activeConversation.storeDomain ||
-      !data.sessionId
-    )
-      return;
+    es.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (!data.sessionId || !data.storeDomain) return;
 
-    setMessages((prev) => ({
-      ...prev,
-      [data.sessionId]: [
-        ...(prev[data.sessionId] || []),
-        {
-          text: data.text,
-          sender: data.sender || "them",
-          fileUrl: data.fileUrl || null,
-          fileName: data.fileName || null,
-          createdAt: data.createdAt,
-          name: data.name || `User-${data.sessionId}`,
-          failed: false,
-        },
-      ],
-    }));
-  };
+      setMessages(prev => ({
+        ...prev,
+        [data.sessionId]: [
+          ...(prev[data.sessionId] || []),
+          {
+            text: data.text,
+            sender: data.sender || "them",
+            fileUrl: data.fileUrl || null,
+            fileName: data.fileName || null,
+            createdAt: data.createdAt,
+            name: data.name || `User-${data.sessionId}`,
+            failed: false,
+          }
+        ]
+      }));
+    };
 
-  es.onerror = (err) => {
-    console.warn("SSE error for chatwidget:", err);
-    es.close();
-  };
+    es.onerror = (err) => {
+      console.warn("SSE error for chatwidget:", err);
+      es.close();
+    };
 
-  return () => es.close();
-}, [activeConversation]);
+    sources.push(es);
+  });
+
+  return () => sources.forEach(es => es.close());
+}, [connectedPages]);
+
 
 
 
