@@ -19,8 +19,12 @@ export default function SocialChatDashboard() {
   const [shopDomain, setShopDomain] = useState("");
 
 useEffect(() => {
-  const domain = window.Shopify?.shop || getShopDomainFromUrl();
-  if (domain) setShopDomain(domain);
+  const checkShop = () => {
+    const domain = getShopDomainFromUrl();
+    if (domain) setShopDomain(domain);
+    else setTimeout(checkShop, 100); // retry after 100ms
+  };
+  checkShop();
 }, []);
 
 
