@@ -38,7 +38,7 @@
     /* ---------- Chat Container ---------- */
     .oc-chat-container {
       position: fixed;
-      right: -10%;
+      right: 20px;
       bottom: 90px;
       width: 340px;
       max-height: 70vh;
@@ -55,6 +55,7 @@
       transition: all 0.35s ease;
       z-index: 99999;
     }
+
     .oc-chat-container.open {
       transform: translateY(0);
       opacity: 1;
@@ -184,7 +185,7 @@
 
   <script>
   (function(){
-    const root     = document.currentScript.closest('#oc-chat');
+    const root     = document.getElementById('oc-chat');  // ✅ fixed
     const store    = root.dataset.store;
     const endpoint = root.dataset.endpoint;
     const origin   = window.location.origin;
@@ -198,13 +199,14 @@
     const newPill   = root.querySelector('.oc-new-pill');
     const fileInput = root.querySelector('#oc-file-input');
 
-    const nameOverlay = document.querySelector('.oc-name-overlay');
+    const nameOverlay = root.querySelector('.oc-name-overlay'); // ✅ scoped to root
     const nameInput = nameOverlay.querySelector('input[type="text"]');
     const nameBtn = nameOverlay.querySelector('button');
 
     const sidKey = 'oc_chat_sid';
     function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
-    let SID = localStorage.getItem(sidKey) || (uuid(), localStorage.setItem(sidKey,SID));
+    let SID = localStorage.getItem(sidKey);
+    if(!SID){ SID = uuid(); localStorage.setItem(sidKey,SID); } // ✅ fixed SID assignment
     let customerName = localStorage.getItem('oc_chat_name') || '';
 
     function startChat(){
@@ -335,6 +337,3 @@
   ]
 }
 {% endschema %}
-
-
-

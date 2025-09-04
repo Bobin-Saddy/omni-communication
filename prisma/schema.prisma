@@ -131,11 +131,11 @@ model StoreChatMessage {
   storeDomain  String
   sessionId    String
   sender       String
-  name         String?   // new field
-  text         String?   // make optional
+  name         String?
+  text         String?
   fileUrl      String?
   fileName     String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
   @@index([storeDomain, sessionId, createdAt])
   @@map("store_chat_messages")
@@ -146,9 +146,10 @@ model StoreChatMessage {
 model StoreChatSession {
   id           Int      @id @default(autoincrement())
   storeDomain  String
-  sessionId    String   @unique
+  sessionId    String
   createdAt    DateTime @default(now())
   lastSeenAt   DateTime @updatedAt
 
-  @@map("store_chat_sessions") // database table name
+  @@unique([storeDomain, sessionId]) // <-- better than global unique
+  @@map("store_chat_sessions")
 }
