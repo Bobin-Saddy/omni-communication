@@ -314,7 +314,7 @@ if (page.type === "chatwidget") {
     return;
   }
 
-  const res = await fetch(`/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`);
+  const res = await fetch( `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`);
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
