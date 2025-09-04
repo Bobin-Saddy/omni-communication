@@ -245,7 +245,10 @@ useEffect(() => {
 // Chat Widget (fetch sessions)
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const res = await fetch(`/api/chat?widget=true`);
+const res = await fetch(
+  `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
+);
+
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
