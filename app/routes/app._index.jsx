@@ -14,7 +14,9 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const [uploading, setUploading] = useState(false);
-
+  useEffect(() => {
+    console.log("window.location.href", window.location.href);
+  }, [])
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
