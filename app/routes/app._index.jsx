@@ -240,35 +240,45 @@ useEffect(() => {
         }
         return;
       }
-function getShopDomain() {
-  let shopDomain = null;
-
+function getShopDomain(page) {
   try {
-    const host = window.location.host; // e.g. "checkd-lorem.myshopify.com" OR "admin.shopify.com"
+    const host = window.location.host; // "checkd-lorem.myshopify.com" OR "admin.shopify.com"
 
     if (host.includes("myshopify.com")) {
-      shopDomain = host.split(".myshopify.com")[0]; // storefront → "checkd-lorem"
-    } else if (host.includes("admin.shopify.com")) {
+      return host.split(".myshopify.com")[0]; // storefront
+    }
+
+    if (host.includes("admin.shopify.com")) {
       const parts = window.location.pathname.split("/");
       const storeIndex = parts.indexOf("store");
       if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        shopDomain = parts[storeIndex + 1]; // admin → "checkd-lorem"
+        return parts[storeIndex + 1]; // admin
       }
     }
+
+    // 👉 fallback to page.name or page.storeDomain if available
+    if (page?.storeDomain) return page.storeDomain;
+    if (page?.name) return page.name;
+
   } catch (err) {
     console.error("Error extracting shop domain:", err);
   }
-
-  return shopDomain;
+  return null;
 }
 
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const shopDomain = getShopDomain();
+   const shopDomain = getShopDomain(page);
+
+  if (!shopDomain) {
+    console.error("❌ No shop domain detected for chatwidget");
+    return;
+  }
 
   const res = await fetch(
     `/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
   );
+
 
   const data = await res.json();
 
