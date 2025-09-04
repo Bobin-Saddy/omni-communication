@@ -1,29 +1,44 @@
-// app/routes/api/chat/stream.jsx
-import { json } from "@remix-run/node";
 
-export const loader = ({ request }) => {
+
+import { db } from "../db.server"; // ya jahan aapka DB hai
+
+export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const sessionId = url.searchParams.get("sessionId");
   const storeDomain = url.searchParams.get("storeDomain");
 
-  if (!sessionId) {
-    return json({ error: "sessionId is required" }, { status: 400 });
+  if (!sessionId || !storeDomain) {
+    return new Response("Missing params", { status: 400 });
   }
 
   return new Response(
     new ReadableStream({
-      start(controller) {
-        // Example: send a message every 2s
-        const interval = setInterval(() => {
-          const data = JSON.stringify({
-            text: "Hello from server",
-            createdAt: new Date().toISOString(),
-            sender: "them",
+      async start(controller) {
+        // Example: Poll DB every 2 seconds for new messages
+        let lastTimestamp = new Date(0); // start from epoch
+
+        const interval = setInterval(async () => {
+          // DB query: only messages for this session & domain
+          const messages = await db.chat.findMany({
+            where: {
+              sessionId,
+              storeDomain,
+              createdAt: { gt: lastTimestamp },
+            },
+            orderBy: { createdAt: "asc" },
           });
-          controller.enqueue(`data: ${data}\n\n`);
+
+          messages.forEach((msg) => {
+            const data = JSON.stringify({
+              text: msg.text,
+              sender: msg.sender,
+              createdAt: msg.createdAt,
+            });
+            controller.enqueue(`data: ${data}\n\n`);
+            lastTimestamp = msg.createdAt;
+          });
         }, 2000);
 
-        // Cleanup when client disconnects
         return () => clearInterval(interval);
       },
     }),
