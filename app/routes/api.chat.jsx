@@ -37,12 +37,13 @@ if (url.searchParams.get("widget") === "true") {
     );
   }
 
-  const sessions = await prisma.storeChatMessage.findMany({
-    where: { storeDomain }, // ✅ only this store
-    distinct: ["sessionId"],
-    orderBy: { createdAt: "desc" },
-    select: { sessionId: true, storeDomain: true },
-  });
+const sessions = await prisma.storeChatMessage.findMany({
+  where: { storeDomain }, // ✅ only this store
+  distinct: ["sessionId"],
+  orderBy: { createdAt: "desc" },
+  select: { sessionId: true, storeDomain: true },
+});
+
 
   const sessionsWithName = await Promise.all(
     sessions.map(async (s) => {
@@ -75,10 +76,10 @@ if (url.searchParams.get("widget") === "true") {
     );
   }
 
-  const messages = await prisma.storeChatMessage.findMany({
-    where: { storeDomain, sessionId },
-    orderBy: { createdAt: "asc" },
-  });
+const messages = await prisma.storeChatMessage.findMany({
+  where: { storeDomain, sessionId }, // ✅ storeDomain included
+  orderBy: { createdAt: "asc" },
+});
 
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
@@ -153,9 +154,10 @@ await prisma.storeChatSession.upsert({
 });
 
   // ----------------- Save message -----------------
-  const savedMessage = await prisma.storeChatMessage.create({
-    data: { sessionId, storeDomain, sender, name, text: message, fileUrl, fileName },
-  });
+await prisma.storeChatMessage.create({
+  data: { sessionId, storeDomain, sender, name, text: message, fileUrl, fileName },
+});
+
 
   return json(
     { ok: true, message: { ...savedMessage, fileUrl, fileName } },
