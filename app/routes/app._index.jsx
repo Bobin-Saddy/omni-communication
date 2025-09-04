@@ -39,55 +39,47 @@ useEffect(() => {
   connectedPages.forEach((page) => fetchConversations(page));
 }, [connectedPages]);
 
-useEffect(() => {
-  if (!connectedPages.length) return;
+ useEffect(() => {
+    if (!connectedPages.length) return;
 
-  const chatwidgetPages = connectedPages.filter(p => p.type === "chatwidget");
+    const chatwidgetPages = connectedPages.filter((p) => p.type === "chatwidget");
+    const sources = [];
 
-  const sources = [];
+    chatwidgetPages.forEach((page) => {
+      const domain = page.storeDomain || page.name || "default-shop";
+      const es = new EventSource(`/api/chat/stream?storeDomain=${encodeURIComponent(domain)}`);
 
-  chatwidgetPages.forEach(page => {
-    if (!page.storeDomain) {
-      console.warn("Skipping chatwidget page: storeDomain missing", page);
-      return; // ✅ skip pages with undefined storeDomain
-    }
+      es.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (!data.sessionId) return;
 
-    const es = new EventSource(
-      `/api/chat/stream?storeDomain=${encodeURIComponent(page.storeDomain)}`
-    );
+        setMessages((prev) => ({
+          ...prev,
+          [data.sessionId]: [
+            ...(prev[data.sessionId] || []),
+            {
+              text: data.text,
+              sender: data.sender || "them",
+              fileUrl: data.fileUrl || null,
+              fileName: data.fileName || null,
+              createdAt: data.createdAt,
+              name: data.name || `User-${data.sessionId}`,
+              failed: false,
+            },
+          ],
+        }));
+      };
 
-    es.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (!data.sessionId) return;
+      es.onerror = (err) => {
+        console.warn("SSE error for chatwidget:", err);
+        es.close();
+      };
 
-      setMessages(prev => ({
-        ...prev,
-        [data.sessionId]: [
-          ...(prev[data.sessionId] || []),
-          {
-            text: data.text,
-            sender: data.sender || "them",
-            fileUrl: data.fileUrl || null,
-            fileName: data.fileName || null,
-            createdAt: data.createdAt,
-            name: data.name || `User-${data.sessionId}`,
-            failed: false,
-          }
-        ]
-      }));
-    };
+      sources.push(es);
+    });
 
-    es.onerror = (err) => {
-      console.warn("SSE error for chatwidget:", err);
-      es.close();
-    };
-
-    sources.push(es);
-  });
-
-  return () => sources.forEach(es => es.close());
-}, [connectedPages]);
-
+    return () => sources.forEach((es) => es.close());
+  }, [connectedPages]);
 
 
 
@@ -252,33 +244,30 @@ useEffect(() => {
 
       // Chat Widget (fetch sessions)
 // Chat Widget (fetch sessions)
-if (page.type === "chatwidget") {
-  const res = await fetch(`/api/chat?widget=true&storeDomain=${encodeURIComponent(page.storeDomain)}`);
-  const data = await res.json();
+ if (page.type === "chatwidget") {
+        const storeDomain = page.storeDomain || page.name || "default-shop";
+        const res = await fetch(`/api/chat?widget=true&storeDomain=${encodeURIComponent(storeDomain)}`);
+        const data = await res.json();
+        if (!Array.isArray(data?.sessions)) return;
 
-  if (!Array.isArray(data?.sessions)) return;
+        const convs = data.sessions.map((s) => ({
+          id: s.sessionId,
+          pageId: page.id,
+          pageName: page.name,
+          pageType: "chatwidget",
+          participants: { data: [{ name: s.name }] },
+          sessionId: s.sessionId,
+          storeDomain: storeDomain,
+          name: s.name,
+        }));
+        setConversations((prev) => [
+          ...prev.filter((c) => c.pageId !== page.id),
+          ...convs,
+        ]);
 
-  const convs = data.sessions.map((s) => ({
-   id: s.sessionId,
-  pageId: page.id,
-  pageName: page.name,
-  pageType: "chatwidget",
-  participants: { data: [{ name: s.name }] },
-  sessionId: s.sessionId,
-  storeDomain: page.storeDomain || s.storeDomain, // ✅ fallback
-  name: s.name,
-  }));
-
-  setConversations((prev) => [
-    ...prev.filter((c) => c.pageId !== page.id),
-    ...convs,
-  ]);
-
-  // Auto-select first conversation on this **store only**
-  const firstConv = convs.find(c => c.storeDomain === page.storeDomain);
-  if (firstConv) setActiveConversation(firstConv);
-}
-
+        const firstConv = convs.find((c) => c.storeDomain === storeDomain);
+        if (firstConv) setActiveConversation(firstConv);
+      }
 
     } catch (err) {
       console.error("Error fetching conversations:", err);
