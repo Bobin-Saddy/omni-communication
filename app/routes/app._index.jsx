@@ -678,16 +678,29 @@ payload = {
     : { message: text, text }),
 };
 
-    } else {
-      payload = {
-        sessionId: activeConversation.id,
-        storeDomain: activeConversation.storeDomain || "myshop.com",
-        sender: "me",
-        name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
-        message: text,
-        text,
-      };
-    }
+ } else {
+  const storeDomain =
+    activeConversation.storeDomain ||
+    page.storeDomain ||
+    page.store_domain ||
+    localStorage.getItem("shopDomain") ||
+    null;
+
+  if (!storeDomain) {
+    console.error("❌ No shop domain detected for chatwidget sendMessage");
+    return;
+  }
+
+  payload = {
+    sessionId: activeConversation.id,
+    storeDomain,
+    sender: "me",
+    name: activeConversation.userName || `User-${activeConversation.id}`,
+    message: text,
+    text,
+  };
+}
+
 
     const res = await fetch("/api/chat", {
       method: "POST",
