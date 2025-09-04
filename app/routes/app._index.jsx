@@ -306,9 +306,7 @@ const handleSelectConversation = async (conv) => {
     // ---------- ChatWidget ----------
     if (page.type === "chatwidget") {
   const res = await fetch(
-  `/api/chat?storeDomain=${encodeURIComponent(
-    conv.storeDomain || "myshop.com"
-  )}&sessionId=${encodeURIComponent(conv.sessionId)}`
+  `/api/chat?storeDomain=${encodeURIComponent(conv.storeDomain)}&sessionId=${encodeURIComponent(conv.sessionId)}`
 );
 
       if (res.ok) {
