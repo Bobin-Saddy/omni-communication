@@ -1,7 +1,6 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
-
-
+import { io } from "socket.io-client";
 
 export default function SocialChatDashboard() {
   const {
@@ -24,8 +23,6 @@ export default function SocialChatDashboard() {
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   const bottomRef = useRef(null);
-
-
 
 useEffect(() => {
   if (bottomRef.current) {
@@ -244,103 +241,52 @@ useEffect(() => {
         return;
       }
 
-
-
+      // Chat Widget (fetch sessions)
 // Chat Widget (fetch sessions)
-// ✅ Utility to normalize Shopify shop domains
-function normalizeShopDomain(domain) {
-  if (!domain) return null;
-  return domain
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/\/$/, "");
-}
-
-// ✅ Extract shop domain directly from App Bridge (if available)
-function getShopDomainFromAppBridge(app) {
-  try {
-    if (app && app.shopOrigin) {
-      return normalizeShopDomain(app.shopOrigin);
-    }
-    if (app && app.config && app.config.shopOrigin) {
-      return normalizeShopDomain(app.config.shopOrigin);
-    }
-  } catch (err) {
-    console.error("⚠️ Error extracting shop domain from App Bridge:", err);
-  }
-  return null;
-}
-
-// ✅ Fallback: Extract shop domain from URL (query param or pathname)
-function getShopDomain() {
-  try {
-    const url = new URL(window.location.href);
-
-    // Try query param ?shop=
-    const fromQuery = url.searchParams.get("shop");
-    if (fromQuery) return normalizeShopDomain(fromQuery);
-
-    // Try pathname (e.g. /apps/myapp?shop=xxx.myshopify.com)
-    const match = url.href.match(/([\w-]+\.myshopify\.com)/i);
-    if (match) return normalizeShopDomain(match[1]);
-  } catch (err) {
-    console.error("⚠️ Error extracting shop domain from URL:", err);
-  }
-  return null;
-}
-
-// ✅ Main logic for chatwidget pages
-async function handleChatWidgetPage(page, app, setConversations, setActiveConversation, setMessages) {
-  const shopDomain =
-    normalizeShopDomain(page.storeDomain) ||
-    getShopDomainFromAppBridge(app) ||
-    getShopDomain(); // ✅ prefer AppBridge > URL > page.storeDomain
-
-  console.log("✅ USING SHOP DOMAIN =>", shopDomain);
-
-  if (!shopDomain) {
-    console.error("❌ No shop domain detected for chatwidget");
-    return;
-  }
-
-  const res = await fetch(`/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`);
+// Chat Widget (fetch sessions)
+if (page.type === "chatwidget") {
+  const res = await fetch(`/api/chat?widget=true`);
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
-    const convs = data.sessions.map((s) => ({
-      id: s.sessionId, // master key
-      pageId: page.id,
-      pageName: page.name,
-      pageType: "chatwidget",
-      participants: { data: [{ name: s.name || "Guest User" }] },
-      storeDomain: shopDomain,
-      name: s.name,
+    // Use the 'name' field from your DB instead of sessionId
+const convs = data.sessions.map((s) => ({
+  id: s.sessionId,
+  pageId: page.id,
+  pageName: page.name,
+  pageType: "chatwidget",
+  participants: { data: [{ name: s.name }] },
+  sessionId: s.sessionId,
+  storeDomain: s.storeDomain,
+  name: s.name, // frontend sees actual name
+}));
+
+setConversations((prev) => [
+  ...prev.filter((c) => c.pageId !== page.id),
+  ...convs,
+]);
+
+// Auto-select first conversation and load messages
+if (convs.length > 0) {
+  const firstConv = convs[0];
+  setActiveConversation(firstConv);
+
+  const msgRes = await fetch(
+    `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
+  );
+
+  if (msgRes.ok) {
+    const msgData = await msgRes.json();
+    setMessages((prev) => ({
+      ...prev,
+      [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
     }));
-
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      ...convs,
-    ]);
-
-    if (convs.length > 0) {
-      const firstConv = convs[0];
-      setActiveConversation(firstConv);
-
-      const msgRes = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
-      );
-
-      if (msgRes.ok) {
-        const msgData = await msgRes.json();
-        setMessages((prev) => ({
-          ...prev,
-          [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
-        }));
-      }
-    }
   }
 }
 
+  }
+  return;
+}
 
 
     } catch (err) {
@@ -358,24 +304,23 @@ const handleSelectConversation = async (conv) => {
   try {
     // ---------- ChatWidget ----------
     if (page.type === "chatwidget") {
-const res = await fetch(
-  `/api/chat?storeDomain=${encodeURIComponent(conv.storeDomain)}&sessionId=${encodeURIComponent(conv.sessionId)}`
-);
-
+      const res = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(
+          conv.storeDomain || "myshop.com"
+        )}&sessionId=${encodeURIComponent(conv.id)}`
+      );
 
       if (res.ok) {
         const data = await res.json();
-setMessages((prev) => ({
-  ...prev,
-  [conv.id]: Array.isArray(data?.messages)
-    ? data.messages.map((m) => ({
-        ...m,
-        sender: m.sender === "me" ? "me" : "them",
-      }))
-    : [],
-}));
-
-
+        setMessages((prev) => ({
+          ...prev,
+          [conv.id]: Array.isArray(data?.messages)
+            ? data.messages.map((m) => ({
+                ...m,
+                sender: m.sender === "me" ? "me" : "them",
+              }))
+            : [],
+        }));
       }
       return;
     }
@@ -674,10 +619,8 @@ if (page.type === "chatwidget") {
       if (!uploadData.success) throw new Error("Upload failed");
 
       payload = {
-          sessionId: activeConversation.sessionId,
-
-          storeDomain: activeConversation.storeDomain,
-
+        sessionId: activeConversation.id,
+        storeDomain: activeConversation.storeDomain || "myshop.com",
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         fileUrl: uploadData.url,
@@ -685,9 +628,8 @@ if (page.type === "chatwidget") {
       };
     } else {
       payload = {
-            sessionId: activeConversation.sessionId,
-
-          storeDomain: activeConversation.storeDomain,
+        sessionId: activeConversation.id,
+        storeDomain: activeConversation.storeDomain || "myshop.com",
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         message: text,

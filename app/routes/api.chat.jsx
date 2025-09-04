@@ -25,45 +25,36 @@ export async function loader({ request }) {
   const url = new URL(request.url);
 
   // ----------------- Widget sessions -----------------
-if (url.searchParams.get("widget") === "true") {
-  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
-  if (!storeDomain) {
-    return json({ ok: false, error: "Missing storeDomain" }, { status: 400, headers: corsHeaders });
+  if (url.searchParams.get("widget") === "true") {
+    const sessions = await prisma.storeChatMessage.findMany({
+      distinct: ["sessionId", "storeDomain"],
+      orderBy: { createdAt: "desc" },
+      select: { sessionId: true, storeDomain: true },
+    });
+
+    const sessionsWithName = await Promise.all(
+      sessions.map(async (s) => {
+        const lastMessage = await prisma.storeChatMessage.findFirst({
+          where: { sessionId: s.sessionId, storeDomain: s.storeDomain },
+          orderBy: { createdAt: "desc" },
+        });
+
+        return {
+          sessionId: s.sessionId,
+          storeDomain: s.storeDomain,
+          name: lastMessage?.name || `User-${s.sessionId}`,
+        };
+      })
+    );
+
+    return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
   }
 
-  const sessions = await prisma.storeChatMessage.findMany({
-    where: { storeDomain },
-    distinct: ["sessionId"],
-    orderBy: { createdAt: "desc" },
-    select: { sessionId: true },
-  });
-
-  // Fetch last message for each session
-  const sessionsWithName = await Promise.all(
-    sessions.map(async (s) => {
-      const lastMessage = await prisma.storeChatMessage.findFirst({
-        where: { sessionId: s.sessionId, storeDomain },
-        orderBy: { createdAt: "desc" },
-      });
-
-      return {
-        sessionId: s.sessionId,
-        storeDomain,
-        name: lastMessage?.name || `User-${s.sessionId}`,
-      };
-    })
-  );
-
-  return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
-}
-
-
   // ----------------- Fetch messages for a session -----------------
-const storeDomain =
-  url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
-const sessionId =
-  url.searchParams.get("session_id") || url.searchParams.get("sessionId");
-
+  const storeDomain =
+    url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
+  const sessionId =
+    url.searchParams.get("session_id") || url.searchParams.get("sessionId");
 
   if (!storeDomain || !sessionId) {
     return json(
@@ -72,11 +63,10 @@ const sessionId =
     );
   }
 
-const messages = await prisma.storeChatMessage.findMany({
-  where: { storeDomain, sessionId },
-  orderBy: { createdAt: "asc" },
-});
-
+  const messages = await prisma.storeChatMessage.findMany({
+    where: { storeDomain, sessionId },
+    orderBy: { createdAt: "asc" },
+  });
 
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
@@ -138,13 +128,11 @@ else {
   sender = sender === "customer" ? "customer" : "me";
 
   // ----------------- Ensure session exists -----------------
-await prisma.storeChatSession.upsert({
-  where: { storeDomain_sessionId: { storeDomain, sessionId } },
-  update: {},
-  create: { storeDomain, sessionId },
-});
-
-
+  await prisma.storeChatSession.upsert({
+    where: { sessionId },
+    update: {},
+    create: { sessionId, storeDomain },
+  });
 
   // ----------------- Save message -----------------
   const savedMessage = await prisma.storeChatMessage.create({
