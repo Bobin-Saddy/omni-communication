@@ -44,14 +44,13 @@ useEffect(() => {
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
 useEffect(() => {
- if (activeConversation.storeDomain !== shopDomain) return; // ignore other stores
+  if (!activeConversation) return; // ✅ guard null
+  if (activeConversation.pageType !== "chatwidget") return;
+  if (activeConversation.storeDomain !== shopDomain) return; // only current store
 
-const es = new EventSource(
-  `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(shopDomain)}`
-);
-
-
-  
+  const es = new EventSource(
+    `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(activeConversation.storeDomain)}`
+  );
 
   es.onmessage = (event) => {
     try {
@@ -79,7 +78,8 @@ const es = new EventSource(
   };
 
   return () => es.close();
-}, [activeConversation]);
+}, [activeConversation, shopDomain]);
+
 
 
 useEffect(() => {
