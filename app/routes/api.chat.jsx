@@ -25,30 +25,42 @@ export async function loader({ request }) {
   const url = new URL(request.url);
 
   // ----------------- Widget sessions -----------------
-  if (url.searchParams.get("widget") === "true") {
-    const sessions = await prisma.storeChatMessage.findMany({
-      distinct: ["sessionId", "storeDomain"],
-      orderBy: { createdAt: "desc" },
-      select: { sessionId: true, storeDomain: true },
-    });
+// ----------------- Widget sessions -----------------
+if (url.searchParams.get("widget") === "true") {
+  const storeDomain =
+    url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
 
-    const sessionsWithName = await Promise.all(
-      sessions.map(async (s) => {
-        const lastMessage = await prisma.storeChatMessage.findFirst({
-          where: { sessionId: s.sessionId, storeDomain: s.storeDomain },
-          orderBy: { createdAt: "desc" },
-        });
-
-        return {
-          sessionId: s.sessionId,
-          storeDomain: s.storeDomain,
-          name: lastMessage?.name || `User-${s.sessionId}`,
-        };
-      })
+  if (!storeDomain) {
+    return json(
+      { ok: false, error: "Missing storeDomain" },
+      { status: 400, headers: corsHeaders }
     );
-
-    return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
   }
+
+  const sessions = await prisma.storeChatMessage.findMany({
+    where: { storeDomain }, // ✅ only this store
+    distinct: ["sessionId"],
+    orderBy: { createdAt: "desc" },
+    select: { sessionId: true, storeDomain: true },
+  });
+
+  const sessionsWithName = await Promise.all(
+    sessions.map(async (s) => {
+      const lastMessage = await prisma.storeChatMessage.findFirst({
+        where: { sessionId: s.sessionId, storeDomain },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return {
+        sessionId: s.sessionId,
+        storeDomain,
+        name: lastMessage?.name || `User-${s.sessionId}`,
+      };
+    })
+  );
+
+  return json({ ok: true, sessions: sessionsWithName }, { headers: corsHeaders });
+}
 
   // ----------------- Fetch messages for a session -----------------
   const storeDomain =

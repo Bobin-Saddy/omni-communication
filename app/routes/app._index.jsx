@@ -242,51 +242,60 @@ useEffect(() => {
       }
 
       // Chat Widget (fetch sessions)
-// Chat Widget (fetch sessions)
-// Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const res = await fetch(`/api/chat?widget=true`);
+  const shopDomain =
+    normalizeShopDomain(page.storeDomain) || getShopDomainFromAppBridge();
+
+  if (!shopDomain) {
+    console.error("❌ No shop domain detected for chatwidget");
+    return;
+  }
+
+const res = await fetch(
+  `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
+);
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
-    // Use the 'name' field from your DB instead of sessionId
-const convs = data.sessions.map((s) => ({
-  id: s.sessionId,
-  pageId: page.id,
-  pageName: page.name,
-  pageType: "chatwidget",
-  participants: { data: [{ name: s.name }] },
-  sessionId: s.sessionId,
-  storeDomain: s.storeDomain,
-  name: s.name, // frontend sees actual name
-}));
+    // Filter sessions strictly for this store
+    const convs = data.sessions
+      .filter((s) => s.storeDomain === shopDomain)
+      .map((s) => ({
+        id: s.sessionId,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: "chatwidget",
+        participants: { data: [{ name: s.name }] },
+        sessionId: s.sessionId,
+        storeDomain: s.storeDomain,
+        name: s.name,
+      }));
 
-setConversations((prev) => [
-  ...prev.filter((c) => c.pageId !== page.id),
-  ...convs,
-]);
+    setConversations((prev) => [
+      ...prev.filter((c) => c.pageId !== page.id),
+      ...convs,
+    ]);
 
-// Auto-select first conversation and load messages
-if (convs.length > 0) {
-  const firstConv = convs[0];
-  setActiveConversation(firstConv);
+    if (convs.length > 0) {
+      const firstConv = convs[0];
+      setActiveConversation(firstConv);
 
-  const msgRes = await fetch(
-    `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
-  );
+      const msgRes = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
+      );
 
-  if (msgRes.ok) {
-    const msgData = await msgRes.json();
-    setMessages((prev) => ({
-      ...prev,
-      [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
-    }));
-  }
-}
-
+      if (msgRes.ok) {
+        const msgData = await msgRes.json();
+        setMessages((prev) => ({
+          ...prev,
+          [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
+        }));
+      }
+    }
   }
   return;
 }
+
 
 
     } catch (err) {
