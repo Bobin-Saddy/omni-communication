@@ -656,14 +656,28 @@ if (page.type === "chatwidget") {
       const uploadData = await uploadRes.json();
       if (!uploadData.success) throw new Error("Upload failed");
 
-      payload = {
-        sessionId: activeConversation.id,
-        storeDomain: activeConversation.storeDomain || "myshop.com",
-        sender: "me",
-        name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
-        fileUrl: uploadData.url,
-        fileName: file.name,
-      };
+const storeDomain =
+  activeConversation.storeDomain ||
+  page.storeDomain ||
+  page.store_domain ||
+  localStorage.getItem("shopDomain") ||
+  null;
+
+if (!storeDomain) {
+  console.error("❌ No shop domain detected for chatwidget sendMessage");
+  return;
+}
+
+payload = {
+  sessionId: activeConversation.id,
+  storeDomain,
+  sender: "me",
+  name: activeConversation.userName || `User-${activeConversation.id}`,
+  ...(file
+    ? { fileUrl: uploadData.url, fileName: file.name }
+    : { message: text, text }),
+};
+
     } else {
       payload = {
         sessionId: activeConversation.id,
