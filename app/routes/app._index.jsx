@@ -2,17 +2,6 @@ import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
 
-export default function SocialChatDashboard() {
-  function normalizeShopDomain(domain) {
-  if (!domain) return null;
-  let d = domain.trim().toLowerCase();
-  if (!d.endsWith(".myshopify.com")) {
-    d = d.replace(/\/+$/, ""); // remove trailing slashes
-    d = `${d}.myshopify.com`;
-  }
-  return d;
-}
-
 function getShopDomainFromAppBridge() {
   try {
     // Agar URL me `shop` param hai (common in embedded apps)
@@ -43,6 +32,19 @@ function getShopDomainFromAdminUrl() {
   }
   return null;
 }
+
+export default function SocialChatDashboard() {
+  function normalizeShopDomain(domain) {
+  if (!domain) return null;
+  let d = domain.trim().toLowerCase();
+  if (!d.endsWith(".myshopify.com")) {
+    d = d.replace(/\/+$/, ""); // remove trailing slashes
+    d = `${d}.myshopify.com`;
+  }
+  return d;
+}
+
+
 
 
   const {
