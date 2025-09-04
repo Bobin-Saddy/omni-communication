@@ -39,20 +39,26 @@ useEffect(() => {
   connectedPages.forEach((page) => fetchConversations(page));
 }, [connectedPages]);
 
-
 useEffect(() => {
   if (!connectedPages.length) return;
 
-  // Listen to all chatwidget pages
   const chatwidgetPages = connectedPages.filter(p => p.type === "chatwidget");
+
   const sources = [];
 
   chatwidgetPages.forEach(page => {
-    const es = new EventSource(`/api/chat/stream?storeDomain=${encodeURIComponent(page.storeDomain)}`);
+    if (!page.storeDomain) {
+      console.warn("Skipping chatwidget page: storeDomain missing", page);
+      return; // ✅ skip pages with undefined storeDomain
+    }
+
+    const es = new EventSource(
+      `/api/chat/stream?storeDomain=${encodeURIComponent(page.storeDomain)}`
+    );
 
     es.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (!data.sessionId || !data.storeDomain) return;
+      if (!data.sessionId) return;
 
       setMessages(prev => ({
         ...prev,
@@ -253,14 +259,14 @@ if (page.type === "chatwidget") {
   if (!Array.isArray(data?.sessions)) return;
 
   const convs = data.sessions.map((s) => ({
-    id: s.sessionId,
-    pageId: page.id,
-    pageName: page.name,
-    pageType: "chatwidget",
-    participants: { data: [{ name: s.name }] },
-    sessionId: s.sessionId,
-    storeDomain: s.storeDomain, // ✅ must keep
-    name: s.name,
+   id: s.sessionId,
+  pageId: page.id,
+  pageName: page.name,
+  pageType: "chatwidget",
+  participants: { data: [{ name: s.name }] },
+  sessionId: s.sessionId,
+  storeDomain: page.storeDomain || s.storeDomain, // ✅ fallback
+  name: s.name,
   }));
 
   setConversations((prev) => [
