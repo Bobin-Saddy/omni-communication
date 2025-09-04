@@ -273,16 +273,25 @@ useEffect(() => {
       // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
   const shopDomain =
-    normalizeShopDomain(page.storeDomain) || getShopDomainFromAppBridge();
+    normalizeShopDomain(page.storeDomain) ||
+    (typeof getShopDomainFromAppBridge === "function"
+      ? getShopDomainFromAppBridge()
+      : null) ||
+    localStorage.getItem("shopDomain") ||
+    document.querySelector("#oc-chat")?.dataset?.store || // from Liquid data-store attr
+    null;
 
   if (!shopDomain) {
     console.error("❌ No shop domain detected for chatwidget");
     return;
   }
 
-const res = await fetch(
-  `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
-);
+  // Save for future use
+  localStorage.setItem("shopDomain", shopDomain);
+
+  const res = await fetch(
+    `/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`
+  );
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
