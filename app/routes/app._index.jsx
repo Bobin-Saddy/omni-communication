@@ -31,6 +31,19 @@ function getShopDomainFromAppBridge() {
   }
 }
 
+function getShopDomainFromAdminUrl() {
+  try {
+    const url = window.location.href;
+    const match = url.match(/admin\.shopify\.com\/store\/([^/]+)/);
+    if (match && match[1]) {
+      return `${match[1].toLowerCase()}.myshopify.com`;
+    }
+  } catch (err) {
+    console.error("Failed to extract shop from admin URL:", err);
+  }
+  return null;
+}
+
 
   const {
     connectedPages,
@@ -272,14 +285,14 @@ useEffect(() => {
 
       // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const shopDomain =
+const shopDomain =
     normalizeShopDomain(page.storeDomain) ||
-    (typeof getShopDomainFromAppBridge === "function"
-      ? getShopDomainFromAppBridge()
-      : null) ||
+    getShopDomainFromAppBridge() ||
+    getShopDomainFromAdminUrl() || // <-- NEW
     localStorage.getItem("shopDomain") ||
-    document.querySelector("#oc-chat")?.dataset?.store || // from Liquid data-store attr
+    document.querySelector("#oc-chat")?.dataset?.store ||
     null;
+
 
   if (!shopDomain) {
     console.error("❌ No shop domain detected for chatwidget");
