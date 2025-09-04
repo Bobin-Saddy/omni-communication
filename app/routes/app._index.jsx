@@ -24,6 +24,23 @@ export default function SocialChatDashboard() {
 
   const bottomRef = useRef(null);
 
+  function normalizeShopDomain(input) {
+  if (!input) return null;
+
+  // Case 1: full storefront domain
+  if (input.includes("myshopify.com")) {
+    return input.split(".myshopify.com")[0]; // "checkd-lorem"
+  }
+
+  // Case 2: admin domain already clean ("checkd-lorem")
+  if (/^[a-z0-9-]+$/.test(input)) {
+    return input; // already good
+  }
+
+  return null;
+}
+
+
 useEffect(() => {
   if (bottomRef.current) {
     bottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -270,8 +287,11 @@ function getShopDomain() {
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
   // Try get domain from page first
-  const shopDomain = page.storeDomain || page.name || getShopDomain();
-  console.log("USING SHOP DOMAIN =>", shopDomain);
+  const shopDomain = normalizeShopDomain(page.storeDomain) 
+                  || normalizeShopDomain(page.name) 
+                  || getShopDomain();
+
+  console.log("✅ USING SHOP DOMAIN =>", shopDomain);
 
   if (!shopDomain) {
     console.error("❌ No shop domain detected for chatwidget");
