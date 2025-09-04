@@ -16,35 +16,9 @@ export default function SocialChatDashboard() {
   const [uploading, setUploading] = useState(false);
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
-  const [shopDomain, setShopDomain] = useState("");
+    const { shopDomain } = useContext(AppContext);
 
-useEffect(() => {
-  const checkShop = () => {
-    const domain = getShopDomainFromUrl();
-    if (domain) setShopDomain(domain);
-    else setTimeout(checkShop, 100); // retry after 100ms
-  };
-  checkShop();
-}, []);
-
-
-useEffect(() => {
-  if (!shopDomain) return;
-  console.log("Shop domain ready:", shopDomain);
-  // fetch chatwidget data, messages, etc.
-}, [shopDomain]);
-
-
-function getShopDomainFromUrl() {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    return params.get("shop"); // e.g., "myshop.myshopify.com"
-  } catch (e) {
-    console.warn("Unable to extract shop domain", e);
-    return null;
-  }
-}
-
+  console.log("Shop domain:", shopDomain); // ✅ always available
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPd0HoVJtMtBTY8V8kobwsZCz8OCxcZBk97aaMQf2kq2mhJ3BOsmGKbKlApwvPRy6ZBJZAmgZA5MDa16bVfZB8HzzVxygoIoDGMBeIOxyZCYiI9XJ8HtK26HtA9piZCc1e2pSGskDgSck8bn00gakg7JVwTJMqAZCDyHacsJ7ZANESRvENa33bPs7Ip8nTp3QpxtsRzn8uI17qCHuZAQSCHUIABkYgLwYX8uCwZDZD";
