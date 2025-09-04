@@ -14,11 +14,11 @@ export default function SocialChatDashboard() {
   } = useContext(AppContext);
 
   const [uploading, setUploading] = useState(false);
-  const textInputRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const { shopDomain } = useContext(AppContext);
+const { shopDomain } = useContext(AppContext);
 
   console.log("Shop domain:", shopDomain); // always available
+  const textInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const WHATSAPP_TOKEN =
     "EAAHvZAZB8ZCmugBPd0HoVJtMtBTY8V8kobwsZCz8OCxcZBk97aaMQf2kq2mhJ3BOsmGKbKlApwvPRy6ZBJZAmgZA5MDa16bVfZB8HzzVxygoIoDGMBeIOxyZCYiI9XJ8HtK26HtA9piZCc1e2pSGskDgSck8bn00gakg7JVwTJMqAZCDyHacsJ7ZANESRvENa33bPs7Ip8nTp3QpxtsRzn8uI17qCHuZAQSCHUIABkYgLwYX8uCwZDZD";
@@ -44,13 +44,12 @@ useEffect(() => {
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
 useEffect(() => {
-  if (activeConversation?.pageType !== "chatwidget") return;
+ if (activeConversation.storeDomain !== shopDomain) return; // ignore other stores
 
-  const es = new EventSource(
-    `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(
-      activeConversation.storeDomain || ""
-    )}`
-  );
+const es = new EventSource(
+  `/api/chat/stream?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(shopDomain)}`
+);
+
 
   
 
@@ -247,21 +246,22 @@ useEffect(() => {
 // Chat Widget (fetch sessions)
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const res = await fetch(`/api/chat?widget=true`);
+  const res = await fetch(`/api/chat?widget=true&storeDomain=${encodeURIComponent(shopDomain)}`);
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
-    // Use the 'name' field from your DB instead of sessionId
-const convs = data.sessions.map((s) => ({
-  id: s.sessionId,
-  pageId: page.id,
-  pageName: page.name,
-  pageType: "chatwidget",
-  participants: { data: [{ name: s.name }] },
-  sessionId: s.sessionId,
-  storeDomain: s.storeDomain,
-  name: s.name, // frontend sees actual name
-}));
+    const convs = data.sessions
+      .filter(s => s.storeDomain === shopDomain) // ✅ only current store
+      .map((s) => ({
+        id: s.sessionId,
+        pageId: page.id,
+        pageName: page.name,
+        pageType: "chatwidget",
+        participants: { data: [{ name: s.name }] },
+        sessionId: s.sessionId,
+        storeDomain: s.storeDomain,
+        name: s.name,
+      }));
 
 setConversations((prev) => [
   ...prev.filter((c) => c.pageId !== page.id),
