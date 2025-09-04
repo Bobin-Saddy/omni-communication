@@ -304,8 +304,7 @@ useEffect(() => {
 if (page.type === "chatwidget") {
   const shopDomain =
     normalizeShopDomain(page.storeDomain) ||
-    normalizeShopDomain(page.name) ||
-    getShopDomain();
+    getShopDomain(); // ✅ force extraction from URL, never fallback to page.name
 
   console.log("✅ USING SHOP DOMAIN =>", shopDomain);
 
