@@ -123,3 +123,58 @@ export async function loader({ request }) {
 
   return json({ ok: true, messages }, { headers: corsHeaders });
 }
+
+// ----------------- ACTION -----------------
+export async function action({ request }) {
+  const corsHeaders = getCorsHeaders(request);
+  if (request.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
+
+  let sessionId, storeDomain, sender, message = null, name = null, fileUrl = null, fileName = null;
+
+  if (request.headers.get("content-type")?.includes("multipart/form-data")) {
+    const formData = await request.formData();
+    sessionId = formData.get("sessionId") || formData.get("session_id");
+    storeDomain = formData.get("storeDomain") || formData.get("store_domain");
+    sender = formData.get("sender") || "customer";
+    name = formData.get("name") || null;
+    const file = formData.get("file");
+
+    if (!sessionId || !storeDomain || !file || !name) {
+      return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
+    }
+
+    fileName = file.name;
+    fileUrl = `/uploads/${fileName}`; // TODO: Replace with real storage
+  } else {
+    const body = await request.json();
+    sessionId = body.sessionId || body.session_id;
+    storeDomain = body.storeDomain || body.store_domain;
+    message = body.message || null;
+    sender = body.sender || "me";
+    name = body.name || `User-${sessionId}`;
+
+    if (!storeDomain || (!message && !body.fileUrl)) {
+      return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
+    }
+
+    if (body.fileUrl) {
+      fileUrl = body.fileUrl;
+      fileName = body.fileName || "file";
+    }
+  }
+
+  sender = sender === "customer" ? "customer" : "me";
+
+  await prisma.storeChatSession.upsert({
+    where: { storeDomain_sessionId: { storeDomain, sessionId } },
+    update: {},
+    create: { sessionId, storeDomain },
+  });
+
+  const savedMessage = await prisma.storeChatMessage.create({
+    data: { sessionId, storeDomain, sender, name, text: message, fileUrl, fileName },
+  });
+
+  return json({ ok: true, message: savedMessage }, { headers: corsHeaders });
+}
