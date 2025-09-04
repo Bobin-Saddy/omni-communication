@@ -1,7 +1,31 @@
 import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
+function getShopDomain(page) {
+  try {
+    const host = window.location.host; // "checkd-lorem.myshopify.com" OR "admin.shopify.com"
 
+    if (host.includes("myshopify.com")) {
+      return host.split(".myshopify.com")[0]; // storefront
+    }
+
+    if (host.includes("admin.shopify.com")) {
+      const parts = window.location.pathname.split("/");
+      const storeIndex = parts.indexOf("store");
+      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
+        return parts[storeIndex + 1]; // admin
+      }
+    }
+
+    // 👉 fallback to page.name or page.storeDomain if available
+    if (page?.storeDomain) return page.storeDomain;
+    if (page?.name) return page.name;
+
+  } catch (err) {
+    console.error("Error extracting shop domain:", err);
+  }
+  return null;
+}
 export default function SocialChatDashboard() {
   const {
     connectedPages,
@@ -24,6 +48,8 @@ export default function SocialChatDashboard() {
 
   const bottomRef = useRef(null);
 
+
+  
 useEffect(() => {
   if (bottomRef.current) {
     bottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -240,31 +266,7 @@ useEffect(() => {
         }
         return;
       }
-function getShopDomain(page) {
-  try {
-    const host = window.location.host; // "checkd-lorem.myshopify.com" OR "admin.shopify.com"
 
-    if (host.includes("myshopify.com")) {
-      return host.split(".myshopify.com")[0]; // storefront
-    }
-
-    if (host.includes("admin.shopify.com")) {
-      const parts = window.location.pathname.split("/");
-      const storeIndex = parts.indexOf("store");
-      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        return parts[storeIndex + 1]; // admin
-      }
-    }
-
-    // 👉 fallback to page.name or page.storeDomain if available
-    if (page?.storeDomain) return page.storeDomain;
-    if (page?.name) return page.name;
-
-  } catch (err) {
-    console.error("Error extracting shop domain:", err);
-  }
-  return null;
-}
 
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
