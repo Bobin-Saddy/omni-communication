@@ -150,6 +150,7 @@ model StoreChatSession {
   createdAt    DateTime @default(now())
   lastSeenAt   DateTime @updatedAt
 
-  @@unique([storeDomain, sessionId]) // <-- better than global unique
+  @@unique([storeDomain, sessionId], name: "storeDomain_sessionId")
   @@map("store_chat_sessions")
 }
+

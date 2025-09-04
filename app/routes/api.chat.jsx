@@ -139,9 +139,9 @@ else {
 
   // ----------------- Ensure session exists -----------------
 await prisma.storeChatSession.upsert({
-  where: { sessionId_storeDomain: { sessionId, storeDomain } },
+  where: { storeDomain_sessionId: { storeDomain, sessionId } },
   update: {},
-  create: { sessionId, storeDomain },
+  create: { storeDomain, sessionId },
 });
 
 
