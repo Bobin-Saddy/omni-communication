@@ -44,31 +44,37 @@ useEffect(() => {
   if (!activeConversation || activeConversation.pageType !== "chatwidget") return;
 
   const { id: sessionId, storeDomain } = activeConversation;
+
+  // include storeDomain in query
   const es = new EventSource(
-    `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain || "")}`
+    `/api/chat/stream?sessionId=${encodeURIComponent(sessionId)}&storeDomain=${encodeURIComponent(storeDomain)}`
   );
 
-es.onmessage = (event) => {
-  const data = JSON.parse(event.data);
+  es.onmessage = (event) => {
+    const data = JSON.parse(event.data);
 
-  // only accept messages for this session and store
-  if (data.sessionId !== activeConversation.id || data.storeDomain !== activeConversation.storeDomain) return;
+    // **strict filtering**
+    if (
+      data.sessionId !== activeConversation.id ||
+      data.storeDomain !== activeConversation.storeDomain
+    ) return;
 
-  setMessages(prev => ({
-    ...prev,
-    [activeConversation.id]: [...(prev[activeConversation.id] || []), {
-      text: data.text,
-      sender: data.sender || "them",
-      fileUrl: data.fileUrl || null,
-      fileName: data.fileName || null,
-      createdAt: data.createdAt,
-      name: data.name,
-      failed: false,
-    }],
-  }));
-};
-
-
+    setMessages(prev => ({
+      ...prev,
+      [activeConversation.id]: [
+        ...(prev[activeConversation.id] || []),
+        {
+          text: data.text,
+          sender: data.sender || "them",
+          fileUrl: data.fileUrl || null,
+          fileName: data.fileName || null,
+          createdAt: data.createdAt,
+          name: data.name,
+          failed: false,
+        }
+      ]
+    }));
+  };
 
   es.onerror = (err) => {
     console.warn("SSE error for chatwidget:", err);
@@ -77,6 +83,7 @@ es.onmessage = (event) => {
 
   return () => es.close();
 }, [activeConversation]);
+
 
 
 
@@ -240,48 +247,31 @@ useEffect(() => {
 
       // Chat Widget (fetch sessions)
 // Chat Widget (fetch sessions)
-// Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  const res = await fetch(`/api/chat?widget=true`);
+  const res = await fetch(`/api/chat?widget=true&storeDomain=${encodeURIComponent(page.storeDomain)}`);
   const data = await res.json();
 
-  if (Array.isArray(data?.sessions)) {
-    // Use the 'name' field from your DB instead of sessionId
-const convs = data.sessions.map((s) => ({
-  id: s.sessionId,
-  pageId: page.id,
-  pageName: page.name,
-  pageType: "chatwidget",
-  participants: { data: [{ name: s.name }] },
-  sessionId: s.sessionId,
-  storeDomain: s.storeDomain,
-  name: s.name, // frontend sees actual name
-}));
+  if (!Array.isArray(data?.sessions)) return;
 
-setConversations((prev) => [
-  ...prev.filter((c) => c.pageId !== page.id),
-  ...convs,
-]);
+  const convs = data.sessions.map((s) => ({
+    id: s.sessionId,
+    pageId: page.id,
+    pageName: page.name,
+    pageType: "chatwidget",
+    participants: { data: [{ name: s.name }] },
+    sessionId: s.sessionId,
+    storeDomain: s.storeDomain, // ✅ always keep storeDomain
+    name: s.name,
+  }));
 
-// Auto-select first conversation and load messages
-if (convs.length > 0) {
-const firstConv = convs[0];
-setActiveConversation(firstConv);
+  setConversations(prev => [
+    ...prev.filter(c => c.pageId !== page.id),
+    ...convs,
+  ]);
 
-const msgRes = await fetch(
-  `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
-);
-  if (msgRes.ok) {
-    const msgData = await msgRes.json();
-    setMessages((prev) => ({
-      ...prev,
-      [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
-    }));
-  }
-}
-
-  }
-  return;
+  // Auto-select first conversation on this **store only**
+  const firstConv = convs.find(c => c.storeDomain === page.storeDomain);
+  if (firstConv) setActiveConversation(firstConv);
 }
 
 
@@ -583,11 +573,14 @@ const sendMessage = async (text = "", file = null) => {
   }
 
   /** ========== ChatWidget ========== **/
+/** ========== ChatWidget ========== **/
 if (page.type === "chatwidget") {
+  if (!activeConversation?.storeDomain) return;
+
   const optimistic = {
     _tempId: localId,
     sender: "me",
-    name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic fallback
+    name: activeConversation.userName || `User-${activeConversation.id}`,
     text: text || null,
     fileUrl: file ? URL.createObjectURL(file) : null,
     fileName: file?.name || null,
@@ -616,20 +609,20 @@ if (page.type === "chatwidget") {
 
       payload = {
         sessionId: activeConversation.id,
-          storeDomain: activeConversation.storeDomain, // important
+        storeDomain: activeConversation.storeDomain, // ensure correct website
         sender: "me",
-        name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
+        name: activeConversation.userName || `User-${activeConversation.id}`,
         fileUrl: uploadData.url,
         fileName: file.name,
       };
     } else {
       payload = {
         sessionId: activeConversation.id,
-          storeDomain: activeConversation.storeDomain, // important
+        storeDomain: activeConversation.storeDomain, // ensure correct website
         sender: "me",
-        name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
-        message: text,
+        name: activeConversation.userName || `User-${activeConversation.id}`,
         text,
+        message: text,
       };
     }
 
@@ -638,6 +631,7 @@ if (page.type === "chatwidget") {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
     const data = await res.json().catch(() => null);
 
     // Update optimistic message
@@ -657,7 +651,7 @@ if (page.type === "chatwidget") {
             ...arr[idx],
             uploading: false,
             failed: true,
-            error: data?.error || "Upload failed",
+            error: data?.error || "Send failed",
           };
         }
         delete arr[idx]._tempId;
@@ -666,10 +660,19 @@ if (page.type === "chatwidget") {
     });
   } catch (err) {
     console.error("ChatWidget send error:", err);
+    setMessages((prev) => {
+      const arr = [...(prev[activeConversation.id] || [])];
+      const idx = arr.findIndex((m) => m._tempId === localId);
+      if (idx !== -1) {
+        arr[idx] = { ...arr[idx], failed: true, uploading: false, error: err.message };
+      }
+      return { ...prev, [activeConversation.id]: arr };
+    });
   }
 
   return;
 }
+
 
 };
 
