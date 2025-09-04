@@ -2,46 +2,6 @@ import React, { useEffect, useContext, useRef, useState } from "react";
 import { AppContext } from "./AppContext";
 import { io } from "socket.io-client";
 
-function resolveShopDomain() {
-  let shopDomain = null;
-
-  try {
-    // Case 1: Embedded app → Shopify passes ?shop=domain.myshopify.com
-    const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get("shop");
-    if (shopParam) {
-      shopDomain = shopParam.split(".myshopify.com")[0];
-      console.log("📦 Extracted from query param:", shopDomain);
-      return shopDomain;
-    }
-
-    // Case 2: Storefront (like checkd-lorem.myshopify.com)
-    const host = window.location.host;
-    if (host.includes("myshopify.com")) {
-      shopDomain = host.split(".myshopify.com")[0];
-      console.log("🛒 Extracted from storefront host:", shopDomain);
-      return shopDomain;
-    }
-
-    // Case 3: Admin dashboard (like admin.shopify.com/store/checkd-lorem/apps/…)
-    if (host.includes("admin.shopify.com")) {
-      const parts = window.location.pathname.split("/");
-      const storeIndex = parts.indexOf("store");
-      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        shopDomain = parts[storeIndex + 1];
-        console.log("⚙️ Extracted from admin URL:", shopDomain);
-        return shopDomain;
-      }
-    }
-  } catch (err) {
-    console.error("❌ Error extracting shop domain:", err);
-  }
-
-  console.warn("⚠️ No shop domain detected, using fallback.");
-  return "unknown-shop";
-}
-
-
 export default function SocialChatDashboard() {
   const {
     connectedPages,
@@ -63,81 +23,6 @@ export default function SocialChatDashboard() {
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   const bottomRef = useRef(null);
-
-  useEffect(() => {
-    async function fetchChats() {
-      const shopDomain = resolveShopDomain(); // ✅ Always normalized
-
-      try {
-        const res = await fetch(
-          `/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
-        );
-        const data = await res.json();
-
-        if (Array.isArray(data?.sessions)) {
-          const convs = data.sessions.map((s) => ({
-            id: s.sessionId,
-            pageId: shopDomain,
-            pageName: shopDomain,
-            pageType: "chatwidget",
-            participants: { data: [{ name: s.name || "Guest User" }] },
-            sessionId: s.sessionId,
-            storeDomain: shopDomain,
-            name: s.name,
-          }));
-
-          setConversations((prev) => [
-            ...prev.filter((c) => c.pageId !== shopDomain),
-            ...convs,
-          ]);
-
-          // Auto-select first conversation + load messages
-          if (convs.length > 0) {
-            const firstConv = convs[0];
-            setActiveConversation(firstConv);
-
-            const msgRes = await fetch(
-              `/api/chat?storeDomain=${encodeURIComponent(
-                firstConv.storeDomain
-              )}&sessionId=${encodeURIComponent(firstConv.sessionId)}`
-            );
-
-            if (msgRes.ok) {
-              const msgData = await msgRes.json();
-              setMessages((prev) => ({
-                ...prev,
-                [firstConv.id]: Array.isArray(msgData?.messages)
-                  ? msgData.messages
-                  : [],
-              }));
-            }
-          }
-        }
-      } catch (err) {
-        console.error("❌ Error fetching chats:", err);
-      }
-    }
-
-    fetchChats();
-  }, [setConversations, setActiveConversation, setMessages]);
-
-
-  function normalizeShopDomain(input) {
-  if (!input) return null;
-
-  // Case 1: full storefront domain
-  if (input.includes("myshopify.com")) {
-    return input.split(".myshopify.com")[0]; // "checkd-lorem"
-  }
-
-  // Case 2: admin domain already clean ("checkd-lorem")
-  if (/^[a-z0-9-]+$/.test(input)) {
-    return input; // already good
-  }
-
-  return null;
-}
-
 
 useEffect(() => {
   if (bottomRef.current) {
@@ -356,68 +241,52 @@ useEffect(() => {
         return;
       }
 
-
-
+      // Chat Widget (fetch sessions)
+// Chat Widget (fetch sessions)
 // Chat Widget (fetch sessions)
 if (page.type === "chatwidget") {
-  // Try get domain from page first
- const shopDomain =
-    normalizeShopDomain(page.storeDomain) ||
-    normalizeShopDomain(page.name) ||
-    getShopDomain();
-
-  console.log("✅ USING SHOP DOMAIN =>", shopDomain);
-
-  if (!shopDomain) {
-    console.error("❌ No shop domain detected for chatwidget");
-    return;
-  }
-
-  const res = await fetch(
-    `/api/chat?storeDomain=${encodeURIComponent(shopDomain)}`
-  );
-
+  const res = await fetch(`/api/chat?widget=true`);
   const data = await res.json();
 
   if (Array.isArray(data?.sessions)) {
-    const convs = data.sessions.map((s) => ({
-      id: s.sessionId,
-      pageId: page.id,
-      pageName: page.name,
-      pageType: "chatwidget",
-      participants: { data: [{ name: s.name || "Guest User" }] },
-      sessionId: s.sessionId,
-      storeDomain: shopDomain, // ✅ force domain from here
-      name: s.name,
+    // Use the 'name' field from your DB instead of sessionId
+const convs = data.sessions.map((s) => ({
+  id: s.sessionId,
+  pageId: page.id,
+  pageName: page.name,
+  pageType: "chatwidget",
+  participants: { data: [{ name: s.name }] },
+  sessionId: s.sessionId,
+  storeDomain: s.storeDomain,
+  name: s.name, // frontend sees actual name
+}));
+
+setConversations((prev) => [
+  ...prev.filter((c) => c.pageId !== page.id),
+  ...convs,
+]);
+
+// Auto-select first conversation and load messages
+if (convs.length > 0) {
+  const firstConv = convs[0];
+  setActiveConversation(firstConv);
+
+  const msgRes = await fetch(
+    `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.id)}`
+  );
+
+  if (msgRes.ok) {
+    const msgData = await msgRes.json();
+    setMessages((prev) => ({
+      ...prev,
+      [firstConv.id]: Array.isArray(msgData?.messages) ? msgData.messages : [],
     }));
+  }
+}
 
-    setConversations((prev) => [
-      ...prev.filter((c) => c.pageId !== page.id),
-      ...convs,
-    ]);
-
-    if (convs.length > 0) {
-      const firstConv = convs[0];
-      setActiveConversation(firstConv);
-
-      const msgRes = await fetch(
-        `/api/chat?storeDomain=${encodeURIComponent(firstConv.storeDomain)}&sessionId=${encodeURIComponent(firstConv.sessionId)}`
-      );
-
-      if (msgRes.ok) {
-        const msgData = await msgRes.json();
-        setMessages((prev) => ({
-          ...prev,
-          [firstConv.id]: Array.isArray(msgData?.messages)
-            ? msgData.messages
-            : [],
-        }));
-      }
-    }
   }
   return;
 }
-
 
 
     } catch (err) {
@@ -435,23 +304,23 @@ const handleSelectConversation = async (conv) => {
   try {
     // ---------- ChatWidget ----------
     if (page.type === "chatwidget") {
-const res = await fetch(
-  `/api/chat?storeDomain=${encodeURIComponent(conv.storeDomain)}&sessionId=${encodeURIComponent(conv.sessionId)}`
-);
-
+      const res = await fetch(
+        `/api/chat?storeDomain=${encodeURIComponent(
+          conv.storeDomain || "myshop.com"
+        )}&sessionId=${encodeURIComponent(conv.id)}`
+      );
 
       if (res.ok) {
         const data = await res.json();
-    setMessages((prev) => ({
-  ...prev,
-  [conv.sessionId]: Array.isArray(data?.messages)
-    ? data.messages.map((m) => ({
-        ...m,
-        sender: m.sender === "me" ? "me" : "them",
-      }))
-    : [],
-}));
-
+        setMessages((prev) => ({
+          ...prev,
+          [conv.id]: Array.isArray(data?.messages)
+            ? data.messages.map((m) => ({
+                ...m,
+                sender: m.sender === "me" ? "me" : "them",
+              }))
+            : [],
+        }));
       }
       return;
     }
@@ -750,10 +619,8 @@ if (page.type === "chatwidget") {
       if (!uploadData.success) throw new Error("Upload failed");
 
       payload = {
-          sessionId: activeConversation.sessionId,
-
-          storeDomain: activeConversation.storeDomain,
-
+        sessionId: activeConversation.id,
+        storeDomain: activeConversation.storeDomain || "myshop.com",
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         fileUrl: uploadData.url,
@@ -761,9 +628,8 @@ if (page.type === "chatwidget") {
       };
     } else {
       payload = {
-            sessionId: activeConversation.sessionId,
-
-          storeDomain: activeConversation.storeDomain,
+        sessionId: activeConversation.id,
+        storeDomain: activeConversation.storeDomain || "myshop.com",
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         message: text,
