@@ -49,10 +49,11 @@ useEffect(() => {
   if (activeConversation.storeDomain !== shopDomain) return; // only current store
 
   const es = new EventSource(
-    `/api/chat?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(activeConversation.storeDomain)}`
+    `/api/chat?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(activeConversation.storeDomain)}&stream=true`
   );
 
   es.onmessage = (event) => {
+      console.log("🔴 SSE incoming:", event.data);
     try {
       const data = JSON.parse(event.data);
       setMessages((prev) => ({
