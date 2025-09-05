@@ -645,6 +645,7 @@ if (page.type === "chatwidget") {
         sender: "me",
         name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
         fileUrl: uploadData.url,
+         type: "image",   // 👈 tell frontend it’s an image
         fileName: file.name,
       };
     } else {
@@ -880,42 +881,44 @@ const formatTime = (time) => {
                     {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
 
                     {/* file */}
-                    {msg.fileUrl && (
-                      <div style={{ marginTop: text ? 8 : 0 }}>
-                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
-                          <img
-                            src={msg.fileUrl}
-                            alt={msg.fileName || "image"}
-                            style={{ maxWidth: "220px", borderRadius: 10 }}
-                          />
-                        ) : (
-                          <a
-                            href={msg.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-                          >
-                            📎 {msg.fileName || "Download file"}
-                          </a>
-                        )}
-                        {msg.uploading && (
-                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-                            Uploading...
-                          </div>
-                        )}
-                        {msg.failed && (
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#ff6b6b",
-                              marginTop: 6,
-                            }}
-                          >
-                            Upload failed
-                          </div>
-                        )}
-                      </div>
-                    )}
+                  {(msg.fileUrl || msg.type === "image" || msg.type === "file") && (
+  <div style={{ marginTop: text ? 8 : 0 }}>
+    {msg.type === "image" && msg.fileUrl ? (
+      <img
+        src={msg.fileUrl}
+        alt={msg.fileName || "image"}
+        style={{ maxWidth: "220px", borderRadius: 10 }}
+      />
+    ) : msg.type === "file" && msg.fileUrl ? (
+      <a
+        href={msg.fileUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+      >
+        📎 {msg.fileName || "Download file"}
+      </a>
+    ) : null}
+
+    {msg.uploading && (
+      <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+        Uploading...
+      </div>
+    )}
+
+    {msg.failed && (
+      <div
+        style={{
+          fontSize: 12,
+          color: "#ff6b6b",
+          marginTop: 6,
+        }}
+      >
+        Upload failed
+      </div>
+    )}
+  </div>
+)}
 
                     <div
                       style={{
