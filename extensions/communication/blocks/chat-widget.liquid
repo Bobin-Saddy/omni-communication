@@ -303,8 +303,27 @@ function getShopDomain() {
         if(data&&data.ok&&data.message){
           const bubble=list.querySelector(`.oc-bubble[data-id="${localId}"]`);
           if(bubble){ bubble.innerHTML='';
-            if(data.message.fileUrl){ const img=document.createElement('img'); img.src=data.message.fileUrl.startsWith('http')?data.message.fileUrl:window.location.origin+data.message.fileUrl; bubble.appendChild(img); }
-            else if(data.message.fileName){ const link=document.createElement('a'); link.href=data.message.fileUrl||"#"; link.textContent=data.message.fileName; link.target="_blank"; bubble.appendChild(link); }
+           if(data.message.fileUrl){
+  const img = document.createElement('img');
+  img.src = data.message.fileUrl.startsWith('http') 
+    ? data.message.fileUrl 
+    : window.location.origin + data.message.fileUrl;
+  bubble.appendChild(img);
+} 
+else if(data.message.fileName) {
+  // try showing as image if filename looks like one
+  if(/\.(png|jpe?g|gif|webp)$/i.test(data.message.fileName)){
+    const img = document.createElement('img');
+    img.src = window.location.origin + "/uploads/" + data.message.fileName;
+    bubble.appendChild(img);
+  } else {
+    const link = document.createElement('a');
+    link.href = data.message.fileUrl || "#";
+    link.textContent = data.message.fileName;
+    link.target = "_blank";
+    bubble.appendChild(link);
+  }
+}
           }
           if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt;
         }
