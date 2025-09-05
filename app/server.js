@@ -1,46 +1,53 @@
+// server.js
 import express from "express";
 import cors from "cors";
 import multer from "multer";
-import path from "path";
+import { v2 as cloudinary } from "cloudinary";
 
 const app = express();
 
-// ----------- CORS -----------
+// -------------------- CORS --------------------
 app.use(
   cors({
-    origin: "https://seo-partner.myshopify.com", // ✅ allow your Shopify store
+    origin: "https://seo-partner.myshopify.com", // your store
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
 
-// ----------- File Upload Setup -----------
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/"); // Save files in /uploads
-  },
-  filename: (req, file, cb) => {
-    // unique filename
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
+// -------------------- Multer Config --------------------
+const upload = multer({ dest: "uploads/" }); // temporary storage
+
+// -------------------- Cloudinary Config --------------------
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const upload = multer({ storage });
+// -------------------- Routes --------------------
 
-// ✅ Serve /uploads folder as static so files can be accessed
-app.use("/uploads", express.static("uploads"));
+// Upload file + chat
+app.post("/api/chat", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-// ----------- Routes -----------
-app.post("/api/chat", upload.single("file"), (req, res) => {
-  const fileUrl = req.file
-    ? `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`
-    : null;
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "chat_uploads",
+    });
 
-  res.json({
-    message: "Chat received!",
-    fileUrl,
-  });
+    res.json({
+      message: "Chat received!",
+      fileUrl: result.secure_url,
+    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
 });
 
-// ----------- Server Start -----------
-app.listen(3000, () => console.log("🚀 Server running on port 3000"));
+// -------------------- Start Server --------------------
+app.listen(3000, () => console.log("✅ Server running on port 3000"));
