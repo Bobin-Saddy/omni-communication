@@ -184,6 +184,8 @@
   </div>
 
   <script>
+
+
 function getShopDomain() {
   try {
     const host = window.location.host;
@@ -202,10 +204,11 @@ function getShopDomain() {
 }
 
 (function(){
+  const BASE_URL = "https://omnichannel-communication-3d7329b35a37.herokuapp.com/";
+
   const root     = document.getElementById('oc-chat');
   const store    = root.dataset.store || getShopDomain();
   const endpoint = root.dataset.endpoint;
-  const origin   = window.location.origin;
 
   const btnToggle = root.querySelector('.oc-chat-toggle');
   const panel     = root.querySelector('.oc-chat-container');
@@ -256,17 +259,26 @@ function getShopDomain() {
 
   function appendFileBubble(fileUrl,fileName,sender,id,forceScroll=false){
     if(id&&renderedIds.has(id)) return; if(id) renderedIds.add(id);
-    const b=document.createElement('div'); b.className=sender==='customer'?'oc-bubble oc-me oc-file-bubble':'oc-bubble oc-them oc-file-bubble';
+    const b=document.createElement('div'); 
+    b.className=sender==='customer'?'oc-bubble oc-me oc-file-bubble':'oc-bubble oc-them oc-file-bubble';
     if(id) b.dataset.id=id;
-    if(fileUrl && fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)){ 
-      const img=document.createElement('img'); 
-      console.log("check-image----->", origin);
-      console.log("fileUrl-image----->", fileUrl);
-      img.src=fileUrl.startsWith('http')?fileUrl:'https://omnichannel-communication-3d7329b35a37.herokuapp.com/'+fileUrl; 
-      b.appendChild(img); 
-    } else if(fileName){ 
-      const link=document.createElement('a'); link.href=fileUrl||"#"; link.textContent=fileName; link.target="_blank"; b.appendChild(link); 
+
+    if (fileUrl && fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
+      const img = document.createElement("img");
+      img.src = fileUrl.startsWith("http")
+        ? fileUrl
+        : BASE_URL + fileUrl.replace(/^\//, "");
+      b.appendChild(img);
+    } else if (fileName) {
+      const link = document.createElement("a");
+      link.href = fileUrl
+        ? (fileUrl.startsWith("http") ? fileUrl : BASE_URL + fileUrl.replace(/^\//, ""))
+        : "#";
+      link.textContent = fileName;
+      link.target = "_blank";
+      b.appendChild(link);
     }
+
     list.appendChild(b); 
     if(forceScroll||(list.scrollHeight - (list.scrollTop+list.clientHeight)<=48)) list.scrollTop=list.scrollHeight;
   }
@@ -306,10 +318,20 @@ function getShopDomain() {
         if(bubble){ bubble.innerHTML='';
           if(data.message.fileUrl && data.message.fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)){ 
             const img=document.createElement('img'); 
-            img.src=data.message.fileUrl.startsWith('http')?data.message.fileUrl:window.location.origin+data.message.fileUrl; 
+            img.src=data.message.fileUrl.startsWith('http')
+              ? data.message.fileUrl
+              : BASE_URL + data.message.fileUrl.replace(/^\//, ""); 
             bubble.appendChild(img); 
           } else if(data.message.fileName){ 
-            const link=document.createElement('a'); link.href=data.message.fileUrl||"#"; link.textContent=data.message.fileName; link.target="_blank"; bubble.appendChild(link); 
+            const link=document.createElement('a'); 
+            link.href=data.message.fileUrl
+              ? (data.message.fileUrl.startsWith('http')
+                  ? data.message.fileUrl
+                  : BASE_URL + data.message.fileUrl.replace(/^\//, ""))
+              : "#";
+            link.textContent=data.message.fileName; 
+            link.target="_blank"; 
+            bubble.appendChild(link); 
           }
         }
         if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt;
@@ -352,7 +374,7 @@ function getShopDomain() {
     setInterval(poll,3000);
   })();
 })();
-  </script>
+</script>
 </div>
 
 
