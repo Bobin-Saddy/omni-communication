@@ -1,34 +1,23 @@
-// server.js
 import express from "express";
 import cors from "cors";
 import multer from "multer";
 import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
 
 const app = express();
 
-// -------------------- CORS --------------------
-app.use(
-  cors({
-    origin: "https://seo-partner.myshopify.com", // your store
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  })
-);
+// Multer for temporary file storage
+const upload = multer({ dest: "tmp/" });
 
-// -------------------- Multer Config --------------------
-const upload = multer({ dest: "uploads/" }); // temporary storage
-
-// -------------------- Cloudinary Config --------------------
+// Cloudinary config
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// -------------------- Routes --------------------
-
-// Upload file + chat
-app.post("/api/chat", upload.single("file"), async (req, res) => {
+// Upload API
+app.post("/routes/api.chat", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -39,9 +28,15 @@ app.post("/api/chat", upload.single("file"), async (req, res) => {
       folder: "chat_uploads",
     });
 
+    // cleanup temp file
+    fs.unlinkSync(req.file.path);
+
     res.json({
-      message: "Chat received!",
-      fileUrl: result.secure_url,
+      ok: true,
+      message: {
+        fileUrl: result.secure_url,
+        fileName: req.file.originalname,
+      },
     });
   } catch (err) {
     console.error("Upload error:", err);
@@ -49,5 +44,5 @@ app.post("/api/chat", upload.single("file"), async (req, res) => {
   }
 });
 
-// -------------------- Start Server --------------------
-app.listen(3000, () => console.log("✅ Server running on port 3000"));
+app.use(cors());
+app.listen(3000, () => console.log("🚀 Server running on port 3000"));
