@@ -610,13 +610,14 @@ const sendMessage = async (text = "", file = null) => {
   /** ========== ChatWidget ========== **/
 if (page.type === "chatwidget") {
   const optimistic = {
-  sessionId: activeConversation.id,
-  storeDomain: activeConversation.storeDomain || "myshop.com",
-  sender: "me",
-  name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
-  fileUrl: uploadData.url,
-  type: "image",   // 👈 tell frontend it’s an image
-  fileName: file.name,
+    _tempId: localId,
+    sender: "me",
+    name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic fallback
+    text: text || null,
+    fileUrl: file ? URL.createObjectURL(file) : null,
+    fileName: file?.name || null,
+    createdAt: new Date().toISOString(),
+    uploading: !!file,
   };
 
   setMessages((prev) => ({
@@ -638,30 +639,23 @@ if (page.type === "chatwidget") {
       const uploadData = await uploadRes.json();
       if (!uploadData.success) throw new Error("Upload failed");
 
-     let detectedType = "file";
-if (/\.(jpe?g|png|gif|webp)$/i.test(file.name)) {
-  detectedType = "image";
-}
-
-payload = {
-  sessionId: activeConversation.id,
-  storeDomain: activeConversation.storeDomain || "myshop.com",
-  sender: "me",
-  name: activeConversation.userName || `User-${activeConversation.id}`,
-  fileUrl: uploadData.url,
-  fileName: file.name,
-  type: detectedType,
-};
+      payload = {
+        sessionId: activeConversation.id,
+        storeDomain: activeConversation.storeDomain || "myshop.com",
+        sender: "me",
+        name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
+        fileUrl: uploadData.url,
+        fileName: file.name,
+      };
     } else {
-payload = {
-  sessionId: activeConversation.id,
-  storeDomain: activeConversation.storeDomain || "myshop.com",
-  sender: "me",
-  name: activeConversation.userName || `User-${activeConversation.id}`,
-  text,
-  type: "text",   // 👈 added
-};
-
+      payload = {
+        sessionId: activeConversation.id,
+        storeDomain: activeConversation.storeDomain || "myshop.com",
+        sender: "me",
+        name: activeConversation.userName || `User-${activeConversation.id}`, // dynamic
+        message: text,
+        text,
+      };
     }
 
     const res = await fetch("/api/chat", {
@@ -886,33 +880,42 @@ const formatTime = (time) => {
                     {text && <div style={{ fontSize: "0.95em" }}>{text}</div>}
 
                     {/* file */}
-{msg.type === "image" && msg.fileUrl && (
-  <div style={{ marginTop: text ? 8 : 0 }}>
-    <img
-      src={msg.fileUrl}
-      alt={msg.fileName || "image"}
-      style={{ maxWidth: "220px", borderRadius: 10 }}
-    />
-    {msg.uploading && <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>}
-    {msg.failed && <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 6 }}>Upload failed</div>}
-  </div>
-)}
-
-{msg.type === "file" && msg.fileUrl && (
-  <div style={{ marginTop: text ? 8 : 0 }}>
-    <a
-      href={msg.fileUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
-    >
-      📎 {msg.fileName || "Download file"}
-    </a>
-    {msg.uploading && <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>Uploading...</div>}
-    {msg.failed && <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 6 }}>Upload failed</div>}
-  </div>
-)}
-
+                    {msg.fileUrl && (
+                      <div style={{ marginTop: text ? 8 : 0 }}>
+                        {/\.(jpe?g|png|gif|webp)$/i.test(msg.fileUrl) ? (
+                          <img
+                            src={msg.fileUrl}
+                            alt={msg.fileName || "image"}
+                            style={{ maxWidth: "220px", borderRadius: 10 }}
+                          />
+                        ) : (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: isMe ? "#dce6f9" : "#1a73e8" }}
+                          >
+                            📎 {msg.fileName || "Download file"}
+                          </a>
+                        )}
+                        {msg.uploading && (
+                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
+                            Uploading...
+                          </div>
+                        )}
+                        {msg.failed && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#ff6b6b",
+                              marginTop: 6,
+                            }}
+                          >
+                            Upload failed
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     <div
                       style={{
