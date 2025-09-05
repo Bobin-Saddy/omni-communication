@@ -184,8 +184,6 @@
   </div>
 
   <script>
-
-
 function getShopDomain() {
   try {
     const host = window.location.host;
@@ -257,30 +255,41 @@ function getShopDomain() {
     if(forceScroll||list.scrollHeight - (list.scrollTop+list.clientHeight)<=48) list.scrollTop=list.scrollHeight;
   }
 
-  function appendFileBubble(fileUrl,fileName,sender,id,forceScroll=false){
-    if(id&&renderedIds.has(id)) return; if(id) renderedIds.add(id);
-    const b=document.createElement('div'); 
-    b.className=sender==='customer'?'oc-bubble oc-me oc-file-bubble':'oc-bubble oc-them oc-file-bubble';
+  function appendFileBubble(fileUrl, fileName, sender, id, forceScroll=false){
+    if(id && renderedIds.has(id)) return; 
+    if(id) renderedIds.add(id);
+
+    const b = document.createElement('div'); 
+    b.className = sender==='customer' ? 'oc-bubble oc-me oc-file-bubble' : 'oc-bubble oc-them oc-file-bubble';
     if(id) b.dataset.id=id;
 
-    if (fileUrl && fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
-      const img = document.createElement("img");
-      img.src = fileUrl.startsWith("http")
+    if (fileUrl) {
+      const fullUrl = fileUrl.startsWith("http")
         ? fileUrl
         : BASE_URL + fileUrl.replace(/^\//, "");
-      b.appendChild(img);
+
+      if (fullUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
+        const img = document.createElement("img");
+        img.src = fullUrl;
+        img.alt = fileName || "image";
+        b.appendChild(img);
+      } else {
+        const link = document.createElement("a");
+        link.href = fullUrl;
+        link.textContent = fileName || "Download file";
+        link.target = "_blank";
+        b.appendChild(link);
+      }
     } else if (fileName) {
-      const link = document.createElement("a");
-      link.href = fileUrl
-        ? (fileUrl.startsWith("http") ? fileUrl : BASE_URL + fileUrl.replace(/^\//, ""))
-        : "#";
-      link.textContent = fileName;
-      link.target = "_blank";
-      b.appendChild(link);
+      const span = document.createElement("span");
+      span.textContent = fileName;
+      b.appendChild(span);
     }
 
     list.appendChild(b); 
-    if(forceScroll||(list.scrollHeight - (list.scrollTop+list.clientHeight)<=48)) list.scrollTop=list.scrollHeight;
+    if(forceScroll || (list.scrollHeight - (list.scrollTop+list.clientHeight)<=48)) {
+      list.scrollTop=list.scrollHeight;
+    }
   }
 
   async function sendMessage(){
@@ -313,29 +322,29 @@ function getShopDomain() {
 
       const res=await fetch(endpoint,{method:'POST',body:formData});
       const data=await res.json().catch(()=>null);
-      if(data&&data.ok&&data.message){
-        const bubble=list.querySelector(`.oc-bubble[data-id="${localId}"]`);
-        if(bubble){ bubble.innerHTML='';
-          if(data.message.fileUrl && data.message.fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)){ 
+
+      if(data && data.ok && data.message){
+        const bubble = list.querySelector(`.oc-bubble[data-id="${localId}"]`);
+        if(bubble){
+          bubble.innerHTML='';
+          const fullUrl = data.message.fileUrl.startsWith("http")
+            ? data.message.fileUrl
+            : BASE_URL + data.message.fileUrl.replace(/^\//, "");
+          
+          if (fullUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
             const img=document.createElement('img'); 
-            img.src=data.message.fileUrl.startsWith('http')
-              ? data.message.fileUrl
-              : BASE_URL + data.message.fileUrl.replace(/^\//, ""); 
+            img.src=fullUrl; 
             bubble.appendChild(img); 
           } else if(data.message.fileName){ 
             const link=document.createElement('a'); 
-            link.href=data.message.fileUrl
-              ? (data.message.fileUrl.startsWith('http')
-                  ? data.message.fileUrl
-                  : BASE_URL + data.message.fileUrl.replace(/^\//, ""))
-              : "#";
+            link.href=fullUrl;
             link.textContent=data.message.fileName; 
             link.target="_blank"; 
             bubble.appendChild(link); 
           }
         }
-        if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt;
       }
+
     }catch(e){console.warn('upload error',e);}
     fileInput.value='';
   });
@@ -376,7 +385,6 @@ function getShopDomain() {
 })();
 </script>
 </div>
-
 
 {% schema %}
 {
