@@ -61,19 +61,22 @@ export async function loader({ request }) {
   }
 
   // ----------------- SSE stream -----------------
-  if (stream) {
-    if (!storeDomain || !sessionId) {
-      return json(
-        { ok: false, error: "Missing params" },
-        { status: 400, headers: corsHeaders }
-      );
-    }
+if (stream) {
+  if (!storeDomain || !sessionId) {
+    return json(
+      { ok: false, error: "Missing params" },
+      { status: 400, headers: corsHeaders }
+    );
+  }
 
-    let lastTimestamp = null;
-    const encoder = new TextEncoder();
+  let lastTimestamp = null;
+  const encoder = new TextEncoder();
 
-    const sseStream = new ReadableStream({
-      async start(controller) {
+  let interval; // declare outside so cancel can access it
+
+  const sseStream = new ReadableStream({
+    async start(controller) {
+      try {
         // Send all existing messages first
         const initialMessages = await prisma.storeChatMessage.findMany({
           where: { storeDomain, sessionId },
@@ -81,17 +84,14 @@ export async function loader({ request }) {
         });
 
         initialMessages.forEach((msg) => {
-          try {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify(msg)}\n\n`)
-            );
-            lastTimestamp = new Date(msg.createdAt);
-          } catch (e) {
-            console.error("Error enqueueing initial messages:", e);
-          }
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(msg)}\n\n`)
+          );
+          lastTimestamp = new Date(msg.createdAt);
         });
 
-        const interval = setInterval(async () => {
+        // Start polling
+        interval = setInterval(async () => {
           try {
             const messages = await prisma.storeChatMessage.findMany({
               where: lastTimestamp
@@ -100,49 +100,43 @@ export async function loader({ request }) {
               orderBy: { createdAt: "asc" },
             });
 
-            messages.forEach((msg) => {
+            for (const msg of messages) {
               try {
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify(msg)}\n\n`)
                 );
                 lastTimestamp = new Date(msg.createdAt);
-              } catch (err) {
-                console.error("Stream closed, cannot enqueue:", err);
+              } catch {
+                // stream is already closed, stop polling
+                clearInterval(interval);
               }
-            });
+            }
           } catch (err) {
             console.error("Error fetching chat messages:", err);
           }
         }, 1000);
+      } catch (err) {
+        console.error("Error starting SSE:", err);
+      }
+    },
 
-        // ✅ Proper cleanup on disconnect
-        controller.signal.addEventListener("abort", () => {
-          clearInterval(interval);
-          try {
-            controller.close();
-          } catch (e) {
-            // already closed
-          }
-        });
-      },
+    async cancel() {
+      if (interval) {
+        clearInterval(interval);
+      }
+    },
+  });
 
-      cancel() {
-        // In case of early cancellation
-        try {
-          controller.close();
-        } catch {}
-      },
-    });
+  return new Response(sseStream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      ...corsHeaders,
+    },
+  });
+}
 
-    return new Response(sseStream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        ...corsHeaders,
-      },
-    });
-  }
 
   // ----------------- Fetch messages for a session -----------------
   if (!storeDomain || !sessionId) {
