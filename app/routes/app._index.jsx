@@ -54,26 +54,38 @@ useEffect(() => {
     `/api/chat?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(activeConversation.storeDomain)}&stream=true`
   );
 
-  es.onmessage = (event) => {
-    console.log("🔴 SSE incoming:", event.data);
-    try {
-      const data = JSON.parse(event.data);
-      setMessages((prev) => ({
+es.onmessage = (event) => {
+  try {
+    const data = JSON.parse(event.data);
+
+    setMessages((prev) => {
+      const existing = prev[activeConversation.id] || [];
+
+      // 🚨 Dedup check: already exists by id or createdAt+text
+      const alreadyExists = existing.some(
+        (m) =>
+          (m.id && data.id && m.id === data.id) || 
+          (m.createdAt === data.createdAt && m.text === data.text)
+      );
+
+      if (alreadyExists) return prev; // ✅ skip duplicate
+
+      return {
         ...prev,
         [activeConversation.id]: [
-          ...(prev[activeConversation.id] || []),
+          ...existing,
           {
-            text: data.text || "",
-            fileUrl: data.fileUrl || null,
+            ...data,
             sender: data.sender || "them",
-            createdAt: data.createdAt || new Date().toISOString(),
           },
         ],
-      }));
-    } catch (e) {
-      console.warn("SSE parse error", e);
-    }
-  };
+      };
+    });
+  } catch (e) {
+    console.warn("SSE parse error", e);
+  }
+};
+
 
   es.onerror = (err) => {
     console.warn("SSE error", err);
