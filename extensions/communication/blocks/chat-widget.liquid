@@ -11,6 +11,29 @@
     <button type="button" style="padding:10px; border-radius:12px; border:none; background:#2563eb; color:#fff; font-weight:600; cursor:pointer;">Start Chat</button>
   </div>
 
+  <!-- Floating Button -->
+  <button class="oc-chat-toggle" aria-label="Open chat">💬</button>
+
+  <!-- Chat Window -->
+  <div class="oc-chat-container">
+    <div class="oc-chat-header">
+      <span>{{ block.settings.header_title | default: "Need help? Chat with us!" }}</span>
+      <button class="oc-close-btn" aria-label="Close chat">×</button>
+    </div>
+
+    <div class="oc-chat-messages"></div>
+    <button type="button" class="oc-new-pill">New messages ↓</button>
+
+    <div class="oc-chat-input">
+      <label class="oc-upload-btn" title="Attach file">
+        📎
+        <input type="file" id="oc-file-input" hidden accept="image/*,.pdf,.doc,.docx,.txt" />
+      </label>
+      <input type="text" placeholder="{{ block.settings.placeholder | default: 'Type your message…' }}" />
+      <button type="button">{{ block.settings.send_label | default: "Send" }}</button>
+    </div>
+  </div>
+
   <style>
     /* ---------- Chat Button ---------- */
     .oc-chat-toggle {
@@ -66,8 +89,8 @@
       padding: 8px 14px;
       font-weight: 600;
       font-size: 15px;
-      background: #111827;
-      color: #ffffff;
+      background: {{ block.settings.header_bg | default: "#111827" }};
+      color: {{ block.settings.header_fg | default: "#ffffff" }};
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -76,10 +99,7 @@
       display: flex; align-items: center; gap: 6px;
     }
     .oc-chat-header span::before { content: "💬"; font-size: 18px; }
-    .oc-close-btn {
-      background: transparent; border: none; color: #fff;
-      font-size: 30px; cursor: pointer; line-height: 1;
-    }
+    .oc-close-btn { background: transparent; border: none; color: #fff; font-size: 30px; cursor: pointer; line-height: 1; }
 
     /* ---------- Messages ---------- */
     .oc-chat-messages {
@@ -116,29 +136,15 @@
     .oc-chat-input button {
       border: none; border-radius: 12px; padding: 10px 14px; cursor: pointer;
       background: {{ block.settings.btn_bg | default: "#2563eb" }};
-      color: {{ block.settings.btn_fg | default: "#ffffff" }}; font-weight: 600; transition: background 0.3s ease;
+      color: {{ block.settings.btn_fg | default: "#ffffff" }};
+      font-weight: 600; transition: background 0.3s ease;
     }
     .oc-chat-input button:hover { background: #1d4ed8; }
 
     /* ---------- Upload Button ---------- */
-    .oc-upload-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 18px;
-      padding: 0 4px;
-    }
-    .oc-file-bubble img {
-      max-width: 200px;
-      border-radius: 8px;
-      display: block;
-    }
-    .oc-file-bubble a {
-      color: #2563eb;
-      text-decoration: underline;
-      font-size: 14px;
-    }
+    .oc-upload-btn { display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; padding: 0 4px; }
+    .oc-file-bubble img { max-width: 200px; border-radius: 8px; display: block; }
+    .oc-file-bubble a { color: #2563eb; text-decoration: underline; font-size: 14px; }
 
     /* ---------- New Messages Pill ---------- */
     .oc-new-pill {
@@ -159,71 +165,27 @@
     }
   </style>
 
-  <!-- Floating Button -->
-  <button class="oc-chat-toggle" aria-label="Open chat">💬</button>
-
-  <!-- Chat Window -->
-  <div class="oc-chat-container">
-    <div class="oc-chat-header">
-      <span>{{ block.settings.header_title | default: "Need help? Chat with us!" }}</span>
-      <button class="oc-close-btn" aria-label="Close chat">×</button>
-    </div>
-
-    <div class="oc-chat-messages"></div>
-    <button type="button" class="oc-new-pill">New messages ↓</button>
-
-    <div class="oc-chat-input">
-      <label class="oc-upload-btn" title="Attach file">
-        📎
-        <input type="file" id="oc-file-input" hidden accept="image/*,.pdf,.doc,.docx,.txt" />
-      </label>
-      <input type="text" placeholder="{{ block.settings.placeholder | default: 'Type your message…' }}" />
-      <button type="button">{{ block.settings.send_label | default: "Send" }}</button>
-    </div>
-  </div>
-
-  <!-- Modular Script -->
-  <script type="module">
-    import { handleFileUpload } from '/upload.js';
-
-    function getShopDomain() {
-      try {
-        const host = window.location.host;
-        if (host.includes("myshopify.com")) return host;
-        if (host.includes("admin.shopify.com")) {
-          const parts = window.location.pathname.split("/");
-          const storeIndex = parts.indexOf("store");
-          if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-            return parts[storeIndex + 1] + ".myshopify.com";
-          }
-        }
-      } catch (err) { console.error(err); }
-      return null;
-    }
-
+  <script>
     (function(){
-      const BASE_URL = "https://omnichannel-communication-3d7329b35a37.herokuapp.com/";
-      const root     = document.getElementById('oc-chat');
-      const store    = root.dataset.store || getShopDomain();
-      const endpoint = root.dataset.endpoint;
-
-      const btnToggle = root.querySelector('.oc-chat-toggle');
-      const panel     = root.querySelector('.oc-chat-container');
-      const closeBtn  = root.querySelector('.oc-close-btn');
-      const list      = root.querySelector('.oc-chat-messages');
-      const input     = root.querySelector('.oc-chat-input input[type="text"]');
-      const sendBtn   = root.querySelector('.oc-chat-input button');
-      const newPill   = root.querySelector('.oc-new-pill');
+      const root = document.getElementById('oc-chat');
+      const panel = root.querySelector('.oc-chat-container');
+      const toggleBtn = root.querySelector('.oc-chat-toggle');
+      const closeBtn = root.querySelector('.oc-close-btn');
+      const list = root.querySelector('.oc-chat-messages');
+      const input = root.querySelector('.oc-chat-input input[type="text"]');
+      const sendBtn = root.querySelector('.oc-chat-input button');
       const fileInput = root.querySelector('#oc-file-input');
-
+      const newPill = root.querySelector('.oc-new-pill');
       const nameOverlay = root.querySelector('.oc-name-overlay');
       const nameInput = nameOverlay.querySelector('input[type="text"]');
       const nameBtn = nameOverlay.querySelector('button');
 
-      const sidKey = 'oc_chat_sid';
-      function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
-      let SID = localStorage.getItem(sidKey);
-      if(!SID){ SID = uuid(); localStorage.setItem(sidKey,SID); }
+      const endpoint = root.dataset.endpoint;
+      const store = root.dataset.store;
+      const BASE_URL = window.location.origin;
+
+      let SID = localStorage.getItem('oc_chat_sid');
+      if(!SID){ SID = 'sid-'+Date.now(); localStorage.setItem('oc_chat_sid', SID);}
       let customerName = localStorage.getItem('oc_chat_name') || '';
 
       function startChat(){
@@ -238,75 +200,53 @@
       nameBtn.addEventListener('click', startChat);
       nameInput.addEventListener('keydown', e => { if(e.key==='Enter') startChat(); });
 
-      btnToggle.addEventListener('click', ()=>{
-        if(!customerName) nameOverlay.style.display = 'flex';
-        else { panel.classList.add('open'); requestAnimationFrame(()=> list.scrollTop = list.scrollHeight); newPill.style.display='none'; }
+      toggleBtn.addEventListener('click', ()=>{
+        if(!customerName) nameOverlay.style.display='flex';
+        else { panel.classList.add('open'); list.scrollTop=list.scrollHeight; newPill.style.display='none'; }
       });
       closeBtn.addEventListener('click', ()=> panel.classList.remove('open'));
 
-      const renderedIds = new Set();
-      let lastISO = null;
-
-      function appendBubble(text,sender,id,forceScroll=false){
-        if(id&&renderedIds.has(id)) return; if(id) renderedIds.add(id);
-        const b=document.createElement('div'); b.className=sender==='customer'?'oc-bubble oc-me':'oc-bubble oc-them';
-        b.textContent=text; if(id) b.dataset.id=id; list.appendChild(b);
-        if(forceScroll||list.scrollHeight - (list.scrollTop+list.clientHeight)<=48) list.scrollTop=list.scrollHeight;
+      function appendBubble(text,sender){
+        const b = document.createElement('div');
+        b.className = sender==='customer' ? 'oc-bubble oc-me' : 'oc-bubble oc-them';
+        b.textContent = text;
+        list.appendChild(b);
+        list.scrollTop = list.scrollHeight;
       }
 
       async function sendMessage(){
         if(!customerName) return startChat();
         const msg = (input.value||'').trim(); if(!msg) return;
-        const localId='local-'+Date.now(); appendBubble(msg,'customer',localId,true); input.value='';
+        appendBubble(msg,'customer'); input.value='';
         try{
-          const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeDomain:store,sessionId:SID,sender:'customer',name:customerName,message:msg})});
-          const data=await res.json().catch(()=>null);
-          if(data&&data.ok&&data.message){ if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt; }
-        }catch(e){console.warn('send error',e);}
-      }
-      sendBtn.addEventListener('click',sendMessage);
-      input.addEventListener('keydown',e=>{if(e.key==='Enter') sendMessage();});
-
-      fileInput.addEventListener('change',async()=>{
-        if(!customerName) return startChat();
-        const file=fileInput.files[0]; if(!file) return;
-        await handleFileUpload(file, store, SID, customerName, list, BASE_URL);
-        fileInput.value='';
-      });
-
-      async function poll(){
-        try{
-          const url=new URL(endpoint);
-          url.searchParams.set('storeDomain',store);
-          url.searchParams.set('sessionId',SID);
-          if(lastISO) url.searchParams.set('since',lastISO);
-          const r=await fetch(url.toString()); const data=await r.json();
-          if(data&&data.ok&&Array.isArray(data.messages)&&data.messages.length){
-            const userWasNearBottom=(list.scrollHeight - (list.scrollTop+list.clientHeight)<=48);
-            data.messages.forEach(m=>{
-              const mid=m.id??m.createdAt;
-              if(m.fileUrl) appendBubble(m.text,m.sender,mid,false);
-              else appendBubble(m.text,m.sender,mid,false);
-              lastISO=m.createdAt;
-            });
-            if(!userWasNearBottom) newPill.style.display='inline-flex';
-          }
+          await fetch(endpoint,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({storeDomain:store,sessionId:SID,sender:'customer',name:customerName,message:msg})
+          });
         }catch(e){console.warn(e);}
       }
+      sendBtn.addEventListener('click', sendMessage);
+      input.addEventListener('keydown', e => { if(e.key==='Enter') sendMessage(); });
 
-      (async function init(){
-        const url=new URL(endpoint); url.searchParams.set('storeDomain',store); url.searchParams.set('sessionId',SID);
-        const r=await fetch(url.toString()); const data=await r.json();
-        if(data&&data.ok&&Array.isArray(data.messages)){
-          data.messages.forEach(m=>{ 
-            const mid=m.id??m.createdAt; 
-            if(m.fileUrl) appendBubble(m.text,m.sender,mid,false); 
-            else appendBubble(m.text,m.sender,mid,false); 
-          });
-          if(data.messages.length) lastISO=data.messages[data.messages.length-1].createdAt; list.scrollTop=list.scrollHeight;
-        }
-        setInterval(poll,3000);
-      })();
+      fileInput.addEventListener('change', async ()=>{
+        if(!customerName) return startChat();
+        const file = fileInput.files[0]; if(!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        try{
+          const res = await fetch('/upload-image', { method:'POST', body: formData });
+          const data = await res.json();
+          if(data.success){
+            const bubble = document.createElement('div');
+            bubble.className = 'oc-bubble oc-me oc-file-bubble';
+            bubble.innerHTML = `<a href="${data.url}" target="_blank">${file.name}</a>`;
+            list.appendChild(bubble);
+            list.scrollTop=list.scrollHeight;
+          } else console.error(data.error);
+        }catch(e){console.error(e);}
+        fileInput.value='';
+      });
     })();
   </script>
 </div>
