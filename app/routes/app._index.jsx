@@ -43,48 +43,48 @@ useEffect(() => {
 
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
-useEffect(() => {
-  if (!activeConversation) return;
-  if (activeConversation.pageType !== "chatwidget") return;
-  if (activeConversation.storeDomain !== shopDomain) return;
+// useEffect(() => {
+//   if (!activeConversation) return;
+//   if (activeConversation.pageType !== "chatwidget") return;
+//   if (activeConversation.storeDomain !== shopDomain) return;
 
-  console.log("📡 Opening SSE for", activeConversation.id);
+//   console.log("📡 Opening SSE for", activeConversation.id);
 
-  const es = new EventSource(
-    `/api/chat?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(activeConversation.storeDomain)}&stream=true`
-  );
+//   const es = new EventSource(
+//     `/api/chat?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(activeConversation.storeDomain)}&stream=true`
+//   );
 
-  es.onmessage = (event) => {
-    console.log("🔴 SSE incoming:", event.data);
-    try {
-      const data = JSON.parse(event.data);
-      setMessages((prev) => ({
-        ...prev,
-        [activeConversation.id]: [
-          ...(prev[activeConversation.id] || []),
-          {
-            text: data.text || "",
-            fileUrl: data.fileUrl || null,
-            sender: data.sender || "them",
-            createdAt: data.createdAt || new Date().toISOString(),
-          },
-        ],
-      }));
-    } catch (e) {
-      console.warn("SSE parse error", e);
-    }
-  };
+//   es.onmessage = (event) => {
+//     console.log("🔴 SSE incoming:", event.data);
+//     try {
+//       const data = JSON.parse(event.data);
+//       setMessages((prev) => ({
+//         ...prev,
+//         [activeConversation.id]: [
+//           ...(prev[activeConversation.id] || []),
+//           {
+//             text: data.text || "",
+//             fileUrl: data.fileUrl || null,
+//             sender: data.sender || "them",
+//             createdAt: data.createdAt || new Date().toISOString(),
+//           },
+//         ],
+//       }));
+//     } catch (e) {
+//       console.warn("SSE parse error", e);
+//     }
+//   };
 
-  es.onerror = (err) => {
-    console.warn("SSE error", err);
-    es.close();
-  };
+//   es.onerror = (err) => {
+//     console.warn("SSE error", err);
+//     es.close();
+//   };
 
-  return () => {
-    console.log("🛑 Closing SSE for", activeConversation.id);
-    es.close();
-  };
-}, [activeConversation?.id, activeConversation?.storeDomain, shopDomain]);
+//   return () => {
+//     console.log("🛑 Closing SSE for", activeConversation.id);
+//     es.close();
+//   };
+// }, [activeConversation?.id, activeConversation?.storeDomain, shopDomain]);
 
 
 
