@@ -55,7 +55,6 @@
       transition: all 0.35s ease;
       z-index: 99999;
     }
-
     .oc-chat-container.open {
       transform: translateY(0);
       opacity: 1;
@@ -183,207 +182,133 @@
     </div>
   </div>
 
-  <script>
-function getShopDomain() {
-  try {
-    const host = window.location.host;
-    if (host.includes("myshopify.com")) return host;
-    if (host.includes("admin.shopify.com")) {
-      const parts = window.location.pathname.split("/");
-      const storeIndex = parts.indexOf("store");
-      if (storeIndex !== -1 && parts.length > storeIndex + 1) {
-        return parts[storeIndex + 1] + ".myshopify.com";
-      }
-    }
-  } catch (err) {
-    console.error("Error extracting shop domain:", err);
-  }
-  return null;
-}
+  <!-- Modular Script -->
+  <script type="module">
+    import { handleFileUpload } from '/upload.js';
 
-(function(){
-  const BASE_URL = "https://omnichannel-communication-3d7329b35a37.herokuapp.com/";
-
-  const root     = document.getElementById('oc-chat');
-  const store    = root.dataset.store || getShopDomain();
-  const endpoint = root.dataset.endpoint;
-
-  const btnToggle = root.querySelector('.oc-chat-toggle');
-  const panel     = root.querySelector('.oc-chat-container');
-  const closeBtn  = root.querySelector('.oc-close-btn');
-  const list      = root.querySelector('.oc-chat-messages');
-  const input     = root.querySelector('.oc-chat-input input[type="text"]');
-  const sendBtn   = root.querySelector('.oc-chat-input button');
-  const newPill   = root.querySelector('.oc-new-pill');
-  const fileInput = root.querySelector('#oc-file-input');
-
-  const nameOverlay = root.querySelector('.oc-name-overlay');
-  const nameInput = nameOverlay.querySelector('input[type="text"]');
-  const nameBtn = nameOverlay.querySelector('button');
-
-  const sidKey = 'oc_chat_sid';
-  function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
-  let SID = localStorage.getItem(sidKey);
-  if(!SID){ SID = uuid(); localStorage.setItem(sidKey,SID); }
-  let customerName = localStorage.getItem('oc_chat_name') || '';
-
-  function startChat(){
-    const name = (nameInput.value||'').trim();
-    if(!name) return alert('Please enter your name.');
-    customerName = name;
-    localStorage.setItem('oc_chat_name', name);
-    nameOverlay.style.display = 'none';
-    panel.classList.add('open');
-  }
-
-  nameBtn.addEventListener('click', startChat);
-  nameInput.addEventListener('keydown', e => { if(e.key==='Enter') startChat(); });
-
-  btnToggle.addEventListener('click', ()=>{
-    if(!customerName) nameOverlay.style.display = 'flex';
-    else { panel.classList.add('open'); requestAnimationFrame(()=> list.scrollTop = list.scrollHeight); newPill.style.display='none'; }
-  });
-  closeBtn.addEventListener('click', ()=> panel.classList.remove('open'));
-
-  const renderedIds = new Set();
-  let lastISO = null;
-
-  function appendBubble(text,sender,id,forceScroll=false){
-    if(id&&renderedIds.has(id)) return; if(id) renderedIds.add(id);
-    const b=document.createElement('div'); b.className=sender==='customer'?'oc-bubble oc-me':'oc-bubble oc-them';
-    b.textContent=text; if(id) b.dataset.id=id; list.appendChild(b);
-    if(forceScroll||list.scrollHeight - (list.scrollTop+list.clientHeight)<=48) list.scrollTop=list.scrollHeight;
-  }
-
-  function appendFileBubble(fileUrl, fileName, sender, id, forceScroll=false){
-    if(id && renderedIds.has(id)) return; 
-    if(id) renderedIds.add(id);
-
-    const b = document.createElement('div'); 
-    b.className = sender==='customer' ? 'oc-bubble oc-me oc-file-bubble' : 'oc-bubble oc-them oc-file-bubble';
-    if(id) b.dataset.id=id;
-
-    if (fileUrl) {
-      const fullUrl = fileUrl.startsWith("http")
-        ? fileUrl
-        : BASE_URL + fileUrl.replace(/^\//, "");
-
-      if (fullUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
-        const img = document.createElement("img");
-        img.src = fullUrl;
-        img.alt = fileName || "image";
-        b.appendChild(img);
-      } else {
-        const link = document.createElement("a");
-        link.href = fullUrl;
-        link.textContent = fileName || "Download file";
-        link.target = "_blank";
-        b.appendChild(link);
-      }
-    } else if (fileName) {
-      const span = document.createElement("span");
-      span.textContent = fileName;
-      b.appendChild(span);
-    }
-
-    list.appendChild(b); 
-    if(forceScroll || (list.scrollHeight - (list.scrollTop+list.clientHeight)<=48)) {
-      list.scrollTop=list.scrollHeight;
-    }
-  }
-
-  async function sendMessage(){
-    if(!customerName) return startChat();
-    const msg = (input.value||'').trim(); if(!msg) return;
-    const localId='local-'+Date.now(); appendBubble(msg,'customer',localId,true); input.value='';
-    try{
-      const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeDomain:store,sessionId:SID,sender:'customer',name:customerName,message:msg})});
-      const data=await res.json().catch(()=>null);
-      if(data&&data.ok&&data.message){ if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt; }
-    }catch(e){console.warn('send error',e);}
-  }
-  sendBtn.addEventListener('click',sendMessage);
-  input.addEventListener('keydown',e=>{if(e.key==='Enter') sendMessage();});
-
-  fileInput.addEventListener('change',async()=>{
-    if(!customerName) return startChat();
-    const file=fileInput.files[0]; if(!file) return;
-    const localId='file-'+Date.now();
-    if(file.type.startsWith('image/')) appendFileBubble(URL.createObjectURL(file),null,'customer',localId,true);
-    else appendFileBubble(null,file.name,'customer',localId,true);
-
-    try{
-      const formData=new FormData();
-      formData.append('file',file);
-      formData.append('storeDomain',store);
-      formData.append('sessionId',SID);
-      formData.append('sender','customer');
-      formData.append('name',customerName);
-
-      const res=await fetch(endpoint,{method:'POST',body:formData});
-      const data=await res.json().catch(()=>null);
-
-      if(data && data.ok && data.message){
-        const bubble = list.querySelector(`.oc-bubble[data-id="${localId}"]`);
-        if(bubble){
-          bubble.innerHTML='';
-          const fullUrl = data.message.fileUrl.startsWith("http")
-            ? data.message.fileUrl
-            : BASE_URL + data.message.fileUrl.replace(/^\//, "");
-          
-          if (fullUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
-            const img=document.createElement('img'); 
-            img.src=fullUrl; 
-            bubble.appendChild(img); 
-          } else if(data.message.fileName){ 
-            const link=document.createElement('a'); 
-            link.href=fullUrl;
-            link.textContent=data.message.fileName; 
-            link.target="_blank"; 
-            bubble.appendChild(link); 
+    function getShopDomain() {
+      try {
+        const host = window.location.host;
+        if (host.includes("myshopify.com")) return host;
+        if (host.includes("admin.shopify.com")) {
+          const parts = window.location.pathname.split("/");
+          const storeIndex = parts.indexOf("store");
+          if (storeIndex !== -1 && parts.length > storeIndex + 1) {
+            return parts[storeIndex + 1] + ".myshopify.com";
           }
         }
-      }
-
-    }catch(e){console.warn('upload error',e);}
-    fileInput.value='';
-  });
-
-  async function poll(){
-    try{
-      const url=new URL(endpoint);
-      url.searchParams.set('storeDomain',store);
-      url.searchParams.set('sessionId',SID);
-      if(lastISO) url.searchParams.set('since',lastISO);
-      const r=await fetch(url.toString()); const data=await r.json();
-      if(data&&data.ok&&Array.isArray(data.messages)&&data.messages.length){
-        const userWasNearBottom=(list.scrollHeight - (list.scrollTop+list.clientHeight)<=48);
-        data.messages.forEach(m=>{
-          const mid=m.id??m.createdAt;
-          if(m.fileUrl) appendFileBubble(m.fileUrl,m.fileName||null,m.sender,mid,false);
-          else appendBubble(m.text,m.sender,mid,false);
-          lastISO=m.createdAt;
-        });
-        if(!userWasNearBottom) newPill.style.display='inline-flex';
-      }
-    }catch(e){console.warn(e);}
-  }
-
-  (async function init(){
-    const url=new URL(endpoint); url.searchParams.set('storeDomain',store); url.searchParams.set('sessionId',SID);
-    const r=await fetch(url.toString()); const data=await r.json();
-    if(data&&data.ok&&Array.isArray(data.messages)){
-      data.messages.forEach(m=>{ 
-        const mid=m.id??m.createdAt; 
-        if(m.fileUrl) appendFileBubble(m.fileUrl,m.fileName||null,m.sender,mid,false); 
-        else appendBubble(m.text,m.sender,mid,false); 
-      });
-      if(data.messages.length) lastISO=data.messages[data.messages.length-1].createdAt; list.scrollTop=list.scrollHeight;
+      } catch (err) { console.error(err); }
+      return null;
     }
-    setInterval(poll,3000);
-  })();
-})();
-</script>
+
+    (function(){
+      const BASE_URL = "https://omnichannel-communication-3d7329b35a37.herokuapp.com/";
+      const root     = document.getElementById('oc-chat');
+      const store    = root.dataset.store || getShopDomain();
+      const endpoint = root.dataset.endpoint;
+
+      const btnToggle = root.querySelector('.oc-chat-toggle');
+      const panel     = root.querySelector('.oc-chat-container');
+      const closeBtn  = root.querySelector('.oc-close-btn');
+      const list      = root.querySelector('.oc-chat-messages');
+      const input     = root.querySelector('.oc-chat-input input[type="text"]');
+      const sendBtn   = root.querySelector('.oc-chat-input button');
+      const newPill   = root.querySelector('.oc-new-pill');
+      const fileInput = root.querySelector('#oc-file-input');
+
+      const nameOverlay = root.querySelector('.oc-name-overlay');
+      const nameInput = nameOverlay.querySelector('input[type="text"]');
+      const nameBtn = nameOverlay.querySelector('button');
+
+      const sidKey = 'oc_chat_sid';
+      function uuid() { return 'xxxxxxxyxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16); }); }
+      let SID = localStorage.getItem(sidKey);
+      if(!SID){ SID = uuid(); localStorage.setItem(sidKey,SID); }
+      let customerName = localStorage.getItem('oc_chat_name') || '';
+
+      function startChat(){
+        const name = (nameInput.value||'').trim();
+        if(!name) return alert('Please enter your name.');
+        customerName = name;
+        localStorage.setItem('oc_chat_name', name);
+        nameOverlay.style.display = 'none';
+        panel.classList.add('open');
+      }
+
+      nameBtn.addEventListener('click', startChat);
+      nameInput.addEventListener('keydown', e => { if(e.key==='Enter') startChat(); });
+
+      btnToggle.addEventListener('click', ()=>{
+        if(!customerName) nameOverlay.style.display = 'flex';
+        else { panel.classList.add('open'); requestAnimationFrame(()=> list.scrollTop = list.scrollHeight); newPill.style.display='none'; }
+      });
+      closeBtn.addEventListener('click', ()=> panel.classList.remove('open'));
+
+      const renderedIds = new Set();
+      let lastISO = null;
+
+      function appendBubble(text,sender,id,forceScroll=false){
+        if(id&&renderedIds.has(id)) return; if(id) renderedIds.add(id);
+        const b=document.createElement('div'); b.className=sender==='customer'?'oc-bubble oc-me':'oc-bubble oc-them';
+        b.textContent=text; if(id) b.dataset.id=id; list.appendChild(b);
+        if(forceScroll||list.scrollHeight - (list.scrollTop+list.clientHeight)<=48) list.scrollTop=list.scrollHeight;
+      }
+
+      async function sendMessage(){
+        if(!customerName) return startChat();
+        const msg = (input.value||'').trim(); if(!msg) return;
+        const localId='local-'+Date.now(); appendBubble(msg,'customer',localId,true); input.value='';
+        try{
+          const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeDomain:store,sessionId:SID,sender:'customer',name:customerName,message:msg})});
+          const data=await res.json().catch(()=>null);
+          if(data&&data.ok&&data.message){ if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt; }
+        }catch(e){console.warn('send error',e);}
+      }
+      sendBtn.addEventListener('click',sendMessage);
+      input.addEventListener('keydown',e=>{if(e.key==='Enter') sendMessage();});
+
+      fileInput.addEventListener('change',async()=>{
+        if(!customerName) return startChat();
+        const file=fileInput.files[0]; if(!file) return;
+        await handleFileUpload(file, store, SID, customerName, list, BASE_URL);
+        fileInput.value='';
+      });
+
+      async function poll(){
+        try{
+          const url=new URL(endpoint);
+          url.searchParams.set('storeDomain',store);
+          url.searchParams.set('sessionId',SID);
+          if(lastISO) url.searchParams.set('since',lastISO);
+          const r=await fetch(url.toString()); const data=await r.json();
+          if(data&&data.ok&&Array.isArray(data.messages)&&data.messages.length){
+            const userWasNearBottom=(list.scrollHeight - (list.scrollTop+list.clientHeight)<=48);
+            data.messages.forEach(m=>{
+              const mid=m.id??m.createdAt;
+              if(m.fileUrl) appendBubble(m.text,m.sender,mid,false);
+              else appendBubble(m.text,m.sender,mid,false);
+              lastISO=m.createdAt;
+            });
+            if(!userWasNearBottom) newPill.style.display='inline-flex';
+          }
+        }catch(e){console.warn(e);}
+      }
+
+      (async function init(){
+        const url=new URL(endpoint); url.searchParams.set('storeDomain',store); url.searchParams.set('sessionId',SID);
+        const r=await fetch(url.toString()); const data=await r.json();
+        if(data&&data.ok&&Array.isArray(data.messages)){
+          data.messages.forEach(m=>{ 
+            const mid=m.id??m.createdAt; 
+            if(m.fileUrl) appendBubble(m.text,m.sender,mid,false); 
+            else appendBubble(m.text,m.sender,mid,false); 
+          });
+          if(data.messages.length) lastISO=data.messages[data.messages.length-1].createdAt; list.scrollTop=list.scrollHeight;
+        }
+        setInterval(poll,3000);
+      })();
+    })();
+  </script>
 </div>
 
 {% schema %}
