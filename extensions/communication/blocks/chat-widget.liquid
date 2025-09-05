@@ -260,7 +260,9 @@ function getShopDomain() {
     if(id) b.dataset.id=id;
     if(fileUrl && fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)){ 
       const img=document.createElement('img'); 
-      img.src=fileUrl.startsWith('http')?fileUrl:origin+fileUrl; 
+      console.log("check-image----->", origin);
+      console.log("fileUrl-image----->", fileUrl);
+      img.src=fileUrl.startsWith('http')?fileUrl:'https://omnichannel-communication-3d7329b35a37.herokuapp.com/'+fileUrl; 
       b.appendChild(img); 
     } else if(fileName){ 
       const link=document.createElement('a'); link.href=fileUrl||"#"; link.textContent=fileName; link.target="_blank"; b.appendChild(link); 
@@ -304,7 +306,7 @@ function getShopDomain() {
         if(bubble){ bubble.innerHTML='';
           if(data.message.fileUrl && data.message.fileUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)){ 
             const img=document.createElement('img'); 
-            img.src=data.message.fileUrl.startsWith('http')?data.message.fileUrl:'https://omnichannel-communication-3d7329b35a37.herokuapp.com/'+data.message.fileUrl; 
+            img.src=data.message.fileUrl.startsWith('http')?data.message.fileUrl:window.location.origin+data.message.fileUrl; 
             bubble.appendChild(img); 
           } else if(data.message.fileName){ 
             const link=document.createElement('a'); link.href=data.message.fileUrl||"#"; link.textContent=data.message.fileName; link.target="_blank"; bubble.appendChild(link); 

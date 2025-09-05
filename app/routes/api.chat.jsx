@@ -23,8 +23,11 @@ export async function loader({ request }) {
     return new Response(null, { headers: corsHeaders });
 
   const url = new URL(request.url);
-  const storeDomain = url.searchParams.get("store_domain") || url.searchParams.get("storeDomain");
-  const sessionId = url.searchParams.get("session_id") || url.searchParams.get("sessionId");
+  const storeDomain =
+    url.searchParams.get("store_domain") ||
+    url.searchParams.get("storeDomain");
+  const sessionId =
+    url.searchParams.get("session_id") || url.searchParams.get("sessionId");
   const widget = url.searchParams.get("widget") === "true";
   const stream = url.searchParams.get("stream") === "true";
 
@@ -58,52 +61,69 @@ export async function loader({ request }) {
   }
 
   // ----------------- SSE stream -----------------
-// ----------------- SSE stream -----------------
 if (stream) {
   if (!storeDomain || !sessionId) {
-    return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
+    return json(
+      { ok: false, error: "Missing params" },
+      { status: 400, headers: corsHeaders }
+    );
   }
 
-  // Start with earliest message if any
   let lastTimestamp = null;
+  const encoder = new TextEncoder();
+
+  let interval; // declare outside so cancel can access it
 
   const sseStream = new ReadableStream({
     async start(controller) {
-      // Send all existing messages first
-      const initialMessages = await prisma.storeChatMessage.findMany({
-        where: { storeDomain, sessionId },
-        orderBy: { createdAt: "asc" },
-      });
+      try {
+        // Send all existing messages first
+        const initialMessages = await prisma.storeChatMessage.findMany({
+          where: { storeDomain, sessionId },
+          orderBy: { createdAt: "asc" },
+        });
 
-      initialMessages.forEach((msg) => {
-        controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
-        lastTimestamp = new Date(msg.createdAt);
-      });
+        initialMessages.forEach((msg) => {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(msg)}\n\n`)
+          );
+          lastTimestamp = new Date(msg.createdAt);
+        });
 
-      // Poll new messages every 1s
-      const interval = setInterval(async () => {
-        try {
-          const messages = await prisma.storeChatMessage.findMany({
-            where: lastTimestamp
-              ? { storeDomain, sessionId, createdAt: { gt: lastTimestamp } }
-              : { storeDomain, sessionId },
-            orderBy: { createdAt: "asc" },
-          });
+        // Start polling
+        interval = setInterval(async () => {
+          try {
+            const messages = await prisma.storeChatMessage.findMany({
+              where: lastTimestamp
+                ? { storeDomain, sessionId, createdAt: { gt: lastTimestamp } }
+                : { storeDomain, sessionId },
+              orderBy: { createdAt: "asc" },
+            });
 
-          messages.forEach((msg) => {
-            controller.enqueue(`data: ${JSON.stringify(msg)}\n\n`);
-            lastTimestamp = new Date(msg.createdAt);
-          });
-        } catch (err) {
-          console.error("Error fetching chat messages:", err);
-        }
-      }, 1000);
+            for (const msg of messages) {
+              try {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify(msg)}\n\n`)
+                );
+                lastTimestamp = new Date(msg.createdAt);
+              } catch {
+                // stream is already closed, stop polling
+                clearInterval(interval);
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching chat messages:", err);
+          }
+        }, 1000);
+      } catch (err) {
+        console.error("Error starting SSE:", err);
+      }
+    },
 
-      // Cleanup
-      controller.signal.addEventListener("abort", () => {
+    async cancel() {
+      if (interval) {
         clearInterval(interval);
-        controller.close();
-      });
+      }
     },
   });
 
@@ -120,7 +140,10 @@ if (stream) {
 
   // ----------------- Fetch messages for a session -----------------
   if (!storeDomain || !sessionId) {
-    return json({ ok: false, error: "Missing params" }, { status: 400, headers: corsHeaders });
+    return json(
+      { ok: false, error: "Missing params" },
+      { status: 400, headers: corsHeaders }
+    );
   }
 
   const messages = await prisma.storeChatMessage.findMany({
@@ -137,7 +160,13 @@ export async function action({ request }) {
   if (request.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
-  let sessionId, storeDomain, sender, message = null, name = null, fileUrl = null, fileName = null;
+  let sessionId,
+    storeDomain,
+    sender,
+    message = null,
+    name = null,
+    fileUrl = null,
+    fileName = null;
 
   if (request.headers.get("content-type")?.includes("multipart/form-data")) {
     const formData = await request.formData();
