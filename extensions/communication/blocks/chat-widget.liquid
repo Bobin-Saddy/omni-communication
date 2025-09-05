@@ -255,44 +255,31 @@ function getShopDomain() {
     if(forceScroll||list.scrollHeight - (list.scrollTop+list.clientHeight)<=48) list.scrollTop=list.scrollHeight;
   }
 
-function appendFileBubble(fileUrl, fileName, sender, id, forceScroll=false){
-  if(id && renderedIds.has(id)) return; 
-  if(id) renderedIds.add(id);
+  function appendFileBubble(fileUrl,fileName,sender,id,forceScroll=false){
+    if(id&&renderedIds.has(id)) return; if(id) renderedIds.add(id);
+    const b=document.createElement('div'); 
+    b.className=sender==='customer'?'oc-bubble oc-me oc-file-bubble':'oc-bubble oc-them oc-file-bubble';
+    if(id) b.dataset.id=id;
 
-  const b = document.createElement('div'); 
-  b.className = sender==='customer' ? 'oc-bubble oc-me oc-file-bubble' : 'oc-bubble oc-them oc-file-bubble';
-  if(id) b.dataset.id=id;
+    const fullUrl = fileUrl
+      ? (fileUrl.startsWith("http") ? fileUrl : BASE_URL + fileUrl.replace(/^\//,""))
+      : null;
 
-  if (fileUrl) {
-    const fullUrl = fileUrl.startsWith("http")
-      ? fileUrl
-      : BASE_URL + fileUrl.replace(/^\//, "");
-
-    if (fullUrl.match(/\.(jpeg|jpg|png|gif|webp|png)$/i)) {
+    if (fullUrl && fullUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
       const img = document.createElement("img");
       img.src = fullUrl;
-      img.alt = fileName || "image";
       b.appendChild(img);
-    } else {
+    } else if (fileName) {
       const link = document.createElement("a");
-      link.href = fullUrl;
-      link.textContent = fileName || "Download file";
+      link.href = fullUrl || "#";
+      link.textContent = fileName;
       link.target = "_blank";
       b.appendChild(link);
     }
-  } else if (fileName) {
-    // Agar sirf name hai, url nahi
-    const span = document.createElement("span");
-    span.textContent = fileName;
-    b.appendChild(span);
-  }
 
-  list.appendChild(b); 
-  if(forceScroll || (list.scrollHeight - (list.scrollTop+list.clientHeight)<=48)) {
-    list.scrollTop=list.scrollHeight;
+    list.appendChild(b); 
+    if(forceScroll||(list.scrollHeight - (list.scrollTop+list.clientHeight)<=48)) list.scrollTop=list.scrollHeight;
   }
-}
-
 
   async function sendMessage(){
     if(!customerName) return startChat();
@@ -307,51 +294,47 @@ function appendFileBubble(fileUrl, fileName, sender, id, forceScroll=false){
   sendBtn.addEventListener('click',sendMessage);
   input.addEventListener('keydown',e=>{if(e.key==='Enter') sendMessage();});
 
-fileInput.addEventListener('change',async()=>{
-  if(!customerName) return startChat();
-  const file=fileInput.files[0]; if(!file) return;
-  const localId='file-'+Date.now();
-  if(file.type.startsWith('image/')) appendFileBubble(URL.createObjectURL(file),null,'customer',localId,true);
-  else appendFileBubble(null,file.name,'customer',localId,true);
+  fileInput.addEventListener('change',async()=>{
+    if(!customerName) return startChat();
+    const file=fileInput.files[0]; if(!file) return;
+    const localId='file-'+Date.now();
+    if(file.type.startsWith('image/')) appendFileBubble(URL.createObjectURL(file),null,'customer',localId,true);
+    else appendFileBubble(null,file.name,'customer',localId,true);
 
-  try{
-    const formData=new FormData();
-    formData.append('file',file);
-    formData.append('storeDomain',store);
-    formData.append('sessionId',SID);
-    formData.append('sender','customer');
-    formData.append('name',customerName);
+    try{
+      const formData=new FormData();
+      formData.append('file',file);
+      formData.append('storeDomain',store);
+      formData.append('sessionId',SID);
+      formData.append('sender','customer');
+      formData.append('name',customerName);
 
-    const res=await fetch(endpoint,{method:'POST',body:formData});
-    const data=await res.json().catch(()=>null);
-
-    // 👇 Yahin replace karna hai
- if(data && data.ok && data.message){
-  const bubble = list.querySelector(`.oc-bubble[data-id="${localId}"]`);
-  if(bubble){
-    bubble.innerHTML='';
-    const fullUrl = data.message.fileUrl.startsWith("http")
-      ? data.message.fileUrl
-      : BASE_URL + data.message.fileUrl.replace(/^\//, "");
-    
-    if (fullUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
-      const img=document.createElement('img'); 
-      img.src=fullUrl; 
-      bubble.appendChild(img); 
-    } else if(data.message.fileName){ 
-      const link=document.createElement('a'); 
-      link.href=fullUrl;
-      link.textContent=data.message.fileName; 
-      link.target="_blank"; 
-      bubble.appendChild(link); 
-    }
-  }
-}
-
-  }catch(e){console.warn('upload error',e);}
-  fileInput.value='';
-});
-
+      const res=await fetch(endpoint,{method:'POST',body:formData});
+      const data=await res.json().catch(()=>null);
+      if(data&&data.ok&&data.message){
+        const bubble=list.querySelector(`.oc-bubble[data-id="${localId}"]`);
+        if(bubble){ 
+          bubble.innerHTML='';
+          const fullUrl = data.message.fileUrl.startsWith("http")
+            ? data.message.fileUrl
+            : BASE_URL + data.message.fileUrl.replace(/^\//,"");
+          if(/\.(jpeg|jpg|png|gif|webp)$/i.test(data.message.fileUrl)){
+            const img=document.createElement('img');
+            img.src=fullUrl;
+            bubble.appendChild(img);
+          } else if(data.message.fileName){
+            const link=document.createElement('a');
+            link.href=fullUrl;
+            link.textContent=data.message.fileName;
+            link.target="_blank";
+            bubble.appendChild(link);
+          }
+        }
+        if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt;
+      }
+    }catch(e){console.warn('upload error',e);}
+    fileInput.value='';
+  });
 
   async function poll(){
     try{
