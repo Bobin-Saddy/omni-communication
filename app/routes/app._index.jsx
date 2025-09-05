@@ -44,16 +44,18 @@ useEffect(() => {
 
   /** ----------------- SSE for chatwidget (real-time) ----------------- **/
 useEffect(() => {
-  if (!activeConversation) return; // ✅ guard null
+  if (!activeConversation) return;
   if (activeConversation.pageType !== "chatwidget") return;
-  if (activeConversation.storeDomain !== shopDomain) return; // only current store
+  if (activeConversation.storeDomain !== shopDomain) return;
+
+  console.log("📡 Opening SSE for", activeConversation.id);
 
   const es = new EventSource(
     `/api/chat?sessionId=${activeConversation.id}&storeDomain=${encodeURIComponent(activeConversation.storeDomain)}&stream=true`
   );
 
   es.onmessage = (event) => {
-      console.log("🔴 SSE incoming:", event.data);
+    console.log("🔴 SSE incoming:", event.data);
     try {
       const data = JSON.parse(event.data);
       setMessages((prev) => ({
@@ -78,8 +80,12 @@ useEffect(() => {
     es.close();
   };
 
-  return () => es.close();
-}, [activeConversation, shopDomain]);
+  return () => {
+    console.log("🛑 Closing SSE for", activeConversation.id);
+    es.close();
+  };
+}, [activeConversation?.id, activeConversation?.storeDomain, shopDomain]);
+
 
 
 
