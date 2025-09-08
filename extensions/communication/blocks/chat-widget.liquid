@@ -255,31 +255,54 @@ function getShopDomain() {
     if(forceScroll||list.scrollHeight - (list.scrollTop+list.clientHeight)<=48) list.scrollTop=list.scrollHeight;
   }
 
-  function appendFileBubble(fileUrl,fileName,sender,id,forceScroll=false){
-    if(id&&renderedIds.has(id)) return; if(id) renderedIds.add(id);
-    const b=document.createElement('div'); 
-    b.className=sender==='customer'?'oc-bubble oc-me oc-file-bubble':'oc-bubble oc-them oc-file-bubble';
-    if(id) b.dataset.id=id;
+function appendFileBubble(fileUrl, fileName, sender, id, forceScroll = false) {
+  if (id && renderedIds.has(id)) return;
+  if (id) renderedIds.add(id);
 
-    const fullUrl = fileUrl
-      ? (fileUrl.startsWith("http") ? fileUrl : BASE_URL + fileUrl.replace(/^\//,""))
-      : null;
+  const b = document.createElement('div');
+  b.className = sender === 'customer'
+    ? 'oc-bubble oc-me oc-file-bubble'
+    : 'oc-bubble oc-them oc-file-bubble';
+  if (id) b.dataset.id = id;
 
-    if (fullUrl && fullUrl.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
-      const img = document.createElement("img");
-      img.src = fullUrl;
-      b.appendChild(img);
-    } else if (fileName) {
-      const link = document.createElement("a");
-      link.href = fullUrl || "#";
-      link.textContent = fileName;
-      link.target = "_blank";
-      b.appendChild(link);
+  let fullUrl = null;
+  if (fileUrl) {
+    // ✅ Do NOT prefix blob/data urls. Only prefix relative paths.
+    if (/^(https?:|blob:|data:)/i.test(fileUrl)) {
+      fullUrl = fileUrl;
+    } else {
+      fullUrl = BASE_URL + fileUrl.replace(/^\//, "");
     }
-
-    list.appendChild(b); 
-    if(forceScroll||(list.scrollHeight - (list.scrollTop+list.clientHeight)<=48)) list.scrollTop=list.scrollHeight;
   }
+
+  // ✅ Blob URLs here are only used for local image previews (we only passed them when file.type.startsWith('image/'))
+  const isImageUrl =
+    !!fullUrl &&
+    (/^blob:/i.test(fullUrl) ||
+     /^data:image\//i.test(fullUrl) ||
+     /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fullUrl));
+
+  if (isImageUrl) {
+    const img = document.createElement("img");
+    img.src = fullUrl;
+    img.alt = fileName || "image";
+    b.appendChild(img);
+  } else if (fileName) {
+    const link = document.createElement("a");
+    link.href = fullUrl || "#";
+    link.textContent = fileName;
+    link.target = "_blank";
+    b.appendChild(link);
+  } else {
+    b.textContent = "📎 " + (fileName || "file");
+  }
+
+  list.appendChild(b);
+  if (forceScroll || (list.scrollHeight - (list.scrollTop + list.clientHeight) <= 48)) {
+    list.scrollTop = list.scrollHeight;
+  }
+}
+
 
   async function sendMessage(){
     if(!customerName) return startChat();
@@ -288,7 +311,43 @@ function getShopDomain() {
     try{
       const res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({storeDomain:store,sessionId:SID,sender:'customer',name:customerName,message:msg})});
       const data=await res.json().catch(()=>null);
-      if(data&&data.ok&&data.message){ if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt; }
+      if (data && data.ok && data.message) {
+  const bubble = list.querySelector(`.oc-bubble[data-id="${localId}"]`);
+  if (bubble) {
+    bubble.innerHTML = '';
+
+    let fullUrl = data.message.fileUrl || null;
+    if (fullUrl && !/^(https?:|blob:|data:)/i.test(fullUrl)) {
+      fullUrl = BASE_URL + fullUrl.replace(/^\//, "");
+    }
+
+    // ✅ Detect image based on mimeType OR extension
+    const mimeType = data.message.fileType || "";  // <-- add this in backend if possible
+    const fileName = data.message.fileName || "";
+
+    const isImage =
+      mimeType.startsWith("image/") ||
+      /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fileName) ||
+      /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(fullUrl || "");
+
+    if (isImage) {
+      const img = document.createElement("img");
+      img.src = fullUrl;
+      img.alt = fileName || "image";
+      bubble.appendChild(img);
+    } else {
+      const link = document.createElement("a");
+      link.href = fullUrl || "#";
+      link.textContent = fileName || "file";
+      link.target = "_blank";
+      bubble.appendChild(link);
+    }
+  }
+
+  if (data.message.id) renderedIds.add(data.message.id);
+  if (data.message.createdAt) lastISO = data.message.createdAt;
+}
+
     }catch(e){console.warn('send error',e);}
   }
   sendBtn.addEventListener('click',sendMessage);
