@@ -182,8 +182,7 @@ export async function action({ request }) {
     storeDomain = body.storeDomain || body.store_domain;
     message = body.message || null;
     sender = body.sender || "me";
-    name = name || `User-${sessionId}`;
-
+    name = body.name || `User-${sessionId}`;
 
     if (!storeDomain || (!message && !body.fileUrl))
       return json({ ok: false, error: "Missing fields" }, { status: 400, headers: corsHeaders });
@@ -205,15 +204,8 @@ export async function action({ request }) {
 
   // Save message
   const savedMessage = await prisma.storeChatMessage.create({
-     data: {
-    sessionId,
-    storeDomain,
-    sender,
-    name: name || `User-${sessionId}`,
-    text: message,
-    fileUrl,
-    fileName,
-  },
+    data: { sessionId, storeDomain, sender, name, text: message, fileUrl, fileName },
+    
   });
 
   return json({ ok: true, message: savedMessage }, { headers: corsHeaders });

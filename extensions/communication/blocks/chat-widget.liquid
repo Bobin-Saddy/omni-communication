@@ -334,37 +334,27 @@ function appendFileBubble(fileUrl, fileName, sender, id, forceScroll = false) {
 
       const res=await fetch(endpoint,{method:'POST',body:formData});
       const data=await res.json().catch(()=>null);
-if (data && data.ok && data.message) {
-  const bubble = list.querySelector(`.oc-bubble[data-id="${localId}"]`);
-  if (bubble) {
-    bubble.innerHTML = "";
-    const fullUrl = data.message.fileUrl.startsWith("http")
-      ? data.message.fileUrl
-      : BASE_URL + data.message.fileUrl.replace(/^\//, "");
-
-    // ✅ Smarter check: use server mime OR fallback to extension
-    const isImage =
-      (data.message.mimeType && data.message.mimeType.startsWith("image/")) ||
-      /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(data.message.fileUrl);
-
-    if (isImage) {
-      const img = document.createElement("img");
-      img.src = fullUrl;
-      img.alt = data.message.fileName || "image";
-      bubble.appendChild(img);
-    } else {
-      const link = document.createElement("a");
-      link.href = fullUrl;
-      link.textContent = data.message.fileName || "file";
-      link.target = "_blank";
-      bubble.appendChild(link);
-    }
-  }
-
-  if (data.message.id) renderedIds.add(data.message.id);
-  if (data.message.createdAt) lastISO = data.message.createdAt;
-}
-
+      if(data&&data.ok&&data.message){
+        const bubble=list.querySelector(`.oc-bubble[data-id="${localId}"]`);
+        if(bubble){ 
+          bubble.innerHTML='';
+          const fullUrl = data.message.fileUrl.startsWith("http")
+            ? data.message.fileUrl
+            : BASE_URL + data.message.fileUrl.replace(/^\//,"");
+          if(/\.(jpeg|jpg|png|gif|webp)$/i.test(data.message.fileUrl)){
+            const img=document.createElement('img');
+            img.src=fullUrl;
+            bubble.appendChild(img);
+          } else if(data.message.fileName){
+            const link=document.createElement('a');
+            link.href=fullUrl;
+            link.textContent=data.message.fileName;
+            link.target="_blank";
+            bubble.appendChild(link);
+          }
+        }
+        if(data.message.id) renderedIds.add(data.message.id); if(data.message.createdAt) lastISO=data.message.createdAt;
+      }
     }catch(e){console.warn('upload error',e);}
     fileInput.value='';
   });
