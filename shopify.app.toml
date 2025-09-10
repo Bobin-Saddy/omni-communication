@@ -3,11 +3,10 @@
 client_id = "9bd04785598160185f3b5d64532b818e"
 name = "omni-communication"
 handle = "omni-communication"
-application_url = "https://wound-architects-congress-keys.trycloudflare.com"
+application_url = "https://omnichannel-communication-3d7329b35a37.herokuapp.com/"
 embedded = true
 
 [build]
-include_config_on_deploy = true
 automatically_update_urls_on_dev = true
 
 [webhooks]
@@ -27,9 +26,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://wound-architects-congress-keys.trycloudflare.com/auth/callback",
-  "https://wound-architects-congress-keys.trycloudflare.com/auth/shopify/callback",
-  "https://wound-architects-congress-keys.trycloudflare.com/api/auth/callback"
+  "https://omnichannel-communication-3d7329b35a37.herokuapp.com/auth/callback",
+  "https://omnichannel-communication-3d7329b35a37.herokuapp.com/auth/shopify/callback",
+  "https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/auth/callback"
 ]
 
 [pos]

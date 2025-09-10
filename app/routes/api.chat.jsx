@@ -6,15 +6,25 @@ const prisma = new PrismaClient();
 // ----------------- CORS -----------------
 function getCorsHeaders(request) {
   const origin = request.headers.get("Origin") || "";
-  if (origin.endsWith(".myshopify.com")) {
+  
+  // Allow Shopify stores and Shopify admin
+  if (origin.endsWith(".myshopify.com") || origin.includes("admin.shopify.com")) {
     return {
       "Access-Control-Allow-Origin": origin,
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Credentials": "true",
     };
   }
-  return { "Access-Control-Allow-Origin": "null" };
+
+  // For development/testing, allow everything
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
 }
+
 
 // ----------------- LOADER -----------------
 export async function loader({ request }) {
