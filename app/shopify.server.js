@@ -7,7 +7,8 @@ import {
   BillingInterval,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
-import { restResources } from "@shopify/shopify-api/rest/admin/2023-10";
+import { restResources } from "@shopify/shopify-api/rest/admin/2025-04";
+
 import prisma from "./db.server";
 
 export const FREE_PLAN = "Free plan";
