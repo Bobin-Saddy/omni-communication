@@ -1,34 +1,45 @@
 import express from "express";
-import cors from "cors";
+import { createRequestHandler } from "@remix-run/express";
+import { fileURLToPath } from "url";
+import path from "path";
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
+import cors from "cors";
 import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
 
+dotenv.config();
+
+// ----------------------
+// Express + Remix setup
+// ----------------------
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-// Multer for temporary file storage
+app.use(cors());
+app.use(express.static("public"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ----------------------
+// Cloudinary Upload Setup
+// ----------------------
 const upload = multer({ dest: "tmp/" });
 
-// Cloudinary config
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Upload API
 app.post("/routes/api.chat", upload.single("file"), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: "chat_uploads",
     });
 
-    // cleanup temp file
     fs.unlinkSync(req.file.path);
 
     res.json({
@@ -44,5 +55,20 @@ app.post("/routes/api.chat", upload.single("file"), async (req, res) => {
   }
 });
 
-app.use(cors());
-app.listen(3000, () => console.log("🚀 Server running on port 3000"));
+// ----------------------
+// Remix request handler
+// ----------------------
+app.all(
+  "*",
+  createRequestHandler({
+    build: await import("./build/server/index.js"),
+  })
+);
+
+// ----------------------
+// Start server
+// ----------------------
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
