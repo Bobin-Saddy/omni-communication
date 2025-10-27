@@ -3,7 +3,7 @@
 client_id = "9bd04785598160185f3b5d64532b818e"
 name = "omni-communication"
 handle = "omni-communication"
-application_url = "https://omnichannel-communication-3d7329b35a37.herokuapp.com/"
+application_url = "https://omni-communication.up.railway.app"
 embedded = true
 
 [build]
