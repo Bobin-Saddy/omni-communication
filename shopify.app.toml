@@ -26,9 +26,9 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [
-  "https://omnichannel-communication-3d7329b35a37.herokuapp.com/auth/callback",
-  "https://omnichannel-communication-3d7329b35a37.herokuapp.com/auth/shopify/callback",
-  "https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/auth/callback"
+  "https://omni-communication-production.up.railway.app/auth/callback",
+  "https://omni-communication-production.up.railway.app/auth/shopify/callback",
+  "https://omni-communication-production.up.railway.app/api/auth/callback"
 ]
 
 [pos]
