@@ -1,6 +1,6 @@
 <div id="oc-chat" 
      data-store="{{ shop.permanent_domain }}" 
-     data-endpoint="https://omnichannel-communication-3d7329b35a37.herokuapp.com/api/chat" 
+     data-endpoint="https://omni-communication-production.up.railway.app/api/chat" 
      class="oc-chat-wrap" 
      style="all: initial;">
 
@@ -202,7 +202,7 @@ function getShopDomain() {
 }
 
 (function(){
-  const BASE_URL = "https://omnichannel-communication-3d7329b35a37.herokuapp.com/";
+  const BASE_URL = "https://omni-communication-production.up.railway.app/";
 
   const root     = document.getElementById('oc-chat');
   const store    = root.dataset.store || getShopDomain();
