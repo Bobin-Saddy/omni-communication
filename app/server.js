@@ -69,6 +69,8 @@ app.all(
 // Start server
 // ----------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => {
+const HOST = process.env.HOST || "0.0.0.0"; // or "127.0.0.1" for local only
+
+app.listen(PORT, HOST, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
