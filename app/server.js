@@ -67,7 +67,12 @@ app.all(
 
 // ----------------------
 // Start server
-// ----------------------
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+delete process.env.HOST;
+delete process.env.BIND_ADDRESS;
+
+const PORT = 3000; // Hardcode for testing
+const HOST = '127.0.0.1'; // Force localhost
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running at http://${HOST}:${PORT}`);
 });
