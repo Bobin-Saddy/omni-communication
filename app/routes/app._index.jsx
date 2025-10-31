@@ -20,8 +20,7 @@ const { shopDomain } = useContext(AppContext);
   const textInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const WHATSAPP_TOKEN =
-    "EAAHvZAZB8ZCmugBPwQXhbTLbZCIufV8QS1bDPcO03hh8V3szv24uzmBcF4xZAGB50ccZBloWLk5UKm3Q14EwzPyZAdlvlcL04qs9gyhvB5WiNjxKiVMkLSZC8JcuxcUUstoLWnFLpCMfqgKODXKFohP9fvpqmchLl1gaHWcLNriZCLkMtWKMq390aINTmtjgX9kEDodvS8Y9sZAGyoIVHl6s7ZALXR6xqQmnvwJ3C39kwh39wExZChC41GyjvnJTlABYH7fuW87wXqZBB66A0CzcORUJvUf4ZD";
+  const WHATSAPP_TOKEN ="EAAHvZAZB8ZCmugBPwQXhbTLbZCIufV8QS1bDPcO03hh8V3szv24uzmBcF4xZAGB50ccZBloWLk5UKm3Q14EwzPyZAdlvlcL04qs9gyhvB5WiNjxKiVMkLSZC8JcuxcUUstoLWnFLpCMfqgKODXKFohP9fvpqmchLl1gaHWcLNriZCLkMtWKMq390aINTmtjgX9kEDodvS8Y9sZAGyoIVHl6s7ZALXR6xqQmnvwJ3C39kwh39wExZChC41GyjvnJTlABYH7fuW87wXqZBB66A0CzcORUJvUf4ZD";
   const WHATSAPP_PHONE_NUMBER_ID = "106660072463312";
 
   const bottomRef = useRef(null);
