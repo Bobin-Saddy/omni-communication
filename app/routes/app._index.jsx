@@ -207,8 +207,7 @@ useEffect(() => {
         const res = await fetch(
           `https://graph.facebook.com/v18.0/${page.pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${page.access_token}`
         );
-        const data = await res.json();
-        
+        const data = await res.json(); 
         if (!Array.isArray(data?.data)) return;
 
         const conversationsWithNames = data.data.map((conv) => {
